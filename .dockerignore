@@ -1,0 +1,15 @@
+node_modules
+server/node_modules
+client/node_modules
+client/dist
+.git
+.gitignore
+.DS_Store
+*.md
+.env
+server/.env
+client/.env
+server/prisma/*.db
+server/prisma/*.db-shm
+server/prisma/*.db-wal
+npm-debug.log*

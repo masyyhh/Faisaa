@@ -1,0 +1,43 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: finora-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-finora}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-finora_secure_password}
+      POSTGRES_DB: ${POSTGRES_DB:-finora}
+    volumes:
+      - finora_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-finora} -d ${POSTGRES_DB:-finora}']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  finora:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        DB_PROVIDER: postgresql
+    container_name: finora-app
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - '${PORT:-5001}:5001'
+    environment:
+      NODE_ENV: production
+      PORT: 5001
+      DATABASE_URL: postgresql://${POSTGRES_USER:-finora}:${POSTGRES_PASSWORD:-finora_secure_password}@postgres:5432/${POSTGRES_DB:-finora}?schema=public
+      JWT_SECRET: ${JWT_SECRET:-finora_production_jwt_secret_change_me_in_env_2026}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-7d}
+      CLIENT_URL: ${CLIENT_URL:-http://localhost:5001}
+      SEED_DEMO: ${SEED_DEMO:-false}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
+      TELEGRAM_CHAT_ID: ${TELEGRAM_CHAT_ID:-}
+
+volumes:
+  finora_pgdata:

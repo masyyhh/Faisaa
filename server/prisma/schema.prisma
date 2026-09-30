@@ -1,0 +1,320 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                   String                 @id @default(uuid())
+  firstName            String
+  lastName             String
+  email                String                 @unique
+  passwordHash         String
+  currency             String                 @default("MVR") // Base currency: MVR
+  secondaryCurrency    String                 @default("USD") // Secondary currency: USD ($)
+  usdToMvrRate         Float                  @default(15.42) // Dynamic exchange rate ($1 = X MVR)
+  dateFormat           String                 @default("MMM dd, yyyy")
+  theme                String                 @default("dark")
+  avatarUrl            String?
+  notifyBudgetAlerts   Boolean                @default(true)
+  notifyBillReminders  Boolean                @default(true)
+  notifyGoalMilestones Boolean                @default(true)
+  telegramEnabled      Boolean                @default(true)
+  telegramBotToken     String?
+  telegramChatId       String?
+  hideBalances         Boolean                @default(false)
+  createdAt            DateTime               @default(now())
+  updatedAt            DateTime               @updatedAt
+
+  accounts              Account[]
+  transactions          Transaction[]
+  categories            Category[]
+  budgets               Budget[]
+  budgetItems           BudgetItem[]
+  savingsGoals          SavingsGoal[]
+  recurringTransactions RecurringTransaction[]
+  bills                 Bill[]
+  notifications         Notification[]
+  tags                  Tag[]
+  currencyExchanges     CurrencyExchange[]
+  exchangeRateHistory   ExchangeRateHistory[]
+}
+
+model Account {
+  id                  String                 @id @default(uuid())
+  userId              String
+  name                String
+  type                String                 // CASH, CHECKING, SAVINGS, CREDIT_CARD, INVESTMENT, LOAN, OTHER
+  balance             Float                  @default(0)
+  initialBalance      Float                  @default(0)
+  currency            String                 @default("MVR") // MVR or USD
+  color               String                 @default("#8B5CF6")
+  icon                String                 @default("landmark")
+  institution         String?
+  lastFour            String?
+  notes               String?
+  isActive            Boolean                @default(true)
+  createdAt           DateTime               @default(now())
+  updatedAt           DateTime               @updatedAt
+
+  user                  User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions          Transaction[]          @relation("AccountTransactions")
+  transferTransactions  Transaction[]          @relation("TransferDestinationAccount")
+  recurringTransactions RecurringTransaction[]
+  bills                 Bill[]
+  exchangesFrom         CurrencyExchange[]     @relation("ExchangeFromAccount")
+  exchangesTo           CurrencyExchange[]     @relation("ExchangeToAccount")
+
+  @@index([userId])
+  @@index([userId, isActive])
+  @@index([userId, currency])
+}
+
+model Category {
+  id                    String                 @id @default(uuid())
+  userId                String
+  name                  String
+  type                  String                 // INCOME, EXPENSE
+  icon                  String                 @default("tag")
+  color                 String                 @default("#8B5CF6")
+  isDefault             Boolean                @default(false)
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+
+  user                  User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions          Transaction[]
+  budgets               Budget[]
+  recurringTransactions RecurringTransaction[]
+  bills                 Bill[]
+
+  @@index([userId, type])
+  @@index([userId, name])
+}
+
+model Transaction {
+  id                  String           @id @default(uuid())
+  userId              String
+  accountId           String
+  transferToAccountId String?
+  categoryId          String?
+  type                String           // INCOME, EXPENSE, TRANSFER
+  amount              Float
+  currency            String           @default("MVR") // MVR or USD
+  exchangeRateUsed    Float            @default(15.42)
+  payee               String
+  description         String?
+  notes               String?
+  date                DateTime
+  isRecurring         Boolean          @default(false)
+  recurringId         String?
+  createdAt           DateTime         @default(now())
+  updatedAt           DateTime         @updatedAt
+
+  user                User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  account             Account          @relation("AccountTransactions", fields: [accountId], references: [id], onDelete: Cascade)
+  transferToAccount   Account?         @relation("TransferDestinationAccount", fields: [transferToAccountId], references: [id], onDelete: SetNull)
+  category            Category?        @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  transactionTags     TransactionTag[]
+
+  @@index([userId, date])
+  @@index([userId, type, date])
+  @@index([userId, categoryId, date])
+  @@index([userId, accountId, date])
+  @@index([userId, accountId])
+  @@index([userId, categoryId])
+  @@index([userId, type])
+  @@index([transferToAccountId])
+}
+
+model CurrencyExchange {
+  id            String   @id @default(uuid())
+  userId        String
+  fromAccountId String?
+  toAccountId   String?
+  fromCurrency  String   // USD or MVR
+  toCurrency    String   // MVR or USD
+  fromAmount    Float
+  toAmount      Float
+  exchangeRate  Float    // MVR per 1 USD
+  notes         String?
+  date          DateTime @default(now())
+  createdAt     DateTime @default(now())
+
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  fromAccount   Account? @relation("ExchangeFromAccount", fields: [fromAccountId], references: [id], onDelete: SetNull)
+  toAccount     Account? @relation("ExchangeToAccount", fields: [toAccountId], references: [id], onDelete: SetNull)
+
+  @@index([userId, date])
+  @@index([fromAccountId])
+  @@index([toAccountId])
+}
+
+model ExchangeRateHistory {
+  id        String   @id @default(uuid())
+  userId    String
+  rate      Float    // 1 USD = X MVR
+  note      String?
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+}
+
+model Tag {
+  id              String           @id @default(uuid())
+  userId          String
+  name            String
+  color           String           @default("#6366F1")
+  createdAt       DateTime         @default(now())
+
+  user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactionTags TransactionTag[]
+
+  @@unique([userId, name])
+  @@index([userId])
+}
+
+model TransactionTag {
+  id            String      @id @default(uuid())
+  transactionId String
+  tagId         String
+
+  transaction   Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  tag           Tag         @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@unique([transactionId, tagId])
+  @@index([transactionId])
+  @@index([tagId])
+}
+
+model Budget {
+  id             String       @id @default(uuid())
+  userId         String
+  name           String
+  month          Int          // 1-12
+  year           Int
+  categoryId     String
+  amount         Float
+  alertThreshold Float        @default(80)
+  color          String?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category       Category     @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  items          BudgetItem[]
+
+  @@unique([userId, categoryId, month, year])
+  @@index([userId, month, year])
+  @@index([userId, year, month])
+}
+
+model BudgetItem {
+  id              String   @id @default(uuid())
+  budgetId        String
+  userId          String
+  name            String
+  allocatedAmount Float
+  spentAmount     Float    @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  budget          Budget   @relation(fields: [budgetId], references: [id], onDelete: Cascade)
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([budgetId])
+  @@index([userId])
+}
+
+model SavingsGoal {
+  id             String    @id @default(uuid())
+  userId         String
+  name           String
+  targetAmount   Float
+  currentAmount  Float     @default(0)
+  targetDate     DateTime?
+  color          String    @default("#8B5CF6")
+  icon           String    @default("piggy-bank")
+  description    String?
+  milestonesJson String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([userId, createdAt])
+}
+
+model RecurringTransaction {
+  id             String    @id @default(uuid())
+  userId         String
+  accountId      String
+  categoryId     String?
+  type           String    // INCOME, EXPENSE
+  amount         Float
+  payee          String
+  description    String?
+  frequency      String    // DAILY, WEEKLY, BIWEEKLY, MONTHLY, QUARTERLY, YEARLY
+  startDate      DateTime
+  endDate        DateTime?
+  nextOccurrence DateTime
+  isActive       Boolean   @default(true)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  account        Account   @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  category       Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+
+  @@index([userId, nextOccurrence])
+  @@index([userId, isActive, nextOccurrence])
+}
+
+model Bill {
+  id             String    @id @default(uuid())
+  userId         String
+  accountId      String?
+  categoryId     String?
+  name           String
+  amount         Float
+  frequency      String    // WEEKLY, BIWEEKLY, MONTHLY, QUARTERLY, YEARLY
+  dueDate        DateTime
+  dueDay         Int       @default(1)
+  status         String    @default("UPCOMING") // UPCOMING, PAID, OVERDUE, PAUSED
+  isSubscription Boolean   @default(true)
+  autoPay        Boolean   @default(false)
+  website        String?
+  notes          String?
+  lastPaidDate   DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  account        Account?  @relation(fields: [accountId], references: [id], onDelete: SetNull)
+  category       Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+
+  @@index([userId, dueDate])
+  @@index([userId, status, dueDate])
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  title     String
+  message   String
+  type      String   // BUDGET_WARNING, BUDGET_OVER, BILL_DUE, GOAL_MILESTONE, SYSTEM
+  severity  String   @default("INFO") // INFO, WARNING, DANGER, SUCCESS
+  isRead    Boolean  @default(false)
+  actionUrl String?
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead])
+  @@index([userId, createdAt])
+}

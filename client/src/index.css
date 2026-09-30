@@ -1,0 +1,232 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --bg-primary: #090a0f;
+    --bg-secondary: #0e1017;
+    --bg-card: #12141c;
+    --bg-elevated: #181b26;
+    --border-subtle: rgba(255, 255, 255, 0.06);
+    --text-primary: #f4f4f5;
+    --text-secondary: #a1a1aa;
+    --accent-primary: #6366f1;
+    --accent-secondary: #10b981;
+  }
+
+  html.light {
+    --bg-primary: #fafafa;
+    --bg-secondary: #ffffff;
+    --bg-card: #ffffff;
+    --bg-elevated: #f4f4f5;
+    --border-subtle: #e4e4e7;
+    --text-primary: #09090b;
+    --text-secondary: #71717a;
+  }
+
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    transition: background-color 0.15s ease, color 0.15s ease;
+  }
+
+  h1, h2, h3, .font-display {
+    font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
+    letter-spacing: -0.025em;
+  }
+
+  /* Tabular numerals for all financial numbers & metrics */
+  .tabular-nums,
+  td,
+  input[type="number"] {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+/* Minimalist subtle scrollbars */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(161, 161, 170, 0.2);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(161, 161, 170, 0.35);
+}
+
+/* =========================================================================
+   MINIMALIST LIGHT ("WHITE") THEME OVERRIDES
+   Clean Zinc/Slate 1px border aesthetic inspired by Mercury & Linear
+   ========================================================================= */
+
+html.light body,
+html.light [class*="bg-[#07"],
+html.light [class*="bg-[#08"],
+html.light [class*="bg-[#09"],
+html.light [class*="bg-[#0B"],
+html.light [class*="bg-[#0D"],
+html.light [class*="bg-[#0E"] {
+  background-color: #fafafa !important;
+  color: #09090b !important;
+}
+
+html.light aside.finora-sidebar,
+html.light header[class*="bg-[#08"],
+html.light header[class*="bg-[#09"] {
+  background-color: rgba(255, 255, 255, 0.92) !important;
+  border-color: #e4e4e7 !important;
+}
+
+html.light nav[class*="bg-[#0D"],
+html.light nav[class*="bg-[#09"] {
+  background-color: rgba(255, 255, 255, 0.96) !important;
+  border-color: #e4e4e7 !important;
+}
+
+/* Cards, Modals, Dropdowns, Select Boxes, and Elevated Containers */
+html.light .finora-card,
+html.light [class*="bg-[#11"],
+html.light [class*="bg-[#12"],
+html.light [class*="bg-[#13"],
+html.light [class*="bg-[#16"],
+html.light [class*="bg-[#17"],
+html.light [class*="bg-[#18"],
+html.light [class*="bg-[#19"] {
+  background-color: #ffffff !important;
+  background-image: none !important;
+  border-color: #e4e4e7 !important;
+  color: #09090b !important;
+  box-shadow: 0 1px 2px 0 rgba(9, 9, 11, 0.03) !important;
+}
+
+/* Subtle surface fills (bg-white/[0.02], bg-white/[0.04], etc.) */
+html.light :not(.hero-card-preserve) > [class*="bg-white/"],
+html.light .finora-card [class*="bg-white/"] {
+  background-color: #f4f4f5 !important;
+  border-color: #e4e4e7 !important;
+}
+
+html.light .finora-card [class*="hover:bg-white/"]:hover {
+  background-color: #e4e4e7 !important;
+}
+
+/* Form Inputs, Selects & Textareas in Light Mode */
+html.light input:not([type="checkbox"]):not([type="color"]),
+html.light select,
+html.light textarea,
+html.light .finora-input {
+  background-color: #ffffff !important;
+  border-color: #d4d4d8 !important;
+  color: #09090b !important;
+}
+
+html.light select option {
+  background-color: #ffffff !important;
+  color: #09090b !important;
+}
+
+/* Borders & Table Dividers in Light Mode */
+html.light [class*="border-white/"] {
+  border-color: #e4e4e7 !important;
+}
+
+html.light [class*="divide-white/"] > :not([hidden]) ~ :not([hidden]) {
+  border-color: #f4f4f5 !important;
+}
+
+/* Typography Contrast in Light Mode */
+html.light .text-white {
+  color: #09090b !important;
+}
+
+html.light .text-slate-200,
+html.light .text-slate-300,
+html.light .text-zinc-300 {
+  color: #3f3f46 !important;
+}
+
+html.light .text-slate-400,
+html.light .text-zinc-400 {
+  color: #71717a !important;
+}
+
+html.light .text-violet-200,
+html.light .text-violet-300,
+html.light .text-violet-400,
+html.light .text-indigo-400 {
+  color: #4f46e5 !important;
+}
+
+html.light .text-emerald-300,
+html.light .text-emerald-400 {
+  color: #059669 !important;
+}
+
+html.light .text-rose-300,
+html.light .text-rose-400 {
+  color: #e11d48 !important;
+}
+
+html.light .text-amber-300,
+html.light .text-amber-400 {
+  color: #d97706 !important;
+}
+
+/* Recharts Tooltip in Light Mode */
+html.light .recharts-default-tooltip {
+  background-color: #ffffff !important;
+  border-color: #e4e4e7 !important;
+  color: #09090b !important;
+  box-shadow: 0 4px 12px rgba(9, 9, 11, 0.08) !important;
+}
+
+html.light .recharts-tooltip-label,
+html.light .recharts-tooltip-item {
+  color: #09090b !important;
+}
+
+/* Preserve Minimalist Dark Primary Balance Card in both Dark & Light Modes */
+html.light .hero-card-preserve {
+  background: #18181b !important;
+  border-color: #27272a !important;
+  color: #ffffff !important;
+}
+
+html.light .hero-card-preserve .text-white,
+html.light .hero-card-preserve button,
+html.light .hero-card-preserve span,
+html.light .hero-card-preserve p {
+  color: #ffffff !important;
+}
+
+html.light .hero-card-preserve .text-emerald-300,
+html.light .hero-card-preserve .text-emerald-400 {
+  color: #34d399 !important;
+}
+
+html.light .hero-card-preserve .text-zinc-400 {
+  color: #a1a1aa !important;
+}
+
+html.light .hero-card-preserve select {
+  background-color: rgba(255, 255, 255, 0.08) !important;
+  border-color: rgba(255, 255, 255, 0.15) !important;
+  color: #ffffff !important;
+}
+
+html.light .hero-card-preserve [class*="bg-white/"] {
+  background-color: rgba(255, 255, 255, 0.08) !important;
+  border-color: rgba(255, 255, 255, 0.14) !important;
+}

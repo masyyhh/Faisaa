@@ -1,0 +1,21 @@
+{
+  "name": "finora",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Finora - Premium Personal Finance & Wealth Tracker",
+  "scripts": {
+    "dev": "node scripts/dev.mjs",
+    "dev:server": "npm --prefix server run dev",
+    "dev:client": "npm --prefix client run dev",
+    "build": "npm --prefix server run prisma:generate && npm --prefix client run build",
+    "start": "NODE_ENV=production npm --prefix server start",
+    "db:sqlite": "node scripts/use-db.mjs sqlite",
+    "db:postgres": "node scripts/use-db.mjs postgres",
+    "prisma:generate": "npm --prefix server run prisma:generate",
+    "prisma:push": "npm --prefix server run prisma:push",
+    "prisma:migrate": "npm --prefix server run prisma:migrate",
+    "prisma:deploy": "npm --prefix server run prisma:deploy",
+    "seed": "npm --prefix server run seed",
+    "postinstall": "npm --prefix server install && npm --prefix client install"
+  }
+}
