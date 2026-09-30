@@ -14,6 +14,16 @@ if (process.env.NODE_ENV !== 'production') {
 
 // Enable SQLite WAL mode & memory-mapped cache for high-concurrency read/write performance
 export async function initDatabasePragmas() {
+  const dbUrl = (process.env.DATABASE_URL || '').trim().toLowerCase();
+  const isSqlite =
+    dbUrl.startsWith('file:') ||
+    dbUrl.startsWith('sqlite:') ||
+    (!dbUrl.startsWith('postgres') && dbUrl.includes('.db'));
+
+  if (!isSqlite) {
+    return;
+  }
+
   try {
     await prisma.$queryRawUnsafe('PRAGMA journal_mode = WAL;');
     await prisma.$queryRawUnsafe('PRAGMA synchronous = NORMAL;');
@@ -21,7 +31,7 @@ export async function initDatabasePragmas() {
     await prisma.$queryRawUnsafe('PRAGMA cache_size = -64000;');
     await prisma.$queryRawUnsafe('PRAGMA foreign_keys = ON;');
   } catch {
-    // Non-SQLite provider (e.g., PostgreSQL) ignores SQLite PRAGMAs
+    // SQLite pragma failure is non-fatal
   }
 }
 
