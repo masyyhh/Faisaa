@@ -15,12 +15,10 @@ if (process.env.NODE_ENV !== 'production') {
 // Enable SQLite WAL mode & memory-mapped cache for high-concurrency read/write performance
 export async function initDatabasePragmas() {
   const dbUrl = (process.env.DATABASE_URL || '').trim().toLowerCase();
-  const isSqlite =
-    dbUrl.startsWith('file:') ||
-    dbUrl.startsWith('sqlite:') ||
-    (!dbUrl.startsWith('postgres') && dbUrl.includes('.db'));
-
-  if (!isSqlite) {
+  
+  // Strictly only execute PRAGMAs if using SQLite (file: or sqlite: prefix)
+  // Never send PRAGMA statements to PostgreSQL or other engines
+  if (!dbUrl.startsWith('file:') && !dbUrl.startsWith('sqlite:')) {
     return;
   }
 
