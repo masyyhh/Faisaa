@@ -25,7 +25,7 @@ app.disable('x-powered-by');
 app.use(
   helmet({
     frameguard: { action: 'deny' },
-    crossOriginResourcePolicy: { policy: 'same-origin' },
+    crossOriginResourcePolicy: false,
     contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'self'"],
@@ -35,31 +35,15 @@ app.use(
         imgSrc: ["'self'", 'data:', 'blob:', 'https:'],
         connectSrc: ["'self'", 'https://api.telegram.org'],
         objectSrc: ["'none'"],
-        upgradeInsecureRequests: isProduction ? [] : null,
+        upgradeInsecureRequests: null,
       },
     },
   })
 );
 
-const allowedOrigins = new Set(
-  [
-    ...(process.env.CLIENT_URL ? process.env.CLIENT_URL.split(',').map((o) => o.trim()) : []),
-    'http://localhost:5173',
-    'http://localhost:5174',
-    'http://127.0.0.1:5173',
-    `http://localhost:${PORT}`,
-  ].filter(Boolean)
-);
-
 app.use(
   cors({
-    origin: (origin, callback) => {
-      // Allow same-origin / server-to-server / curl requests (where origin is undefined)
-      if (!origin || allowedOrigins.has(origin)) {
-        return callback(null, true);
-      }
-      return callback(new Error('Not allowed by CORS'));
-    },
+    origin: true,
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
