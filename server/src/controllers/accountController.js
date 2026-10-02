@@ -149,6 +149,10 @@ export async function getAccountById(req, res, next) {
         totalIncome,
         totalExpenses,
         balanceHistory,
+        transactions: (account.transactions || []).map((tx) => ({
+          ...tx,
+          tags: (tx.transactionTags || []).map((tt) => tt?.tag?.name).filter(Boolean),
+        })),
       },
     });
   } catch (err) {

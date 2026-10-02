@@ -1,32 +1,6 @@
 import prisma from '../prisma/client.js';
 import { recurringSchema } from '../validators/schemas.js';
-
-function advanceNextOccurrence(dateInput, frequency) {
-  const d = new Date(dateInput);
-  switch (frequency) {
-    case 'DAILY':
-      d.setDate(d.getDate() + 1);
-      break;
-    case 'WEEKLY':
-      d.setDate(d.getDate() + 7);
-      break;
-    case 'BIWEEKLY':
-      d.setDate(d.getDate() + 14);
-      break;
-    case 'MONTHLY':
-      d.setMonth(d.getMonth() + 1);
-      break;
-    case 'QUARTERLY':
-      d.setMonth(d.getMonth() + 3);
-      break;
-    case 'YEARLY':
-      d.setFullYear(d.getFullYear() + 1);
-      break;
-    default:
-      d.setMonth(d.getMonth() + 1);
-  }
-  return d;
-}
+import { advanceNextOccurrence, processDueRecurringForUser } from '../services/recurringEngine.js';
 
 export async function getRecurringTransactions(req, res, next) {
   try {
@@ -34,7 +8,7 @@ export async function getRecurringTransactions(req, res, next) {
       where: { userId: req.user.id },
       orderBy: [{ isActive: 'desc' }, { nextOccurrence: 'asc' }],
       include: {
-        account: { select: { id: true, name: true, type: true, color: true } },
+        account: { select: { id: true, name: true, type: true, color: true, currency: true } },
         category: { select: { id: true, name: true, type: true, icon: true, color: true } },
       },
     });
@@ -81,6 +55,7 @@ export async function createRecurringTransaction(req, res, next) {
         categoryId: parsed.categoryId || null,
         type: parsed.type,
         amount: parsed.amount,
+        currency: parsed.currency || acc.currency || 'MVR',
         payee: parsed.payee,
         description: parsed.description || null,
         frequency: parsed.frequency,
@@ -126,6 +101,7 @@ export async function updateRecurringTransaction(req, res, next) {
         ...(parsed.categoryId !== undefined ? { categoryId: parsed.categoryId } : {}),
         ...(parsed.type ? { type: parsed.type } : {}),
         ...(parsed.amount !== undefined ? { amount: parsed.amount } : {}),
+        ...(parsed.currency ? { currency: parsed.currency } : {}),
         ...(parsed.payee ? { payee: parsed.payee } : {}),
         ...(parsed.description !== undefined ? { description: parsed.description } : {}),
         ...(parsed.frequency ? { frequency: parsed.frequency } : {}),
@@ -153,6 +129,7 @@ export async function processRecurringTransactionNow(req, res, next) {
     const { id } = req.params;
     const existing = await prisma.recurringTransaction.findFirst({
       where: { id, userId: req.user.id },
+      include: { account: true, category: true },
     });
 
     if (!existing) {
@@ -163,6 +140,8 @@ export async function processRecurringTransactionNow(req, res, next) {
     }
 
     const nextDate = advanceNextOccurrence(existing.nextOccurrence, existing.frequency);
+    const willDeactivate = existing.endDate ? nextDate > existing.endDate : false;
+    const currency = existing.currency || existing.account?.currency || 'MVR';
 
     const result = await prisma.$transaction(async (tx) => {
       if (existing.type === 'INCOME') {
@@ -184,17 +163,23 @@ export async function processRecurringTransactionNow(req, res, next) {
           categoryId: existing.categoryId,
           type: existing.type,
           amount: existing.amount,
+          currency,
+          exchangeRateUsed: req.user.usdToMvrRate || 15.42,
           payee: existing.payee,
           description: existing.description || `Recurring ${existing.frequency.toLowerCase()} payment`,
           date: new Date(),
           isRecurring: true,
           recurringId: existing.id,
         },
+        include: { account: true, category: true },
       });
 
       const updatedRecurring = await tx.recurringTransaction.update({
         where: { id },
-        data: { nextOccurrence: nextDate },
+        data: {
+          nextOccurrence: nextDate,
+          isActive: !willDeactivate,
+        },
         include: { account: true, category: true },
       });
 
@@ -206,6 +191,20 @@ export async function processRecurringTransactionNow(req, res, next) {
       message: 'Recurring transaction processed and account balance updated.',
       transaction: result.createdTx,
       recurringTransaction: result.updatedRecurring,
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function processDueTransactions(req, res, next) {
+  try {
+    const result = await processDueRecurringForUser(req.user.id);
+    res.json({
+      success: true,
+      message: `Processed ${result.processedCount} due recurring transaction(s).`,
+      processedCount: result.processedCount,
+      transactions: result.transactions,
     });
   } catch (err) {
     next(err);

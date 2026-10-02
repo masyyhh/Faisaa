@@ -11,7 +11,7 @@ const api = axios.create({
 });
 
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('finora_token');
+  const token = localStorage.getItem('faisaa_token') || localStorage.getItem('finora_token');
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -24,6 +24,7 @@ api.interceptors.response.use(
     if (error.response?.status === 401) {
       const path = window.location.pathname;
       if (path !== '/login' && path !== '/register') {
+        localStorage.removeItem('faisaa_token');
         localStorage.removeItem('finora_token');
       }
     }

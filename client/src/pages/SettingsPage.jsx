@@ -11,6 +11,11 @@ import {
   Trash2,
   CheckCircle2,
   AlertCircle,
+  Bot,
+  Send,
+  Sparkles,
+  Key,
+  ShieldCheck,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
@@ -21,11 +26,16 @@ export default function SettingsPage() {
   const { user, updateProfile, addToast, triggerDataRefresh } = useAuth();
   const [activeTab, setActiveTab] = useState('PROFILE');
 
+  // Accounts state
+  const [accounts, setAccounts] = useState([]);
+  const [existingTx, setExistingTx] = useState([]);
+
   // Profile State
   const [profileForm, setProfileForm] = useState({
     firstName: user?.firstName || '',
     lastName: user?.lastName || '',
     email: user?.email || '',
+    username: user?.username || '',
     currency: 'MVR',
     secondaryCurrency: 'USD',
     usdToMvrRate: user?.usdToMvrRate || 18.45,
@@ -37,6 +47,31 @@ export default function SettingsPage() {
   });
   const [savingProfile, setSavingProfile] = useState(false);
   const [testingTelegram, setTestingTelegram] = useState(false);
+  const [sendingBriefing, setSendingBriefing] = useState(false);
+  const [settingUpWebhook, setSettingUpWebhook] = useState(false);
+  const [simText, setSimText] = useState('');
+  const [simulating, setSimulating] = useState(false);
+  const [linkingCode, setLinkingCode] = useState(null);
+  const [generatingCode, setGeneratingCode] = useState(false);
+
+  // Sync profile form when user updates
+  useEffect(() => {
+    if (user) {
+      setProfileForm((prev) => ({
+        ...prev,
+        firstName: user.firstName || '',
+        lastName: user.lastName || '',
+        email: user.email || '',
+        username: user.username || '',
+        usdToMvrRate: user.usdToMvrRate || 18.45,
+        dateFormat: user.dateFormat || 'MMM dd, yyyy',
+        theme: user.theme || 'dark',
+        telegramEnabled: user.telegramEnabled ?? true,
+        telegramBotToken: user.telegramBotToken || '',
+        telegramChatId: user.telegramChatId || '',
+      }));
+    }
+  }, [user]);
 
   // Password State
   const [pwForm, setPwForm] = useState({
@@ -60,18 +95,24 @@ export default function SettingsPage() {
   const [csvErrors, setCsvErrors] = useState([]);
   const [importingCsv, setImportingCsv] = useState(false);
 
-  const loadCategories = useCallback(async () => {
+  const loadData = useCallback(async () => {
     try {
-      const { data } = await api.get('/categories');
-      if (data.success) setCategories(data.categories || []);
+      const [catRes, accRes, txRes] = await Promise.all([
+        api.get('/categories'),
+        api.get('/accounts'),
+        api.get('/transactions?limit=100'),
+      ]);
+      if (catRes.data.success) setCategories(catRes.data.categories || []);
+      if (accRes.data.success) setAccounts(accRes.data.accounts || []);
+      if (txRes.data.success) setExistingTx(txRes.data.transactions || []);
     } catch {
       // Ignore
     }
   }, []);
 
   useEffect(() => {
-    loadCategories();
-  }, [loadCategories]);
+    loadData();
+  }, [loadData]);
 
   const handleSaveProfile = async (e) => {
     e.preventDefault();
@@ -79,6 +120,7 @@ export default function SettingsPage() {
     try {
       await updateProfile({
         ...profileForm,
+        username: profileForm.username?.trim() ? profileForm.username.trim().toLowerCase() : null,
         currency: 'MVR',
         secondaryCurrency: 'USD',
         usdToMvrRate: Number(profileForm.usdToMvrRate) || 18.45,
@@ -112,6 +154,73 @@ export default function SettingsPage() {
     }
   };
 
+  const handleSendDailyBriefing = async () => {
+    setSendingBriefing(true);
+    try {
+      const { data } = await api.post('/notifications/send-briefing', {
+        botToken: profileForm.telegramBotToken,
+        chatId: profileForm.telegramChatId,
+      });
+      addToast(data.message || 'Daily briefing sent to Telegram & In-App!', 'success');
+      triggerDataRefresh();
+    } catch (err) {
+      addToast(err.response?.data?.message || 'Failed to generate briefing.', 'error');
+    } finally {
+      setSendingBriefing(false);
+    }
+  };
+
+  const handleSetupWebhook = async () => {
+    const promptUrl = window.prompt(
+      'Enter your public HTTPS Faisaa Webhook URL (must be https):',
+      `${window.location.origin}/api/telegram/webhook`
+    );
+    if (!promptUrl) return;
+
+    setSettingUpWebhook(true);
+    try {
+      const { data } = await api.post('/telegram/setup-webhook', {
+        webhookUrl: promptUrl,
+        botToken: profileForm.telegramBotToken,
+      });
+      addToast(data.message || 'Telegram Webhook registered successfully!', 'success');
+    } catch (err) {
+      addToast(err.response?.data?.message || 'Failed to configure Telegram webhook.', 'error');
+    } finally {
+      setSettingUpWebhook(false);
+    }
+  };
+
+  const handleSimulateCommand = async (e) => {
+    e.preventDefault();
+    if (!simText.trim()) return;
+
+    setSimulating(true);
+    try {
+      const { data } = await api.post('/telegram/simulate', { text: simText });
+      addToast(`Executed simulated Telegram command: "${simText}"!`, 'success');
+      setSimText('');
+      triggerDataRefresh();
+    } catch (err) {
+      addToast(err.response?.data?.message || 'Simulation error.', 'error');
+    } finally {
+      setSimulating(false);
+    }
+  };
+
+  const handleGenerateLinkingCode = async () => {
+    setGeneratingCode(true);
+    try {
+      const { data } = await api.post('/telegram/generate-link-code');
+      setLinkingCode(data.code);
+      addToast(data.message || '6-digit linking code generated!', 'success');
+    } catch (err) {
+      addToast(err.response?.data?.message || 'Failed to generate linking code.', 'error');
+    } finally {
+      setGeneratingCode(false);
+    }
+  };
+
   const handleSavePassword = async (e) => {
     e.preventDefault();
     if (pwForm.newPassword !== pwForm.confirmPassword) {
@@ -140,7 +249,8 @@ export default function SettingsPage() {
       await api.post('/categories', catForm);
       addToast(`Category "${catForm.name}" created!`, 'success');
       setCatForm({ name: '', type: 'EXPENSE', color: '#8B5CF6', icon: 'tag' });
-      loadCategories();
+      await loadData();
+      triggerDataRefresh();
     } catch {
       addToast('Failed to create category.', 'error');
     }
@@ -150,7 +260,8 @@ export default function SettingsPage() {
     try {
       await api.delete(`/categories/${id}`);
       addToast('Category deleted.', 'info');
-      loadCategories();
+      await loadData();
+      triggerDataRefresh();
     } catch {
       addToast('Failed to delete category.', 'error');
     }
@@ -162,7 +273,7 @@ export default function SettingsPage() {
       const url = window.URL.createObjectURL(new Blob([res.data]));
       const link = document.createElement('a');
       link.href = url;
-      link.setAttribute('download', 'finora-transactions.csv');
+      link.setAttribute('download', 'faisaa-transactions.csv');
       document.body.appendChild(link);
       link.click();
       link.remove();
@@ -181,7 +292,7 @@ export default function SettingsPage() {
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.setAttribute('download', 'finora-backup.json');
+      link.setAttribute('download', 'faisaa-backup.json');
       document.body.appendChild(link);
       link.click();
       link.remove();
@@ -294,14 +405,14 @@ export default function SettingsPage() {
       </div>
 
       {/* Navigation Tabs */}
-      <div className="flex flex-wrap items-center gap-2 border-b border-white/[0.08] pb-3">
+      <div className="flex items-center gap-2 border-b border-white/[0.08] pb-3 overflow-x-auto no-scrollbar">
         {TABS.map((t) => {
           const Icon = t.icon;
           return (
             <button
               key={t.id}
               onClick={() => setActiveTab(t.id)}
-              className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+              className={`inline-flex items-center gap-2 px-3.5 sm:px-4 py-2 rounded-xl text-xs font-semibold transition-all shrink-0 whitespace-nowrap cursor-pointer ${
                 activeTab === t.id
                   ? 'bg-violet-600 text-white shadow-lg shadow-violet-600/25'
                   : 'bg-white/[0.04] text-slate-400 hover:text-white'
@@ -343,15 +454,34 @@ export default function SettingsPage() {
               </div>
             </div>
 
-            <div>
-              <label className="block text-xs text-slate-300 mb-1">Email Address</label>
-              <input
-                type="email"
-                required
-                value={profileForm.email}
-                onChange={(e) => setProfileForm({ ...profileForm, email: e.target.value })}
-                className="w-full px-3.5 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.1] text-sm text-white"
-              />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs text-slate-300 mb-1">Email Address</label>
+                <input
+                  type="email"
+                  required
+                  value={profileForm.email}
+                  onChange={(e) => setProfileForm({ ...profileForm, email: e.target.value })}
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.1] text-sm text-white"
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-slate-300 mb-1">Username (@handle)</label>
+                <div className="relative">
+                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 font-semibold text-sm">@</span>
+                  <input
+                    type="text"
+                    value={profileForm.username}
+                    onChange={(e) => setProfileForm({ ...profileForm, username: e.target.value.toLowerCase().replace(/[^a-z0-9_.-]/g, '') })}
+                    placeholder="alex"
+                    maxLength={30}
+                    autoCapitalize="none"
+                    autoCorrect="off"
+                    className="w-full pl-8 pr-3.5 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.1] text-sm text-white placeholder-slate-500 focus:outline-none focus:border-violet-500"
+                  />
+                </div>
+                <p className="text-[10px] text-slate-400 mt-1">Sign in using this @username or your email</p>
+              </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -597,7 +727,16 @@ export default function SettingsPage() {
                   loading={testingTelegram}
                   onClick={handleSendTelegramTest}
                 >
-                  Send Test Telegram Alert
+                  Send Test Alert
+                </Button>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  loading={sendingBriefing}
+                  onClick={handleSendDailyBriefing}
+                  className="bg-amber-500/10 text-amber-300 hover:bg-amber-500/20 border-amber-500/30"
+                >
+                  <Sparkles className="w-3.5 h-3.5 mr-1 text-amber-400" /> Push Morning Briefing Now
                 </Button>
               </div>
             </form>
@@ -638,6 +777,104 @@ export default function SettingsPage() {
                 />
               </label>
             ))}
+          </Card>
+
+          {/* Two-Way Telegram Bot & Simulator Card */}
+          <Card className="lg:col-span-2 space-y-4 bg-gradient-to-br from-violet-950/20 to-[#101322] border-violet-500/20">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-violet-600/20 border border-violet-500/30 flex items-center justify-center text-violet-400">
+                  <Bot className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-white">Two-Way Telegram Expense Assistant</h3>
+                  <p className="text-xs text-slate-400">
+                    Log expenses and check balances straight from your Telegram chat without opening a browser.
+                  </p>
+                </div>
+              </div>
+              <Button
+                size="sm"
+                variant="secondary"
+                loading={settingUpWebhook}
+                onClick={handleSetupWebhook}
+              >
+                Auto-Register Webhook
+              </Button>
+            </div>
+
+            {/* Account Linking with One-Time Code */}
+            <div className="p-4 rounded-xl bg-violet-500/10 border border-violet-500/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div className="flex items-start gap-3">
+                <div className="p-2 rounded-lg bg-violet-500/20 text-violet-300 shrink-0 mt-0.5 sm:mt-0">
+                  <ShieldCheck className="w-5 h-5" />
+                </div>
+                <div>
+                  <p className="text-xs font-bold text-white">Secure Bot Account Linking</p>
+                  <p className="text-[11px] text-slate-400">
+                    Generate a one-time 6-digit verification code and send <code className="text-violet-300 bg-white/[0.05] px-1 py-0.5 rounded">/link &lt;code&gt;</code> to your Telegram bot.
+                  </p>
+                  {linkingCode && (
+                    <div className="mt-2 flex flex-wrap items-center gap-2">
+                      <span className="text-xs text-slate-300">Your linking code:</span>
+                      <span className="px-2.5 py-1 rounded bg-violet-600/30 border border-violet-400/40 text-violet-200 font-mono font-bold tracking-widest text-sm select-all">
+                        {linkingCode}
+                      </span>
+                      <span className="text-[10px] text-amber-300/90 font-medium">
+                        Expires in 15 minutes (single-use)
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+              <Button
+                size="sm"
+                variant="secondary"
+                loading={generatingCode}
+                onClick={handleGenerateLinkingCode}
+                className="shrink-0 w-full sm:w-auto"
+              >
+                <Key className="w-3.5 h-3.5 mr-1" />
+                {linkingCode ? 'Regenerate Code' : 'Generate Link Code'}
+              </Button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+              <div className="p-3.5 rounded-xl bg-white/[0.02] border border-white/[0.06] space-y-2 text-xs">
+                <p className="font-bold text-violet-300">Supported Natural Message Examples:</p>
+                <ul className="space-y-1 text-slate-300">
+                  <li>• <code className="text-emerald-400 bg-white/[0.05] px-1 rounded">50 coffee</code> → Logs MVR 50.00 Food & Dining</li>
+                  <li>• <code className="text-emerald-400 bg-white/[0.05] px-1 rounded">120 lunch bml</code> → Logs from your BML account</li>
+                  <li>• <code className="text-emerald-400 bg-white/[0.05] px-1 rounded">25 dinner usd</code> → Logs USD transaction</li>
+                  <li>• <code className="text-emerald-400 bg-white/[0.05] px-1 rounded">+5000 salary</code> → Logs MVR 5,000 Income</li>
+                  <li>• <code className="text-violet-400 bg-white/[0.05] px-1 rounded">/balance</code> → Instant check of all liquid balances</li>
+                  <li>• <code className="text-violet-400 bg-white/[0.05] px-1 rounded">/today</code> → Today's transactions and total spend</li>
+                  <li>• <code className="text-violet-400 bg-white/[0.05] px-1 rounded">/briefing</code> → Full morning financial summary</li>
+                </ul>
+              </div>
+
+              <div className="p-3.5 rounded-xl bg-white/[0.02] border border-white/[0.06] space-y-3">
+                <div>
+                  <p className="text-xs font-bold text-white">Bot Command Simulator Sandbox</p>
+                  <p className="text-[11px] text-slate-400">
+                    Test how the bot parses your input right here:
+                  </p>
+                </div>
+
+                <form onSubmit={handleSimulateCommand} className="flex gap-2">
+                  <input
+                    type="text"
+                    value={simText}
+                    onChange={(e) => setSimText(e.target.value)}
+                    placeholder="e.g. 50 coffee or /balance"
+                    className="flex-1 px-3 py-2 rounded-xl bg-white/[0.04] border border-white/[0.1] text-xs text-white placeholder-slate-500 focus:outline-none focus:border-violet-500"
+                  />
+                  <Button type="submit" size="sm" loading={simulating} disabled={!simText.trim()}>
+                    <Send className="w-3.5 h-3.5 mr-1" /> Test
+                  </Button>
+                </form>
+              </div>
+            </div>
           </Card>
         </div>
       )}

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
   Plus,
@@ -13,6 +13,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Download,
+  Landmark,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
@@ -40,6 +41,9 @@ export default function TransactionsPage() {
   const [accounts, setAccounts] = useState([]);
   const [categories, setCategories] = useState([]);
 
+  // Recurring processing state
+  const [processingDue, setProcessingDue] = useState(false);
+
   // Filter states
   const [search, setSearch] = useState(searchParams.get('search') || '');
   const [type, setType] = useState('ALL');
@@ -62,6 +66,7 @@ export default function TransactionsPage() {
   const [recurringForm, setRecurringForm] = useState({
     payee: '',
     amount: '',
+    currency: 'MVR',
     type: 'EXPENSE',
     accountId: '',
     categoryId: '',
@@ -69,6 +74,31 @@ export default function TransactionsPage() {
     startDate: new Date().toISOString().split('T')[0],
     description: '',
   });
+
+  const dueRecurringCount = useMemo(() => {
+    const now = new Date();
+    return (Array.isArray(recurringList) ? recurringList : []).filter(
+      (r) => r?.isActive && r?.nextOccurrence && new Date(r.nextOccurrence) <= now
+    ).length;
+  }, [recurringList]);
+
+  const handleProcessDueRecurring = async () => {
+    setProcessingDue(true);
+    try {
+      const { data } = await api.post('/recurring/process-due');
+      if (data.processedCount > 0) {
+        addToast(`Processed ${data.processedCount} due recurring transaction(s)!`, 'success');
+      } else {
+        addToast('No recurring transactions currently due.', 'info');
+      }
+      triggerDataRefresh();
+      loadRecurring();
+    } catch {
+      addToast('Failed to process due recurring transactions.', 'error');
+    } finally {
+      setProcessingDue(false);
+    }
+  };
 
   const loadMeta = useCallback(async () => {
     try {
@@ -198,7 +228,7 @@ export default function TransactionsPage() {
       const url = window.URL.createObjectURL(new Blob([res.data]));
       const a = document.createElement('a');
       a.href = url;
-      a.setAttribute('download', 'finora-transactions.csv');
+      a.setAttribute('download', 'faisaa-transactions.csv');
       document.body.appendChild(a);
       a.click();
       a.remove();
@@ -208,7 +238,7 @@ export default function TransactionsPage() {
     }
   };
 
-  const currency = user?.currency || 'USD';
+  const currency = user?.currency || 'MVR';
   const hide = user?.hideBalances;
 
   return (
@@ -224,24 +254,36 @@ export default function TransactionsPage() {
           </p>
         </div>
 
-        <div className="flex items-center gap-2.5">
+        <div className="flex flex-wrap items-center gap-2">
           <Button variant="secondary" size="sm" onClick={handleExportCSV}>
             <Download className="w-4 h-4" /> Export CSV
           </Button>
           {activeTab === 'RECURRING' ? (
-            <Button
-              size="sm"
-              onClick={() => {
-                setRecurringForm((f) => ({
-                  ...f,
-                  accountId: accounts[0]?.id || '',
-                  categoryId: categories[0]?.id || '',
-                }));
-                setRecurringModalOpen(true);
-              }}
-            >
-              <Plus className="w-4 h-4" /> New Recurring Rule
-            </Button>
+            <>
+              {dueRecurringCount > 0 && (
+                <Button
+                  size="sm"
+                  loading={processingDue}
+                  onClick={handleProcessDueRecurring}
+                  className="bg-emerald-600 hover:bg-emerald-500 text-white shadow-md shadow-emerald-600/25"
+                >
+                  <Play className="w-4 h-4 mr-1" /> Run Due ({dueRecurringCount})
+                </Button>
+              )}
+              <Button
+                size="sm"
+                onClick={() => {
+                  setRecurringForm((f) => ({
+                    ...f,
+                    accountId: accounts[0]?.id || '',
+                    categoryId: categories[0]?.id || '',
+                  }));
+                  setRecurringModalOpen(true);
+                }}
+              >
+                <Plus className="w-4 h-4" /> New Recurring Rule
+              </Button>
+            </>
           ) : (
             <Button size="sm" onClick={() => openTransactionModal('EXPENSE')}>
               <Plus className="w-4 h-4" /> Add Transaction
@@ -277,23 +319,23 @@ export default function TransactionsPage() {
       {activeTab === 'ALL_TX' ? (
         <>
           {/* Summary Bar */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <Card className="py-4">
-              <p className="text-xs text-slate-400">Filtered Income</p>
-              <p className="text-xl font-extrabold text-emerald-400 mt-1">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-4">
+            <Card className="p-3 sm:py-4">
+              <p className="text-[11px] sm:text-xs text-slate-400">Filtered Income</p>
+              <p className="text-lg sm:text-xl font-extrabold text-emerald-400 mt-0.5 sm:mt-1 truncate">
                 +{formatCurrency(summary.totalIncome, currency, hide)}
               </p>
             </Card>
-            <Card className="py-4">
-              <p className="text-xs text-slate-400">Filtered Expenses</p>
-              <p className="text-xl font-extrabold text-rose-400 mt-1">
+            <Card className="p-3 sm:py-4">
+              <p className="text-[11px] sm:text-xs text-slate-400">Filtered Expenses</p>
+              <p className="text-lg sm:text-xl font-extrabold text-rose-400 mt-0.5 sm:mt-1 truncate">
                 -{formatCurrency(summary.totalExpenses, currency, hide)}
               </p>
             </Card>
-            <Card className="py-4">
-              <p className="text-xs text-slate-400">Net Period Flow</p>
+            <Card className="p-3 sm:py-4">
+              <p className="text-[11px] sm:text-xs text-slate-400">Net Period Flow</p>
               <p
-                className={`text-xl font-extrabold mt-1 ${
+                className={`text-lg sm:text-xl font-extrabold mt-0.5 sm:mt-1 truncate ${
                   summary.netFlow >= 0 ? 'text-white' : 'text-rose-400'
                 }`}
               >
@@ -304,10 +346,10 @@ export default function TransactionsPage() {
           </div>
 
           {/* Filter & Search Toolbar */}
-          <Card className="space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3">
+          <Card className="p-3 sm:p-5 space-y-3 sm:space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-2.5 sm:gap-3">
               {/* Search */}
-              <div className="lg:col-span-2 relative">
+              <div className="sm:col-span-2 lg:col-span-2 relative">
                 <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
                 <input
                   type="text"
@@ -317,7 +359,7 @@ export default function TransactionsPage() {
                     setPage(1);
                   }}
                   placeholder="Search payee, notes, tags..."
-                  className="finora-input w-full pl-10 pr-3.5 py-2 rounded-xl bg-white/[0.04] border border-white/[0.09] text-xs text-white placeholder-slate-500 focus:outline-none focus:border-violet-500"
+                  className="faisaa-input w-full pl-10 pr-3.5 py-2 rounded-xl bg-white/[0.04] border border-white/[0.09] text-xs text-white placeholder-slate-500 focus:outline-none focus:border-violet-500"
                 />
               </div>
 
@@ -328,7 +370,7 @@ export default function TransactionsPage() {
                   setType(e.target.value);
                   setPage(1);
                 }}
-                className="finora-input px-3 py-2 rounded-xl bg-[#161928] border border-white/[0.09] text-xs text-white"
+                className="faisaa-input px-3 py-2 rounded-xl bg-[#161928] border border-white/[0.09] text-xs text-white"
               >
                 <option value="ALL">All Types</option>
                 <option value="INCOME">Income Only</option>
@@ -343,7 +385,7 @@ export default function TransactionsPage() {
                   setAccountId(e.target.value);
                   setPage(1);
                 }}
-                className="finora-input px-3 py-2 rounded-xl bg-[#161928] border border-white/[0.09] text-xs text-white"
+                className="faisaa-input px-3 py-2 rounded-xl bg-[#161928] border border-white/[0.09] text-xs text-white"
               >
                 <option value="ALL">All Accounts</option>
                 {accounts.map((acc) => (
@@ -360,7 +402,7 @@ export default function TransactionsPage() {
                   setCategoryId(e.target.value);
                   setPage(1);
                 }}
-                className="finora-input px-3 py-2 rounded-xl bg-[#161928] border border-white/[0.09] text-xs text-white"
+                className="faisaa-input px-3 py-2 rounded-xl bg-[#161928] border border-white/[0.09] text-xs text-white"
               >
                 <option value="ALL">All Categories</option>
                 {categories.map((cat) => (
@@ -378,7 +420,7 @@ export default function TransactionsPage() {
                   setSortBy(sb);
                   setSortOrder(so);
                 }}
-                className="finora-input px-3 py-2 rounded-xl bg-[#161928] border border-white/[0.09] text-xs text-white"
+                className="faisaa-input px-3 py-2 rounded-xl bg-[#161928] border border-white/[0.09] text-xs text-white"
               >
                 <option value="date:desc">Newest First</option>
                 <option value="date:asc">Oldest First</option>
@@ -387,9 +429,9 @@ export default function TransactionsPage() {
               </select>
             </div>
 
-            <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-white/[0.06]">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pt-2 border-t border-white/[0.06]">
               <div className="flex flex-wrap items-center gap-2 text-xs">
-                <span className="text-slate-400 flex items-center gap-1">
+                <span className="text-slate-400 flex items-center gap-1 shrink-0">
                   <Filter className="w-3.5 h-3.5" /> Date Range:
                 </span>
                 <input
@@ -399,7 +441,7 @@ export default function TransactionsPage() {
                     setStartDate(e.target.value);
                     setPage(1);
                   }}
-                  className="finora-input px-2.5 py-1 rounded-lg bg-white/[0.04] border border-white/[0.09] text-xs text-white"
+                  className="faisaa-input px-2.5 py-1 rounded-lg bg-white/[0.04] border border-white/[0.09] text-xs text-white"
                 />
                 <span className="text-slate-500">to</span>
                 <input
@@ -409,7 +451,7 @@ export default function TransactionsPage() {
                     setEndDate(e.target.value);
                     setPage(1);
                   }}
-                  className="finora-input px-2.5 py-1 rounded-lg bg-white/[0.04] border border-white/[0.09] text-xs text-white"
+                  className="faisaa-input px-2.5 py-1 rounded-lg bg-white/[0.04] border border-white/[0.09] text-xs text-white"
                 />
               </div>
 
@@ -424,7 +466,7 @@ export default function TransactionsPage() {
                     setEndDate('');
                     setPage(1);
                   }}
-                  className="text-xs text-violet-400 hover:text-violet-300 font-medium cursor-pointer"
+                  className="text-xs text-violet-400 hover:text-violet-300 font-medium cursor-pointer self-start sm:self-auto"
                 >
                   Clear All Filters
                 </button>
@@ -447,7 +489,8 @@ export default function TransactionsPage() {
             />
           ) : (
             <Card className="p-0 overflow-hidden">
-              <div className="overflow-x-auto">
+              {/* Desktop Table View */}
+              <div className="hidden md:block overflow-x-auto">
                 <table className="w-full text-left border-collapse">
                   <thead>
                     <tr className="border-b border-white/[0.07] text-[11px] uppercase tracking-wider text-slate-400 bg-white/[0.02]">
@@ -567,6 +610,110 @@ export default function TransactionsPage() {
                 </table>
               </div>
 
+              {/* Mobile Card Feed View */}
+              <div className="md:hidden divide-y divide-white/[0.06]">
+                {transactions.map((tx) => (
+                  <div key={tx.id} className="p-3.5 space-y-2.5">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div
+                          className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
+                          style={{
+                            backgroundColor: `${tx.category?.color || '#8B5CF6'}20`,
+                            color: tx.category?.color || '#8B5CF6',
+                          }}
+                        >
+                          <DynamicIcon name={tx.category?.icon || 'tag'} className="w-4 h-4" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="font-semibold text-white text-sm truncate flex items-center gap-1.5">
+                            {tx.payee}
+                            {tx.isRecurring && (
+                              <Repeat className="w-3 h-3 text-violet-400 shrink-0" title="Recurring" />
+                            )}
+                          </p>
+                          <p className="text-[11px] text-slate-400">
+                            {formatDate(tx.date, user?.dateFormat)}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="text-right shrink-0">
+                        <span
+                          className={`font-bold text-sm ${
+                            tx.type === 'INCOME'
+                              ? 'text-emerald-400'
+                              : tx.type === 'EXPENSE'
+                              ? 'text-white'
+                              : 'text-violet-400'
+                          }`}
+                        >
+                          {tx.type === 'INCOME' ? '+' : tx.type === 'EXPENSE' ? '-' : ''}
+                          {formatCurrency(tx.amount, currency, hide)}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
+                      <Badge variant="default" className="text-[10px] py-0.5 px-2">
+                        {tx.category?.name || tx.type}
+                      </Badge>
+                      <span className="text-slate-400 px-1.5 py-0.5 rounded-md bg-white/[0.03] border border-white/[0.06]">
+                        {tx.account?.name}
+                        {tx.transferToAccount && ` → ${tx.transferToAccount.name}`}
+                      </span>
+                      {tx.tags && tx.tags.map((tg) => (
+                        <span
+                          key={tg}
+                          className="px-1.5 py-0.5 rounded-md bg-violet-500/10 text-violet-300 text-[10px]"
+                        >
+                          #{tg}
+                        </span>
+                      ))}
+                    </div>
+
+                    {tx.description && (
+                      <p className="text-xs text-slate-400 bg-white/[0.02] p-2 rounded-lg border border-white/[0.04]">
+                        {tx.description}
+                      </p>
+                    )}
+
+                    <div className="flex items-center justify-between pt-1 border-t border-white/[0.04]">
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => setDetailTx(tx)}
+                          className="px-2.5 py-1 rounded-lg text-slate-400 hover:text-white bg-white/[0.03] text-xs flex items-center gap-1 cursor-pointer active:scale-95 transition-transform"
+                        >
+                          <Eye className="w-3.5 h-3.5" /> Details
+                        </button>
+                        <button
+                          onClick={() => openTransactionModal(tx.type, tx)}
+                          className="px-2.5 py-1 rounded-lg text-slate-400 hover:text-violet-400 bg-white/[0.03] text-xs flex items-center gap-1 cursor-pointer active:scale-95 transition-transform"
+                        >
+                          <Edit3 className="w-3.5 h-3.5" /> Edit
+                        </button>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => handleDuplicate(tx.id)}
+                          className="p-1.5 rounded-lg text-slate-400 hover:text-emerald-400 bg-white/[0.03] cursor-pointer"
+                          title="Duplicate"
+                        >
+                          <Copy className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          onClick={() => setDeleteTarget(tx)}
+                          className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 bg-rose-500/5 cursor-pointer"
+                          title="Delete"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
               {/* Pagination Footer */}
               <div className="flex items-center justify-between px-4 py-3 border-t border-white/[0.07] bg-white/[0.01] text-xs text-slate-400">
                 <span>
@@ -597,44 +744,63 @@ export default function TransactionsPage() {
       ) : (
         /* Recurring Transactions Schedule Tab */
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {recurringList.map((rec) => (
-            <Card key={rec.id} className="flex flex-col justify-between gap-4">
-              <div>
-                <div className="flex items-center justify-between">
-                  <Badge variant={rec.type === 'INCOME' ? 'success' : 'purple'}>
-                    {rec.frequency} • {rec.type}
-                  </Badge>
-                  <span className="text-lg font-extrabold text-white">
-                    {rec.type === 'INCOME' ? '+' : '-'}
-                    {formatCurrency(rec.amount, currency, hide)}
-                  </span>
+          {(Array.isArray(recurringList) ? recurringList : []).map((rec) => {
+            if (!rec) return null;
+            const isDue = Boolean(rec.isActive && rec.nextOccurrence && new Date(rec.nextOccurrence) <= new Date());
+            const recCurrency = rec.currency || rec.account?.currency || 'MVR';
+            return (
+              <Card
+                key={rec.id}
+                className={`flex flex-col justify-between gap-4 transition-all ${
+                  isDue ? 'ring-1 ring-amber-500/40 bg-amber-500/[0.02]' : ''
+                }`}
+              >
+                <div>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1.5">
+                      <Badge variant={rec.type === 'INCOME' ? 'success' : 'purple'}>
+                        {rec.frequency} • {rec.type}
+                      </Badge>
+                      {isDue && (
+                        <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 text-[10px] font-bold animate-pulse">
+                          Due Now
+                        </span>
+                      )}
+                    </div>
+                    <span className="text-lg font-extrabold text-white">
+                      {rec.type === 'INCOME' ? '+' : '-'}
+                      {formatCurrency(rec.amount, recCurrency, hide)}
+                    </span>
+                  </div>
+                  <h3 className="text-base font-bold text-white mt-3">{rec.payee}</h3>
+                  <p className="text-xs text-slate-400 mt-1">
+                    Account: {rec.account?.name} • Category: {rec.category?.name || 'General'}
+                  </p>
+                  <p className="text-xs text-violet-300 mt-2 flex items-center justify-between">
+                    <span>Next: {formatDate(rec.nextOccurrence, user?.dateFormat)}</span>
+                    <span className="text-[11px] text-slate-400">{recCurrency}</span>
+                  </p>
                 </div>
-                <h3 className="text-base font-bold text-white mt-3">{rec.payee}</h3>
-                <p className="text-xs text-slate-400 mt-1">
-                  Account: {rec.account?.name} • Category: {rec.category?.name || 'General'}
-                </p>
-                <p className="text-xs text-violet-300 mt-2">
-                  Next Occurrence: {formatDate(rec.nextOccurrence, user?.dateFormat)}
-                </p>
-              </div>
 
-              <div className="flex items-center justify-between gap-2 pt-3 border-t border-white/[0.07]">
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => handleProcessRecurring(rec.id)}
-                >
-                  <Play className="w-3.5 h-3.5 text-emerald-400" /> Post Now
-                </Button>
-                <button
-                  onClick={() => handleDeleteRecurring(rec.id)}
-                  className="p-2 rounded-xl text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 cursor-pointer"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              </div>
-            </Card>
-          ))}
+                <div className="flex items-center justify-between gap-2 pt-3 border-t border-white/[0.07]">
+                  <Button
+                    variant={isDue ? 'primary' : 'secondary'}
+                    size="sm"
+                    onClick={() => handleProcessRecurring(rec.id)}
+                    className={isDue ? 'bg-emerald-600 hover:bg-emerald-500 text-white' : ''}
+                  >
+                    <Play className="w-3.5 h-3.5 mr-1 text-emerald-300" /> Post Now
+                  </Button>
+                  <button
+                    onClick={() => handleDeleteRecurring(rec.id)}
+                    className="p-2 rounded-xl text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 cursor-pointer"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              </Card>
+            );
+          })}
         </div>
       )}
 
@@ -720,7 +886,7 @@ export default function TransactionsPage() {
         subtitle="Automate repeating income, rent, or subscriptions"
       >
         <form onSubmit={handleCreateRecurring} className="space-y-4">
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-3 gap-3">
             <div>
               <label className="block text-xs text-slate-300 mb-1">Type</label>
               <select
@@ -730,6 +896,17 @@ export default function TransactionsPage() {
               >
                 <option value="EXPENSE">Expense</option>
                 <option value="INCOME">Income</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs text-slate-300 mb-1">Currency</label>
+              <select
+                value={recurringForm.currency}
+                onChange={(e) => setRecurringForm({ ...recurringForm, currency: e.target.value })}
+                className="w-full px-3 py-2 rounded-xl bg-[#181C2C] border border-white/[0.1] text-xs text-white"
+              >
+                <option value="MVR">MVR</option>
+                <option value="USD">USD ($)</option>
               </select>
             </div>
             <div>
@@ -759,7 +936,7 @@ export default function TransactionsPage() {
                 required
                 value={recurringForm.payee}
                 onChange={(e) => setRecurringForm({ ...recurringForm, payee: e.target.value })}
-                placeholder="e.g. Salary, Netflix"
+                placeholder="e.g. Salary, Rent, Netflix"
                 className="w-full px-3 py-2 rounded-xl bg-white/[0.04] border border-white/[0.1] text-xs text-white"
               />
             </div>
@@ -777,7 +954,7 @@ export default function TransactionsPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-3 gap-3">
             <div>
               <label className="block text-xs text-slate-300 mb-1">Account</label>
               <select
@@ -790,6 +967,23 @@ export default function TransactionsPage() {
                 {accounts.map((a) => (
                   <option key={a.id} value={a.id}>
                     {a.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs text-slate-300 mb-1">Category</label>
+              <select
+                value={recurringForm.categoryId || ''}
+                onChange={(e) =>
+                  setRecurringForm({ ...recurringForm, categoryId: e.target.value })
+                }
+                className="w-full px-3 py-2 rounded-xl bg-[#181C2C] border border-white/[0.1] text-xs text-white"
+              >
+                <option value="">General</option>
+                {categories.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
                   </option>
                 ))}
               </select>

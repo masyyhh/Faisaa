@@ -4,6 +4,7 @@ import {
   Landmark,
   CreditCard,
   ArrowUpRight,
+  ArrowDownRight,
   ShieldCheck,
 } from 'lucide-react';
 import {
@@ -47,7 +48,7 @@ export default function NetWorthPage() {
     return <LoadingState label="Calculating net worth, assets, and liabilities..." />;
   }
 
-  const currency = user?.currency || 'USD';
+  const currency = user?.currency || 'MVR';
   const hide = user?.hideBalances;
 
   return (
@@ -63,18 +64,23 @@ export default function NetWorthPage() {
       </div>
 
       {/* Hero Net Worth Card + Assets & Liabilities Summary */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        <div className="hero-card-preserve lg:col-span-6 rounded-3xl p-7 bg-gradient-to-br from-[#2B1966] via-[#19143D] to-[#0D1024] border border-violet-400/25 shadow-2xl flex flex-col justify-between">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6">
+        <div className="hero-card-preserve lg:col-span-6 rounded-3xl p-5 sm:p-7 bg-gradient-to-br from-[#2B1966] via-[#19143D] to-[#0D1024] border border-violet-400/25 shadow-2xl flex flex-col justify-between">
           <div>
             <span className="text-xs uppercase tracking-widest font-semibold text-violet-300">
               Current Net Worth
             </span>
-            <p className="text-4xl sm:text-5xl font-extrabold text-white mt-3 font-display">
+            <p className="text-3xl sm:text-5xl font-extrabold text-white mt-3 font-display truncate">
               {formatCurrency(data.netWorth, currency, hide)}
             </p>
             <div className="flex flex-wrap items-center gap-3 mt-4">
-              <Badge variant="success">
-                <ArrowUpRight className="w-3.5 h-3.5" /> +
+              <Badge variant={data.monthlyChange >= 0 ? 'success' : 'danger'}>
+                {data.monthlyChange >= 0 ? (
+                  <ArrowUpRight className="w-3.5 h-3.5" />
+                ) : (
+                  <ArrowDownRight className="w-3.5 h-3.5" />
+                )}{' '}
+                {data.monthlyChange >= 0 ? '+' : '-'}
                 {formatCurrency(Math.abs(data.monthlyChange), currency, hide)} ({data.monthlyChangePct}
                 %) this month
               </Badge>
@@ -90,8 +96,8 @@ export default function NetWorthPage() {
           </div>
         </div>
 
-        <div className="lg:col-span-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <Card className="flex flex-col justify-between">
+        <div className="lg:col-span-6 grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-4">
+          <Card className="p-4 sm:p-5 flex flex-col justify-between">
             <div className="flex items-center justify-between">
               <span className="text-xs uppercase tracking-wider text-slate-400 font-semibold">
                 Total Assets
@@ -101,7 +107,7 @@ export default function NetWorthPage() {
               </div>
             </div>
             <div className="mt-4">
-              <p className="text-3xl font-extrabold text-emerald-400 font-display">
+              <p className="text-2xl sm:text-3xl font-extrabold text-emerald-400 font-display truncate">
                 {formatCurrency(data.totalAssets, currency, hide)}
               </p>
               <p className="text-xs text-slate-400 mt-1">
@@ -110,7 +116,7 @@ export default function NetWorthPage() {
             </div>
           </Card>
 
-          <Card className="flex flex-col justify-between">
+          <Card className="p-4 sm:p-5 flex flex-col justify-between">
             <div className="flex items-center justify-between">
               <span className="text-xs uppercase tracking-wider text-slate-400 font-semibold">
                 Total Liabilities
@@ -120,7 +126,7 @@ export default function NetWorthPage() {
               </div>
             </div>
             <div className="mt-4">
-              <p className="text-3xl font-extrabold text-rose-400 font-display">
+              <p className="text-2xl sm:text-3xl font-extrabold text-rose-400 font-display truncate">
                 {formatCurrency(data.totalLiabilities, currency, hide)}
               </p>
               <p className="text-xs text-slate-400 mt-1">
@@ -132,7 +138,7 @@ export default function NetWorthPage() {
       </div>
 
       {/* Historical Net Worth Chart */}
-      <Card>
+      <Card className="min-w-0 p-4 sm:p-5">
         <div className="flex items-center justify-between mb-4">
           <div>
             <h3 className="text-base font-bold text-white">Historical Net Worth Trajectory</h3>

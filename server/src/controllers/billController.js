@@ -196,6 +196,10 @@ export async function payBill(req, res, next) {
 
     const updated = await prisma.$transaction(async (tx) => {
       if (recordTransaction && existing.accountId) {
+        const account = await tx.account.findUnique({
+          where: { id: existing.accountId },
+        });
+
         await tx.account.update({
           where: { id: existing.accountId },
           data: { balance: { decrement: existing.amount } },
@@ -208,6 +212,7 @@ export async function payBill(req, res, next) {
             categoryId: existing.categoryId,
             type: 'EXPENSE',
             amount: existing.amount,
+            currency: account?.currency || 'MVR',
             payee: existing.name,
             description: `Bill payment: ${existing.name}`,
             date: new Date(),
@@ -219,7 +224,7 @@ export async function payBill(req, res, next) {
       return tx.bill.update({
         where: { id },
         data: {
-          status: 'PAID',
+          status: 'UPCOMING',
           lastPaidDate: new Date(),
           dueDate: nextDue,
         },

@@ -1,12 +1,12 @@
-# Finora — Personal Finance & Wealth Command Center
+# Faisaa — Personal Finance & Wealth Command Center
 
-Finora is a full-stack, dark-first fintech personal finance web application built with **React**, **Vite**, **Tailwind CSS**, **Recharts**, **Node.js**, **Express**, **Prisma ORM**, and **PostgreSQL / SQLite**.
+Faisaa is a full-stack, dark-first fintech personal finance web application built with **React**, **Vite**, **Tailwind CSS**, **Recharts**, **Node.js**, **Express**, **Prisma ORM**, and **PostgreSQL / SQLite**.
 
 ---
 
 ## 1. Project Overview
 
-Finora empowers users to track multi-institution financial accounts, log income/expenses/transfers with real-time balance synchronization, manage monthly category budgets with threshold alerts, monitor savings goals with milestones, track bills & recurring subscriptions, and analyze their net worth and cashflow trends across interactive charts.
+Faisaa empowers users to track multi-institution financial accounts, log income/expenses/transfers with real-time balance synchronization, manage monthly category budgets with threshold alerts, monitor savings goals with milestones, track bills & recurring subscriptions, and analyze their net worth and cashflow trends across interactive charts.
 
 ---
 
@@ -31,7 +31,7 @@ Finora empowers users to track multi-institution financial accounts, log income/
 
 ## 3. Core Features
 
-1. **Authentication & Security**: Register, Login, 1-Click Demo Login (`alex@finora.io` / `Password123!`), JWT protected routes, profile management, and password change.
+1. **Authentication & Security**: Register, Login, 1-Click Demo Login (`alex@faisaa.io` / `Password123!`), JWT protected routes, profile management, and password change.
 2. **Executive Dashboard**: Hero balance card with account switcher, hide/show balance privacy toggle (`••••••`), quick actions (`+ Income`, `+ Expense`, `Transfer`, `+ Account`), monthly KPIs, 6-month cashflow trend chart, category donut chart, budget health, savings goals, and upcoming bills.
 3. **Accounts & Institutions**: Support for Checking, Savings, Credit Card, Investment, Cash, Loan, and Other accounts, 6-month balance history curves, and atomic account-to-account money transfers.
 4. **Transactions & Recurring Engine**: Fast transaction modal, multi-parameter filtering (search, date range, account, category, type, sort), pagination, transaction duplication, and automated recurring schedules (`DAILY`, `WEEKLY`, `BIWEEKLY`, `MONTHLY`, `QUARTERLY`, `YEARLY`).
@@ -47,7 +47,7 @@ Finora empowers users to track multi-institution financial accounts, log income/
 ## 4. Folder Structure
 
 ```text
-finora/
+faisaa/
 ├── package.json                  # Unified root scripts (npm run dev, build, seed)
 ├── scripts/
 │   └── dev.mjs                   # Concurrent runner for Server + Client
@@ -93,11 +93,11 @@ Create `server/.env` (already pre-configured for local development):
 
 ```env
 # PostgreSQL Production URL:
-# DATABASE_URL="postgresql://postgres:postgres@localhost:5432/finora?schema=public"
+# DATABASE_URL="postgresql://postgres:postgres@localhost:5432/faisaa?schema=public"
 # Local Zero-Config SQL URL:
-DATABASE_URL="file:./finora.db"
+DATABASE_URL="file:./faisaa.db"
 
-JWT_SECRET="finora_super_secret_jwt_key_2026_production_ready"
+JWT_SECRET="faisaa_super_secret_jwt_key_2026_production_ready"
 PORT=5000
 CLIENT_URL="http://localhost:5173"
 ```
@@ -124,7 +124,7 @@ npm run prisma:migrate
 npm run seed
 ```
 This populates the demo account:
-- **Email**: `alex@finora.io`
+- **Email**: `alex@faisaa.io`
 - **Password**: `Password123!`
 
 ---
@@ -156,8 +156,8 @@ npm run prisma:push
 npm start
 ```
 
-### Option B: Docker & Docker Compose (PostgreSQL 16 + Finora)
-Deploy the full stack (PostgreSQL 16 with persistent volume + Finora production container with healthchecks):
+### Option B: Docker & Docker Compose (PostgreSQL 16 + Faisaa)
+Deploy the full stack (PostgreSQL 16 with persistent volume + Faisaa production container with healthchecks):
 
 ```bash
 docker compose up -d --build

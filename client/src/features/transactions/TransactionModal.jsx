@@ -245,7 +245,7 @@ export default function TransactionModal() {
                   ? 'e.g. Savings Sweep'
                   : 'e.g. Starbucks, Netflix, Uber'
               }
-              className="finora-input w-full px-3.5 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.09] text-sm text-white placeholder-slate-500 focus:outline-none focus:border-violet-500"
+              className="faisaa-input w-full px-3.5 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.09] text-sm text-white placeholder-slate-500 focus:outline-none focus:border-violet-500"
             />
           </div>
           <div>
@@ -259,7 +259,7 @@ export default function TransactionModal() {
               required
               value={date}
               onChange={(e) => setDate(e.target.value)}
-              className="finora-input w-full px-3.5 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.09] text-sm text-white focus:outline-none focus:border-violet-500"
+              className="faisaa-input w-full px-3.5 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.09] text-sm text-white focus:outline-none focus:border-violet-500"
             />
           </div>
         </div>
@@ -280,7 +280,7 @@ export default function TransactionModal() {
                   setTxCurrency(found.currency === 'USD' ? 'USD' : 'MVR');
                 }
               }}
-              className="finora-input w-full px-3.5 py-2.5 rounded-xl bg-[#181C2B] border border-white/[0.09] text-sm text-white focus:outline-none focus:border-violet-500"
+              className="faisaa-input w-full px-3.5 py-2.5 rounded-xl bg-[#181C2B] border border-white/[0.09] text-sm text-white focus:outline-none focus:border-violet-500"
             >
               {accounts.map((acc) => (
                 <option key={acc.id} value={acc.id}>
@@ -298,7 +298,7 @@ export default function TransactionModal() {
               <select
                 value={transferToAccountId}
                 onChange={(e) => setTransferToAccountId(e.target.value)}
-                className="finora-input w-full px-3.5 py-2.5 rounded-xl bg-[#181C2B] border border-white/[0.09] text-sm text-white focus:outline-none focus:border-violet-500"
+                className="faisaa-input w-full px-3.5 py-2.5 rounded-xl bg-[#181C2B] border border-white/[0.09] text-sm text-white focus:outline-none focus:border-violet-500"
               >
                 {accounts
                   .filter((a) => a.id !== accountId)
@@ -317,7 +317,7 @@ export default function TransactionModal() {
               <select
                 value={categoryId}
                 onChange={(e) => setCategoryId(e.target.value)}
-                className="finora-input w-full px-3.5 py-2.5 rounded-xl bg-[#181C2B] border border-white/[0.09] text-sm text-white focus:outline-none focus:border-violet-500"
+                className="faisaa-input w-full px-3.5 py-2.5 rounded-xl bg-[#181C2B] border border-white/[0.09] text-sm text-white focus:outline-none focus:border-violet-500"
               >
                 {filteredCategories.map((cat) => (
                   <option key={cat.id} value={cat.id}>
@@ -342,7 +342,7 @@ export default function TransactionModal() {
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Optional short note..."
-              className="finora-input w-full px-3.5 py-2 rounded-xl bg-white/[0.04] border border-white/[0.09] text-sm text-white placeholder-slate-500 focus:outline-none focus:border-violet-500"
+              className="faisaa-input w-full px-3.5 py-2 rounded-xl bg-white/[0.04] border border-white/[0.09] text-sm text-white placeholder-slate-500 focus:outline-none focus:border-violet-500"
             />
           </div>
           <div>
@@ -356,7 +356,7 @@ export default function TransactionModal() {
               value={tagsInput}
               onChange={(e) => setTagsInput(e.target.value)}
               placeholder="Essential, Work, Leisure"
-              className="finora-input w-full px-3.5 py-2 rounded-xl bg-white/[0.04] border border-white/[0.09] text-sm text-white placeholder-slate-500 focus:outline-none focus:border-violet-500"
+              className="faisaa-input w-full px-3.5 py-2 rounded-xl bg-white/[0.04] border border-white/[0.09] text-sm text-white placeholder-slate-500 focus:outline-none focus:border-violet-500"
             />
           </div>
         </div>

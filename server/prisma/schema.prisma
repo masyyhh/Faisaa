@@ -11,6 +11,7 @@ model User {
   id                   String                 @id @default(uuid())
   firstName            String
   lastName             String
+  username             String?                @unique
   email                String                 @unique
   passwordHash         String
   currency             String                 @default("MVR") // Base currency: MVR
@@ -25,6 +26,8 @@ model User {
   telegramEnabled      Boolean                @default(true)
   telegramBotToken     String?
   telegramChatId       String?
+  telegramLinkingCode    String?
+  telegramLinkingExpires DateTime?
   hideBalances         Boolean                @default(false)
   createdAt            DateTime               @default(now())
   updatedAt            DateTime               @updatedAt
@@ -257,6 +260,7 @@ model RecurringTransaction {
   categoryId     String?
   type           String    // INCOME, EXPENSE
   amount         Float
+  currency       String    @default("MVR") // MVR or USD
   payee          String
   description    String?
   frequency      String    // DAILY, WEEKLY, BIWEEKLY, MONTHLY, QUARTERLY, YEARLY

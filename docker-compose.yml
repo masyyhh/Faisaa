@@ -1,7 +1,7 @@
 services:
   postgres:
     image: postgres:16-alpine
-    container_name: finora-postgres
+    container_name: faisaa-postgres
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-finora}
@@ -15,13 +15,13 @@ services:
       timeout: 5s
       retries: 5
 
-  finora:
+  faisaa:
     build:
       context: .
       dockerfile: Dockerfile
       args:
         DB_PROVIDER: postgresql
-    container_name: finora-app
+    container_name: faisaa-app
     restart: unless-stopped
     depends_on:
       postgres:
@@ -32,7 +32,7 @@ services:
       NODE_ENV: production
       PORT: 5001
       DATABASE_URL: postgresql://${POSTGRES_USER:-finora}:${POSTGRES_PASSWORD:-finora_secure_password}@postgres:5432/${POSTGRES_DB:-finora}?schema=public
-      JWT_SECRET: ${JWT_SECRET:-finora_production_jwt_secret_change_me_in_env_2026}
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET environment variable must be set in .env}
       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-7d}
       CLIENT_URL: ${CLIENT_URL:-http://localhost:5001}
       SEED_DEMO: ${SEED_DEMO:-false}

@@ -76,7 +76,7 @@ export default function AnalyticsPage() {
     loadAnalytics();
   }, [loadAnalytics, refreshTrigger]);
 
-  const currency = user?.currency || 'USD';
+  const currency = user?.currency || 'MVR';
   const hide = user?.hideBalances;
 
   if (loading && cashflowData.timeline.length === 0) {
@@ -100,12 +100,12 @@ export default function AnalyticsPage() {
         </div>
 
         {/* Date Filter Pills */}
-        <div className="flex flex-wrap items-center gap-1.5 bg-white/[0.03] border border-white/[0.08] p-1.5 rounded-2xl">
+        <div className="flex items-center gap-1.5 bg-white/[0.03] border border-white/[0.08] p-1.5 rounded-2xl overflow-x-auto no-scrollbar max-w-full">
           {DATE_RANGES.map((r) => (
             <button
               key={r.id}
               onClick={() => setRange(r.id)}
-              className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+              className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all shrink-0 whitespace-nowrap cursor-pointer ${
                 range === r.id
                   ? 'bg-violet-600 text-white shadow-md shadow-violet-600/25'
                   : 'text-slate-400 hover:text-white'
@@ -137,34 +137,34 @@ export default function AnalyticsPage() {
       )}
 
       {/* KPI Summary Strip */}
-      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-        <Card>
-          <p className="text-xs text-slate-400">Period Income</p>
-          <p className="text-2xl font-extrabold text-emerald-400 mt-1">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-4">
+        <Card className="p-3.5 sm:p-5">
+          <p className="text-[11px] sm:text-xs text-slate-400">Period Income</p>
+          <p className="text-lg sm:text-2xl font-extrabold text-emerald-400 mt-1 truncate">
             {formatCurrency(totals.totalIncome, currency, hide)}
           </p>
         </Card>
-        <Card>
-          <p className="text-xs text-slate-400">Period Expenses</p>
-          <p className="text-2xl font-extrabold text-rose-400 mt-1">
+        <Card className="p-3.5 sm:p-5">
+          <p className="text-[11px] sm:text-xs text-slate-400">Period Expenses</p>
+          <p className="text-lg sm:text-2xl font-extrabold text-rose-400 mt-1 truncate">
             {formatCurrency(totals.totalExpenses, currency, hide)}
           </p>
         </Card>
-        <Card>
-          <p className="text-xs text-slate-400">Net Cashflow</p>
-          <p className="text-2xl font-extrabold text-white mt-1">
+        <Card className="p-3.5 sm:p-5">
+          <p className="text-[11px] sm:text-xs text-slate-400">Net Cashflow</p>
+          <p className="text-lg sm:text-2xl font-extrabold text-white mt-1 truncate">
             {formatCurrency(totals.netCashflow, currency, hide)}
           </p>
         </Card>
-        <Card>
-          <p className="text-xs text-slate-400">Savings Efficiency</p>
-          <p className="text-2xl font-extrabold text-violet-400 mt-1">{totals.savingsRate}%</p>
+        <Card className="p-3.5 sm:p-5">
+          <p className="text-[11px] sm:text-xs text-slate-400">Savings Efficiency</p>
+          <p className="text-lg sm:text-2xl font-extrabold text-violet-400 mt-1 truncate">{totals.savingsRate}%</p>
         </Card>
       </div>
 
       {/* Row 1: 1. Income vs Expenses + 2. Cashflow Over Time */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card>
+        <Card className="min-w-0">
           <div className="mb-4">
             <h3 className="text-base font-bold text-white">1. Income vs Expenses</h3>
             <p className="text-xs text-slate-400">Direct side-by-side comparison per period</p>
@@ -191,7 +191,7 @@ export default function AnalyticsPage() {
           </div>
         </Card>
 
-        <Card>
+        <Card className="min-w-0">
           <div className="mb-4">
             <h3 className="text-base font-bold text-white">2. Net Cashflow Over Time</h3>
             <p className="text-xs text-slate-400">Net surplus (Income minus Expenses) trajectory</p>
@@ -232,7 +232,7 @@ export default function AnalyticsPage() {
 
       {/* Row 2: 3. Spending by Category + 4. Spending by Merchant */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card>
+        <Card className="min-w-0">
           <div className="mb-4">
             <h3 className="text-base font-bold text-white">3. Spending by Category</h3>
             <p className="text-xs text-slate-400">Proportional share of total expenses</p>
@@ -285,7 +285,7 @@ export default function AnalyticsPage() {
           </div>
         </Card>
 
-        <Card>
+        <Card className="min-w-0">
           <div className="mb-4">
             <h3 className="text-base font-bold text-white">4. Top Spending by Merchant</h3>
             <p className="text-xs text-slate-400">Highest volume payees & vendors</p>
@@ -323,7 +323,7 @@ export default function AnalyticsPage() {
 
       {/* Row 3: 5. Account Balances + 6. Monthly Comparison */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card>
+        <Card className="min-w-0">
           <div className="mb-4">
             <h3 className="text-base font-bold text-white">5. Account Balances Breakdown</h3>
             <p className="text-xs text-slate-400">Current distribution across active institutions</p>
@@ -348,7 +348,7 @@ export default function AnalyticsPage() {
           </div>
         </Card>
 
-        <Card>
+        <Card className="min-w-0">
           <div className="mb-4">
             <h3 className="text-base font-bold text-white">6. Monthly Comparison Trend</h3>
             <p className="text-xs text-slate-400">Multi-series monthly income, expense & net lines</p>
@@ -379,7 +379,7 @@ export default function AnalyticsPage() {
 
       {/* Row 4: 7. Budget Performance + 8. Savings Growth */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card>
+        <Card className="min-w-0">
           <div className="mb-4">
             <h3 className="text-base font-bold text-white">7. Budget Performance by Category</h3>
             <p className="text-xs text-slate-400">Allocated monthly budget vs actual spend</p>
@@ -406,7 +406,7 @@ export default function AnalyticsPage() {
           </div>
         </Card>
 
-        <Card>
+        <Card className="min-w-0">
           <div className="mb-4 flex items-center justify-between">
             <div>
               <h3 className="text-base font-bold text-white">8. Cumulative Savings Growth</h3>

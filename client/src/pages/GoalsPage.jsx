@@ -162,7 +162,7 @@ export default function GoalsPage() {
     }
   };
 
-  const currency = user?.currency || 'USD';
+  const currency = user?.currency || 'MVR';
   const hide = user?.hideBalances;
 
   if (loading && goals.length === 0) {
@@ -188,30 +188,30 @@ export default function GoalsPage() {
       </div>
 
       {/* Summary Banner */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <Card>
-          <p className="text-xs uppercase tracking-wider text-slate-400">Total Saved Across Goals</p>
-          <p className="text-2xl font-extrabold text-emerald-400 mt-1">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-4">
+        <Card className="p-3.5 sm:p-5">
+          <p className="text-[11px] sm:text-xs uppercase tracking-wider text-slate-400">Total Saved Across Goals</p>
+          <p className="text-xl sm:text-2xl font-extrabold text-emerald-400 mt-1 truncate">
             {formatCurrency(summary.totalSaved, currency, hide)}
           </p>
         </Card>
-        <Card>
-          <p className="text-xs uppercase tracking-wider text-slate-400">Combined Target</p>
-          <p className="text-2xl font-extrabold text-white mt-1">
+        <Card className="p-3.5 sm:p-5">
+          <p className="text-[11px] sm:text-xs uppercase tracking-wider text-slate-400">Combined Target</p>
+          <p className="text-xl sm:text-2xl font-extrabold text-white mt-1 truncate">
             {formatCurrency(summary.totalTarget, currency, hide)}
           </p>
         </Card>
-        <Card>
-          <p className="text-xs uppercase tracking-wider text-slate-400">Overall Completion</p>
+        <Card className="p-3.5 sm:p-5">
+          <p className="text-[11px] sm:text-xs uppercase tracking-wider text-slate-400">Overall Completion</p>
           <div className="flex items-center gap-3 mt-1">
-            <p className="text-2xl font-extrabold text-violet-400">{summary.overallPercentage}%</p>
+            <p className="text-xl sm:text-2xl font-extrabold text-violet-400">{summary.overallPercentage}%</p>
             <ProgressBar value={summary.overallPercentage} color="#8B5CF6" height="h-2.5" />
           </div>
         </Card>
       </div>
 
       {/* Goals Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
         {goals.map((goal) => {
           const radius = 32;
           const circumference = 2 * Math.PI * radius;
@@ -219,7 +219,7 @@ export default function GoalsPage() {
             circumference - (Math.min(100, goal.percentage) / 100) * circumference;
 
           return (
-            <Card key={goal.id} className="flex flex-col justify-between gap-5">
+            <Card key={goal.id} className="p-4 sm:p-5 flex flex-col justify-between gap-4 sm:gap-5">
               <div>
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex items-center gap-4">

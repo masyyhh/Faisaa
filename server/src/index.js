@@ -10,6 +10,7 @@ import apiRoutes from './routes/api.js';
 import { errorHandler } from './middleware/auth.js';
 import { seedDatabase } from './prisma/seed.js';
 import prisma, { initDatabasePragmas } from './prisma/client.js';
+import { startScheduler, stopScheduler } from './services/scheduler.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -41,9 +42,33 @@ app.use(
   })
 );
 
+const defaultOrigins = [
+  'http://localhost:5173',
+  'http://localhost:3000',
+  'http://localhost:5001',
+  'http://127.0.0.1:5173',
+  'http://127.0.0.1:3000',
+  'http://127.0.0.1:5001',
+];
+
+const configuredOrigins = (process.env.CLIENT_URL || process.env.FRONTEND_URL || '')
+  .split(',')
+  .map((s) => s.trim())
+  .filter(Boolean);
+
+const allowedOrigins = Array.from(new Set([...defaultOrigins, ...configuredOrigins]));
+
 app.use(
   cors({
-    origin: true,
+    origin: (origin, callback) => {
+      // Allow requests with no origin (e.g. mobile apps, curl, server-to-server, or same-origin SPA)
+      if (!origin) return callback(null, true);
+      // In development mode, allow any local or forwarded development origin
+      if (!isProduction) return callback(null, true);
+      // In production mode, strictly require allowed origin
+      if (allowedOrigins.includes(origin)) return callback(null, true);
+      return callback(new Error('Blocked by CORS policy'));
+    },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
@@ -119,7 +144,12 @@ let server;
 async function startServer() {
   try {
     await initDatabasePragmas();
-    if (process.env.SEED_DEMO !== 'false') {
+    // In production, do not auto-seed demo account unless explicitly requested via SEED_DEMO=true
+    const shouldSeed = isProduction
+      ? process.env.SEED_DEMO === 'true'
+      : process.env.SEED_DEMO !== 'false';
+
+    if (shouldSeed) {
       await seedDatabase();
     }
   } catch (seedErr) {
@@ -128,14 +158,16 @@ async function startServer() {
 
   server = app.listen(PORT, '0.0.0.0', () => {
     console.log(
-      `🚀 Finora Server (${isProduction ? 'PRODUCTION' : 'DEVELOPMENT'}) running at http://localhost:${PORT}`
+      `🚀 Faisaa Server (${isProduction ? 'PRODUCTION' : 'DEVELOPMENT'}) running at http://localhost:${PORT}`
     );
+    startScheduler();
   });
 }
 
 async function gracefulShutdown(signal) {
-  console.log(`\n🛑 Received ${signal}. Gracefully shutting down Finora server...`);
+  console.log(`\n🛑 Received ${signal}. Gracefully shutting down Faisaa server...`);
   try {
+    stopScheduler();
     if (server) {
       await new Promise((resolve) => server.close(resolve));
     }

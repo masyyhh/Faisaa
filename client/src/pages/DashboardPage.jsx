@@ -82,7 +82,7 @@ export default function DashboardPage() {
   }
 
   const {
-    metrics,
+    metrics = {},
     accounts = [],
     recentTransactions = [],
     cashflowTrend = [],
@@ -90,27 +90,36 @@ export default function DashboardPage() {
     budgetProgress = [],
     goals = [],
     upcomingBills = [],
-  } = data;
+  } = data || {};
 
   const liveRate = Number(metrics?.usdToMvrRate || user?.usdToMvrRate || 18.45);
 
   const selectedAccount =
     selectedAccountId === 'ALL'
       ? null
-      : accounts.find((a) => a.id === selectedAccountId);
+    : (Array.isArray(accounts) ? accounts : []).find((a) => a?.id === selectedAccountId);
+
+  const totalBalance = Number(metrics?.totalBalance) || 0;
+  const savingsRate = Number(metrics?.savingsRate) || 0;
+  const incomeChangePct = Number(metrics?.incomeChangePct) || 0;
+  const expenseChangePct = Number(metrics?.expenseChangePct) || 0;
+  const totalIncome = Number(metrics?.totalIncome) || 0;
+  const totalExpenses = Number(metrics?.totalExpenses) || 0;
+  const netCashflow = Number(metrics?.netCashflow) || 0;
+  const netWorth = Number(metrics?.netWorth ?? metrics?.totalBalance) || 0;
 
   const displayedBalance = selectedAccount
     ? selectedAccount.currency === 'USD'
-      ? selectedAccount.balance * liveRate
-      : selectedAccount.balance
-    : metrics.totalBalance;
+      ? (Number(selectedAccount.balance) || 0) * liveRate
+      : (Number(selectedAccount.balance) || 0)
+    : totalBalance;
 
   const hide = user?.hideBalances;
 
   return (
     <div className="space-y-6">
       {/* Minimalist Header + Inline Rate Control */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-2 border-b border-white/[0.06]">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 pb-2 border-b border-white/[0.06]">
         <div>
           <h1 className="text-xl sm:text-2xl font-bold text-white font-display tracking-tight">
             Overview
@@ -155,20 +164,20 @@ export default function DashboardPage() {
 
           <Button variant="secondary" size="sm" onClick={openExchangeModal}>
             <ArrowLeftRight className="w-3.5 h-3.5 text-emerald-400" />
-            Convert
+            <span className="hidden sm:inline">Convert</span>
           </Button>
 
           <Button size="sm" onClick={() => openTransactionModal('EXPENSE')}>
             <Plus className="w-3.5 h-3.5" />
-            New
+            <span>New</span>
           </Button>
         </div>
       </div>
 
       {/* Hero Balance + 4 Minimalist KPI Cards */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-3.5 sm:gap-4">
         {/* Minimalist Primary Balance Card */}
-        <div className="hero-card-preserve lg:col-span-5 rounded-xl p-6 bg-[#14151C] border border-white/[0.08] flex flex-col justify-between">
+        <div className="hero-card-preserve lg:col-span-5 rounded-2xl p-5 sm:p-6 bg-[#14151C] border border-white/[0.08] flex flex-col justify-between shadow-lg">
           <div>
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2">
@@ -186,7 +195,7 @@ export default function DashboardPage() {
                 value={selectedAccountId}
                 onChange={(e) => setSelectedAccountId(e.target.value)}
                 aria-label="Filter balance by account"
-                className="px-2.5 py-1 rounded-lg bg-white/[0.05] border border-white/[0.08] text-xs text-zinc-200 focus:outline-none cursor-pointer"
+                className="max-w-[150px] sm:max-w-none px-2.5 py-1 rounded-lg bg-white/[0.05] border border-white/[0.08] text-xs text-zinc-200 focus:outline-none cursor-pointer truncate"
               >
                 <option value="ALL">All Accounts ({accounts.length})</option>
                 {accounts.map((acc) => (
@@ -197,62 +206,62 @@ export default function DashboardPage() {
               </select>
             </div>
 
-            <div className="mt-5">
-              <p className="text-3xl sm:text-4xl font-bold tracking-tight text-white font-display tabular-nums">
+            <div className="mt-4 sm:mt-5">
+              <p className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight text-white font-display tabular-nums break-words">
                 {formatCurrency(displayedBalance, 'MVR', hide)}
               </p>
-              <div className="flex items-center gap-2 mt-1.5">
+              <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-1.5">
                 <span className="text-xs font-medium text-emerald-400 tabular-nums">
                   {formatSecondaryUSD(displayedBalance, liveRate, hide)} USD
                 </span>
-                <span className="text-zinc-600">•</span>
+                <span className="text-zinc-600 hidden sm:inline">•</span>
                 <span className="text-xs text-zinc-400">
-                  {metrics.savingsRate}% savings rate
+                  {savingsRate}% savings rate
                 </span>
               </div>
             </div>
           </div>
 
-          <div className="grid grid-cols-3 gap-2 mt-6 pt-4 border-t border-white/[0.06]">
+          <div className="grid grid-cols-3 gap-1.5 sm:gap-2 mt-5 sm:mt-6 pt-4 border-t border-white/[0.06]">
             <button
               onClick={() => openTransactionModal('INCOME')}
-              className="py-2 px-3 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] text-xs font-medium text-zinc-200 flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+              className="py-2 px-1.5 sm:px-3 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] text-[11px] sm:text-xs font-medium text-zinc-200 flex items-center justify-center gap-1 sm:gap-1.5 transition-colors cursor-pointer"
             >
-              <ArrowDownLeft className="w-3.5 h-3.5 text-emerald-400" />
-              Income
+              <ArrowDownLeft className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+              <span>Income</span>
             </button>
             <button
               onClick={() => openTransactionModal('EXPENSE')}
-              className="py-2 px-3 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] text-xs font-medium text-zinc-200 flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+              className="py-2 px-1.5 sm:px-3 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] text-[11px] sm:text-xs font-medium text-zinc-200 flex items-center justify-center gap-1 sm:gap-1.5 transition-colors cursor-pointer"
             >
-              <ArrowUpRight className="w-3.5 h-3.5 text-rose-400" />
-              Expense
+              <ArrowUpRight className="w-3.5 h-3.5 text-rose-400 shrink-0" />
+              <span>Expense</span>
             </button>
             <button
               onClick={openExchangeModal}
-              className="py-2 px-3 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] text-xs font-medium text-zinc-200 flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+              className="py-2 px-1.5 sm:px-3 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] text-[11px] sm:text-xs font-medium text-zinc-200 flex items-center justify-center gap-1 sm:gap-1.5 transition-colors cursor-pointer"
             >
-              <ArrowLeftRight className="w-3.5 h-3.5 text-indigo-400" />
-              $ ↔ MVR
+              <ArrowLeftRight className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
+              <span>$ ↔ MVR</span>
             </button>
           </div>
         </div>
 
         {/* 4 Minimalist KPI Cards */}
-        <div className="lg:col-span-7 grid grid-cols-2 gap-4">
+        <div className="lg:col-span-7 grid grid-cols-2 gap-2.5 sm:gap-4">
           <Card className="flex flex-col justify-between">
             <div className="flex items-center justify-between">
               <span className="text-xs font-medium text-zinc-400">Monthly Income</span>
               <span className="text-[11px] font-medium text-emerald-400 tabular-nums">
-                +{metrics.incomeChangePct}%
+                +{incomeChangePct}%
               </span>
             </div>
             <div className="mt-3">
               <p className="text-xl sm:text-2xl font-bold text-white font-display tabular-nums">
-                {formatCurrency(metrics.totalIncome, 'MVR', hide)}
+                {formatCurrency(totalIncome, 'MVR', hide)}
               </p>
               <p className="text-xs text-zinc-500 mt-0.5 tabular-nums">
-                {formatSecondaryUSD(metrics.totalIncome, liveRate, hide)} USD
+                {formatSecondaryUSD(totalIncome, liveRate, hide)} USD
               </p>
             </div>
           </Card>
@@ -261,15 +270,15 @@ export default function DashboardPage() {
             <div className="flex items-center justify-between">
               <span className="text-xs font-medium text-zinc-400">Monthly Expenses</span>
               <span className="text-[11px] font-medium text-zinc-400 tabular-nums">
-                {metrics.expenseChangePct}%
+                {expenseChangePct}%
               </span>
             </div>
             <div className="mt-3">
               <p className="text-xl sm:text-2xl font-bold text-white font-display tabular-nums">
-                {formatCurrency(metrics.totalExpenses, 'MVR', hide)}
+                {formatCurrency(totalExpenses, 'MVR', hide)}
               </p>
               <p className="text-xs text-zinc-500 mt-0.5 tabular-nums">
-                {formatSecondaryUSD(metrics.totalExpenses, liveRate, hide)} USD
+                {formatSecondaryUSD(totalExpenses, liveRate, hide)} USD
               </p>
             </div>
           </Card>
@@ -277,21 +286,21 @@ export default function DashboardPage() {
           <Card className="flex flex-col justify-between">
             <div className="flex items-center justify-between">
               <span className="text-xs font-medium text-zinc-400">Net Cashflow</span>
-              <Badge variant={metrics.netCashflow >= 0 ? 'success' : 'danger'}>
-                {metrics.netCashflow >= 0 ? 'Positive' : 'Deficit'}
+              <Badge variant={netCashflow >= 0 ? 'success' : 'danger'}>
+                {netCashflow >= 0 ? 'Positive' : 'Deficit'}
               </Badge>
             </div>
             <div className="mt-3">
               <p
                 className={`text-xl sm:text-2xl font-bold font-display tabular-nums ${
-                  metrics.netCashflow >= 0 ? 'text-emerald-400' : 'text-rose-400'
+                  netCashflow >= 0 ? 'text-emerald-400' : 'text-rose-400'
                 }`}
               >
-                {metrics.netCashflow >= 0 ? '+' : ''}
-                {formatCurrency(metrics.netCashflow, 'MVR', hide)}
+                {netCashflow >= 0 ? '+' : ''}
+                {formatCurrency(netCashflow, 'MVR', hide)}
               </p>
               <p className="text-xs text-zinc-500 mt-0.5 tabular-nums">
-                {formatSecondaryUSD(metrics.netCashflow, liveRate, hide)} USD
+                {formatSecondaryUSD(netCashflow, liveRate, hide)} USD
               </p>
             </div>
           </Card>
@@ -303,10 +312,10 @@ export default function DashboardPage() {
             </div>
             <div className="mt-3">
               <p className="text-xl sm:text-2xl font-bold text-white font-display tabular-nums">
-                {formatCurrency(metrics.netWorth, 'MVR', hide)}
+                {formatCurrency(netWorth, 'MVR', hide)}
               </p>
               <p className="text-xs text-zinc-500 mt-0.5 tabular-nums">
-                {formatSecondaryUSD(metrics.netWorth, liveRate, hide)} USD • {accounts.length} accounts
+                {formatSecondaryUSD(netWorth, liveRate, hide)} USD • {accounts.length} accounts
               </p>
             </div>
           </Card>
@@ -319,7 +328,7 @@ export default function DashboardPage() {
           <div
             key={acc.id}
             onClick={() => navigate('/accounts')}
-            className="finora-card p-3.5 rounded-xl bg-[#111218] border border-white/[0.06] hover:border-white/[0.15] transition-colors cursor-pointer flex flex-col justify-between gap-2.5"
+            className="faisaa-card p-3.5 rounded-xl bg-[#111218] border border-white/[0.06] hover:border-white/[0.15] transition-colors cursor-pointer flex flex-col justify-between gap-2.5"
           >
             <div className="flex items-center justify-between gap-2">
               <span className="text-xs font-medium text-zinc-300 truncate">{acc.name}</span>

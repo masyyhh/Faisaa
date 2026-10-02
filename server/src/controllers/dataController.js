@@ -18,6 +18,7 @@ export async function exportCSV(req, res, next) {
       'Type',
       'Payee',
       'Amount',
+      'Currency',
       'Account',
       'Category',
       'Description',
@@ -40,18 +41,19 @@ export async function exportCSV(req, res, next) {
       t.type,
       t.payee,
       t.amount.toFixed(2),
+      t.currency || t.account?.currency || 'MVR',
       t.account?.name || '',
       t.category?.name || '',
       t.description || '',
       t.notes || '',
-      t.transactionTags.map((tt) => tt.tag.name).join(';'),
+      (t.transactionTags || []).map((tt) => tt?.tag?.name).filter(Boolean).join(';'),
       t.isRecurring ? 'Yes' : 'No',
     ]);
 
     const csvString = [headers.join(','), ...rows.map((r) => r.map(escapeCSV).join(','))].join('\n');
 
     res.setHeader('Content-Type', 'text/csv');
-    res.setHeader('Content-Disposition', 'attachment; filename="finora-transactions.csv"');
+    res.setHeader('Content-Disposition', 'attachment; filename="faisaa-transactions.csv"');
     res.send(csvString);
   } catch (err) {
     next(err);
@@ -78,7 +80,7 @@ export async function exportJSONBackup(req, res, next) {
       ]);
 
     const payload = {
-      app: 'Finora Personal Finance Tracker',
+      app: 'Faisaa Personal Finance Tracker',
       version: '1.0.0',
       exportedAt: new Date().toISOString(),
       user: {
@@ -157,12 +159,18 @@ export async function importCSVTransactions(req, res, next) {
 
         const matchedAccount =
           accounts.find(
-            (a) => a.name.toLowerCase() === String(row.account || row.Account || '').toLowerCase()
+            (a) =>
+              a.id === (row.accountId || defaultAccountId) ||
+              a.name.toLowerCase() === String(row.account || row.Account || '').toLowerCase()
           ) || fallbackAccount;
 
         const matchedCategory = categories.find(
-          (c) => c.name.toLowerCase() === String(row.category || row.Category || '').toLowerCase()
+          (c) =>
+            c.id === row.categoryId ||
+            c.name.toLowerCase() === String(row.category || row.Category || '').toLowerCase()
         );
+
+        const currency = row.currency || matchedAccount.currency || 'MVR';
 
         if (type === 'INCOME') {
           await tx.account.update({
@@ -183,8 +191,10 @@ export async function importCSVTransactions(req, res, next) {
             categoryId: matchedCategory?.id || null,
             type,
             amount,
+            currency,
+            exchangeRateUsed: req.user?.usdToMvrRate || 18.45,
             payee,
-            description: row.description || row.Description || 'Imported via CSV',
+            description: row.description || row.Description || 'Imported statement transaction',
             notes: row.notes || row.Notes || null,
             date: parsedDate,
             isRecurring: false,

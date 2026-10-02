@@ -35,7 +35,7 @@ function spawnProcess(name, colorCode, cwd, command, args) {
   return proc;
 }
 
-console.log('\x1b[35m✨ Starting Finora Full-Stack Application (Server + Client)...\x1b[0m');
+console.log('\x1b[35m✨ Starting Faisaa Full-Stack Application (Server + Client)...\x1b[0m');
 
 const serverProc = spawnProcess(
   'SERVER',

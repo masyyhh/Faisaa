@@ -159,7 +159,7 @@ export default function BillsPage() {
     return true;
   });
 
-  const currency = user?.currency || 'USD';
+  const currency = user?.currency || 'MVR';
   const hide = user?.hideBalances;
 
   if (loading && bills.length === 0) {
@@ -205,42 +205,42 @@ export default function BillsPage() {
       )}
 
       {/* KPI Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card>
-          <p className="text-xs uppercase tracking-wider text-slate-400">Monthly Recurring Cost</p>
-          <p className="text-2xl font-extrabold text-white mt-1">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
+        <Card className="p-3.5 sm:p-5">
+          <p className="text-[11px] sm:text-xs uppercase tracking-wider text-slate-400">Monthly Recurring Cost</p>
+          <p className="text-xl sm:text-2xl font-extrabold text-white mt-1 truncate">
             {formatCurrency(summary.monthlyRecurringCost, currency, hide)}
           </p>
-          <span className="text-xs text-slate-400 mt-1 block">Normalized monthly burn</span>
+          <span className="text-[11px] sm:text-xs text-slate-400 mt-1 block truncate">Normalized monthly burn</span>
         </Card>
 
-        <Card>
-          <p className="text-xs uppercase tracking-wider text-slate-400">Yearly Recurring Cost</p>
-          <p className="text-2xl font-extrabold text-violet-400 mt-1">
+        <Card className="p-3.5 sm:p-5">
+          <p className="text-[11px] sm:text-xs uppercase tracking-wider text-slate-400">Yearly Recurring Cost</p>
+          <p className="text-xl sm:text-2xl font-extrabold text-violet-400 mt-1 truncate">
             {formatCurrency(summary.yearlyRecurringCost, currency, hide)}
           </p>
-          <span className="text-xs text-slate-400 mt-1 block">12-month annualized total</span>
+          <span className="text-[11px] sm:text-xs text-slate-400 mt-1 block truncate">12-month annualized total</span>
         </Card>
 
-        <Card>
-          <p className="text-xs uppercase tracking-wider text-slate-400">Active Subscriptions</p>
-          <p className="text-2xl font-extrabold text-cyan-400 mt-1">
+        <Card className="p-3.5 sm:p-5">
+          <p className="text-[11px] sm:text-xs uppercase tracking-wider text-slate-400">Active Subscriptions</p>
+          <p className="text-xl sm:text-2xl font-extrabold text-cyan-400 mt-1 truncate">
             {summary.subscriptionCount} Active
           </p>
-          <span className="text-xs text-slate-400 mt-1 block">Digital & recurring plans</span>
+          <span className="text-[11px] sm:text-xs text-slate-400 mt-1 block truncate">Digital & recurring plans</span>
         </Card>
 
-        <Card>
-          <p className="text-xs uppercase tracking-wider text-slate-400">Upcoming & Overdue</p>
-          <p className="text-2xl font-extrabold text-amber-400 mt-1">
+        <Card className="p-3.5 sm:p-5">
+          <p className="text-[11px] sm:text-xs uppercase tracking-wider text-slate-400">Upcoming & Overdue</p>
+          <p className="text-xl sm:text-2xl font-extrabold text-amber-400 mt-1 truncate">
             {summary.upcomingCount} Due • {summary.overdueCount} Late
           </p>
-          <span className="text-xs text-slate-400 mt-1 block">Next 30 days cycle</span>
+          <span className="text-[11px] sm:text-xs text-slate-400 mt-1 block truncate">Next 30 days cycle</span>
         </Card>
       </div>
 
       {/* Filter Tabs */}
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1">
         {[
           { id: 'ALL', label: `All (${bills.length})` },
           { id: 'UPCOMING', label: `Upcoming (${summary.upcomingCount})` },
@@ -251,7 +251,7 @@ export default function BillsPage() {
           <button
             key={t.id}
             onClick={() => setFilterTab(t.id)}
-            className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all shrink-0 whitespace-nowrap cursor-pointer ${
               filterTab === t.id
                 ? 'bg-violet-600 text-white'
                 : 'bg-white/[0.04] text-slate-400 hover:text-white'

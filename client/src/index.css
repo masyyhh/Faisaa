@@ -82,6 +82,7 @@ html.light [class*="bg-[#0E"] {
   color: #09090b !important;
 }
 
+html.light aside.faisaa-sidebar,
 html.light aside.finora-sidebar,
 html.light header[class*="bg-[#08"],
 html.light header[class*="bg-[#09"] {
@@ -96,6 +97,7 @@ html.light nav[class*="bg-[#09"] {
 }
 
 /* Cards, Modals, Dropdowns, Select Boxes, and Elevated Containers */
+html.light .faisaa-card,
 html.light .finora-card,
 html.light [class*="bg-[#11"],
 html.light [class*="bg-[#12"],
@@ -113,11 +115,13 @@ html.light [class*="bg-[#19"] {
 
 /* Subtle surface fills (bg-white/[0.02], bg-white/[0.04], etc.) */
 html.light :not(.hero-card-preserve) > [class*="bg-white/"],
+html.light .faisaa-card [class*="bg-white/"],
 html.light .finora-card [class*="bg-white/"] {
   background-color: #f4f4f5 !important;
   border-color: #e4e4e7 !important;
 }
 
+html.light .faisaa-card [class*="hover:bg-white/"]:hover,
 html.light .finora-card [class*="hover:bg-white/"]:hover {
   background-color: #e4e4e7 !important;
 }
@@ -126,6 +130,7 @@ html.light .finora-card [class*="hover:bg-white/"]:hover {
 html.light input:not([type="checkbox"]):not([type="color"]),
 html.light select,
 html.light textarea,
+html.light .faisaa-input,
 html.light .finora-input {
   background-color: #ffffff !important;
   border-color: #d4d4d8 !important;

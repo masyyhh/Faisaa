@@ -208,6 +208,24 @@ export async function updateBudget(req, res, next) {
     }
 
     const parsed = budgetSchema.partial().parse(req.body);
+
+    if (parsed.categoryId && parsed.categoryId !== existing.categoryId) {
+      const duplicate = await prisma.budget.findFirst({
+        where: {
+          userId: req.user.id,
+          categoryId: parsed.categoryId,
+          month: existing.month,
+          year: existing.year,
+        },
+      });
+      if (duplicate) {
+        return res.status(400).json({
+          success: false,
+          message: 'A budget for this category already exists in this month.',
+        });
+      }
+    }
+
     const updated = await prisma.budget.update({
       where: { id },
       data: {

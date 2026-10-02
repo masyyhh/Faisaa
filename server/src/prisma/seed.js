@@ -3,31 +3,27 @@ import bcrypt from 'bcryptjs';
 import prisma, { DEFAULT_CATEGORIES } from './client.js';
 
 export async function seedDatabase() {
-  console.log('🌱 Starting Finora (MVR & USD Edition) database seed...');
+  console.log('🌱 Starting Faisaa (MVR & USD Edition) database seed...');
 
-  const existingUser = await prisma.user.findUnique({
-    where: { email: 'alex@finora.io' },
-  });
+  const existingUser =
+    (await prisma.user.findUnique({ where: { email: 'alex@faisaa.io' } })) ||
+    (await prisma.user.findUnique({ where: { email: 'alex@finora.io' } }));
 
   if (existingUser) {
-    // Ensure telegram credentials & MVR base currency are synced
-    if (
-      existingUser.currency !== 'MVR' ||
-      (!existingUser.telegramBotToken && process.env.TELEGRAM_BOT_TOKEN)
-    ) {
-      await prisma.user.update({
-        where: { id: existingUser.id },
-        data: {
-          currency: 'MVR',
-          secondaryCurrency: 'USD',
-          usdToMvrRate: existingUser.usdToMvrRate || 18.45,
-          telegramEnabled: true,
-          telegramBotToken: process.env.TELEGRAM_BOT_TOKEN || null,
-          telegramChatId: process.env.TELEGRAM_CHAT_ID || null,
-        },
-      });
-    }
-    console.log('✅ Demo user (alex@finora.io) already exists. Skipping duplicate seed.');
+    // Ensure telegram credentials, username & MVR base currency are synced
+    await prisma.user.update({
+      where: { id: existingUser.id },
+      data: {
+        username: existingUser.username || 'alex',
+        currency: 'MVR',
+        secondaryCurrency: 'USD',
+        usdToMvrRate: existingUser.usdToMvrRate || 18.45,
+        telegramEnabled: true,
+        telegramBotToken: process.env.TELEGRAM_BOT_TOKEN || null,
+        telegramChatId: process.env.TELEGRAM_CHAT_ID || null,
+      },
+    });
+    console.log(`✅ Demo user (${existingUser.email}) already exists. Skipping duplicate seed.`);
     return existingUser;
   }
 
@@ -37,7 +33,8 @@ export async function seedDatabase() {
     data: {
       firstName: 'Alex',
       lastName: 'Morgan',
-      email: 'alex@finora.io',
+      username: 'alex',
+      email: 'alex@faisaa.io',
       passwordHash,
       currency: 'MVR',
       secondaryCurrency: 'USD',
@@ -622,7 +619,7 @@ export async function seedDatabase() {
     ],
   });
 
-  console.log('✨ Finora MVR & USD seed completed!');
+  console.log('✨ Faisaa MVR & USD seed completed!');
   return user;
 }
 

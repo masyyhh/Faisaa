@@ -149,7 +149,7 @@ export default function BudgetsPage() {
     }
   };
 
-  const currency = user?.currency || 'USD';
+  const currency = user?.currency || 'MVR';
   const hide = user?.hideBalances;
 
   if (loading && budgets.length === 0) {
@@ -175,8 +175,8 @@ export default function BudgetsPage() {
       </div>
 
       {/* Overall Budget Health Hero */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        <Card className="lg:col-span-5 flex flex-col justify-between bg-gradient-to-br from-[#191B30] to-[#121422]">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6">
+        <Card className="lg:col-span-5 flex flex-col justify-between bg-gradient-to-br from-[#191B30] to-[#121422] p-4 sm:p-5">
           <div>
             <div className="flex items-center justify-between">
               <span className="text-xs uppercase tracking-wider font-semibold text-violet-300">
@@ -196,9 +196,9 @@ export default function BudgetsPage() {
             </div>
 
             <div className="mt-4">
-              <p className="text-3xl font-extrabold text-white font-display">
+              <p className="text-2xl sm:text-3xl font-extrabold text-white font-display truncate">
                 {formatCurrency(summary.totalSpent, currency, hide)}{' '}
-                <span className="text-base font-medium text-slate-400">
+                <span className="text-sm sm:text-base font-medium text-slate-400">
                   / {formatCurrency(summary.totalBudgeted, currency, hide)}
                 </span>
               </p>
@@ -233,7 +233,7 @@ export default function BudgetsPage() {
         </Card>
 
         {/* Historical Budget Performance Chart */}
-        <Card className="lg:col-span-7">
+        <Card className="lg:col-span-7 min-w-0 p-4 sm:p-5">
           <div className="mb-4">
             <h3 className="text-base font-bold text-white">
               Historical Budget vs Actual Performance
@@ -278,7 +278,7 @@ export default function BudgetsPage() {
           }
         />
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5 sm:gap-5">
           {budgets.map((b) => {
             const stateMeta = getStateBadge(b.statusState);
             return (

@@ -222,13 +222,14 @@ export default function AccountsPage() {
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2.5">
+        <div className="flex flex-wrap items-center gap-2">
           <Button
             variant="secondary"
             size="sm"
             onClick={openExchangeModal}
+            className="text-xs"
           >
-            <ArrowLeftRight className="w-4 h-4 text-emerald-400" /> Exchange $ ↔ MVR
+            <ArrowLeftRight className="w-3.5 h-3.5 text-emerald-400" /> Exchange $ ↔ MVR
           </Button>
           <Button
             variant="secondary"
@@ -242,97 +243,98 @@ export default function AccountsPage() {
               });
               setTransferModalOpen(true);
             }}
+            className="text-xs"
           >
-            <ArrowLeftRight className="w-4 h-4 text-violet-400" /> Transfer Funds
+            <ArrowLeftRight className="w-3.5 h-3.5 text-violet-400" /> Transfer Funds
           </Button>
-          <Button size="sm" onClick={openAddModal}>
-            <Plus className="w-4 h-4" /> Add Account
+          <Button size="sm" onClick={openAddModal} className="text-xs">
+            <Plus className="w-3.5 h-3.5" /> Add Account
           </Button>
         </div>
       </div>
 
       {/* Summary Banner */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <Card className="flex items-center justify-between">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-4">
+        <Card className="p-3.5 sm:p-5 flex items-center justify-between">
           <div>
-            <p className="text-xs uppercase tracking-wider text-slate-400">Total Assets (MVR)</p>
-            <p className="text-2xl font-extrabold text-emerald-400 mt-1">
+            <p className="text-[11px] sm:text-xs uppercase tracking-wider text-slate-400">Total Assets (MVR)</p>
+            <p className="text-xl sm:text-2xl font-extrabold text-emerald-400 mt-1 truncate">
               {formatCurrency(summary.totalAssets, currency, hide)}
             </p>
-            <p className="text-xs font-semibold text-slate-400 mt-0.5">
+            <p className="text-[11px] sm:text-xs font-semibold text-slate-400 mt-0.5">
               {formatSecondaryUSD(summary.totalAssets, liveRate, hide)} USD
             </p>
           </div>
-          <div className="w-11 h-11 rounded-2xl bg-emerald-500/15 text-emerald-400 flex items-center justify-center">
+          <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-emerald-500/15 text-emerald-400 flex items-center justify-center shrink-0">
             <Landmark className="w-5 h-5" />
           </div>
         </Card>
 
-        <Card className="flex items-center justify-between">
+        <Card className="p-3.5 sm:p-5 flex items-center justify-between">
           <div>
-            <p className="text-xs uppercase tracking-wider text-slate-400">Total Liabilities (MVR)</p>
-            <p className="text-2xl font-extrabold text-rose-400 mt-1">
+            <p className="text-[11px] sm:text-xs uppercase tracking-wider text-slate-400">Total Liabilities (MVR)</p>
+            <p className="text-xl sm:text-2xl font-extrabold text-rose-400 mt-1 truncate">
               {formatCurrency(summary.totalLiabilities, currency, hide)}
             </p>
-            <p className="text-xs font-semibold text-slate-400 mt-0.5">
+            <p className="text-[11px] sm:text-xs font-semibold text-slate-400 mt-0.5">
               {formatSecondaryUSD(summary.totalLiabilities, liveRate, hide)} USD
             </p>
           </div>
-          <div className="w-11 h-11 rounded-2xl bg-rose-500/15 text-rose-400 flex items-center justify-center">
+          <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-rose-500/15 text-rose-400 flex items-center justify-center shrink-0">
             <CreditCard className="w-5 h-5" />
           </div>
         </Card>
 
-        <Card className="flex items-center justify-between">
+        <Card className="p-3.5 sm:p-5 flex items-center justify-between">
           <div>
-            <p className="text-xs uppercase tracking-wider text-slate-400">Combined Net Balance (MVR)</p>
-            <p className="text-2xl font-extrabold text-white mt-1">
+            <p className="text-[11px] sm:text-xs uppercase tracking-wider text-slate-400">Combined Net Balance (MVR)</p>
+            <p className="text-xl sm:text-2xl font-extrabold text-white mt-1 truncate">
               {formatCurrency(summary.totalBalance, currency, hide)}
             </p>
-            <p className="text-xs font-semibold text-emerald-400 mt-0.5">
+            <p className="text-[11px] sm:text-xs font-semibold text-emerald-400 mt-0.5">
               {formatSecondaryUSD(summary.totalBalance, liveRate, hide)} USD (@ {liveRate.toFixed(2)})
             </p>
           </div>
-          <div className="w-11 h-11 rounded-2xl bg-violet-500/15 text-violet-400 flex items-center justify-center">
+          <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-violet-500/15 text-violet-400 flex items-center justify-center shrink-0">
             <TrendingUp className="w-5 h-5" />
           </div>
         </Card>
       </div>
 
       {/* Accounts Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
         {accounts.map((acc) => {
           const isSelected = selectedAccount?.id === acc.id;
           return (
             <div
               key={acc.id}
               onClick={() => handleSelectAccount(acc.id)}
-              className={`finora-card rounded-2xl p-5 border transition-all cursor-pointer relative overflow-hidden ${
+              className={`faisaa-card rounded-2xl p-4 sm:p-5 border transition-all cursor-pointer relative overflow-hidden ${
                 isSelected
                   ? 'bg-[#171B2E] border-violet-500 shadow-lg shadow-violet-500/15'
                   : 'bg-[#131622] border-white/[0.07] hover:border-white/[0.18]'
               }`}
             >
               <div className="flex items-start justify-between gap-3">
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 min-w-0">
                   <div
-                    className="w-11 h-11 rounded-2xl flex items-center justify-center"
+                    className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl flex items-center justify-center shrink-0"
                     style={{ backgroundColor: `${acc.color}22`, color: acc.color }}
                   >
                     <DynamicIcon name={acc.icon} className="w-5 h-5" />
                   </div>
-                  <div>
+                  <div className="min-w-0">
                     <div className="flex items-center gap-2">
-                      <h3 className="text-base font-bold text-white">{acc.name}</h3>
+                      <h3 className="text-sm sm:text-base font-bold text-white truncate">{acc.name}</h3>
                       {!acc.isActive && <Badge variant="warning">Archived</Badge>}
                     </div>
-                    <p className="text-xs text-slate-400">
+                    <p className="text-xs text-slate-400 truncate">
                       {acc.institution || acc.type} {acc.lastFour ? `•••• ${acc.lastFour}` : ''}
                     </p>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                <div className="flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
                   <button
                     onClick={() => openEditModal(acc)}
                     className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/[0.07] cursor-pointer"
@@ -348,29 +350,29 @@ export default function AccountsPage() {
                 </div>
               </div>
 
-              <div className="mt-5 flex items-end justify-between">
-                <div>
-                  <p className="text-[11px] uppercase tracking-wider text-slate-400">
+              <div className="mt-4 sm:mt-5 flex items-end justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="text-[10px] sm:text-[11px] uppercase tracking-wider text-slate-400">
                     Current Balance ({acc.currency})
                   </p>
                   <p
-                    className={`text-2xl font-extrabold mt-0.5 font-display ${
+                    className={`text-xl sm:text-2xl font-extrabold mt-0.5 font-display truncate ${
                       acc.balance < 0 ? 'text-rose-400' : 'text-white'
                     }`}
                   >
                     {formatCurrency(acc.balance, acc.currency, hide)}
                   </p>
                   {acc.currency === 'USD' && (
-                    <p className="text-xs font-semibold text-emerald-400 mt-0.5">
+                    <p className="text-[11px] sm:text-xs font-semibold text-emerald-400 mt-0.5 truncate">
                       ≈ {formatCurrency(acc.balance * liveRate, 'MVR', hide)}
                     </p>
                   )}
                 </div>
-                <div className="flex items-center gap-1.5">
-                  <Badge variant={acc.currency === 'USD' ? 'success' : 'purple'}>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <Badge variant={acc.currency === 'USD' ? 'success' : 'purple'} className="text-[10px]">
                     {acc.currency}
                   </Badge>
-                  <Badge variant="default">{acc.type.replace('_', ' ')}</Badge>
+                  <Badge variant="default" className="text-[10px] hidden xs:inline-flex">{acc.type.replace('_', ' ')}</Badge>
                 </div>
               </div>
             </div>
@@ -380,8 +382,8 @@ export default function AccountsPage() {
 
       {/* Selected Account Detail Panel: Balance History Chart + Recent Activity */}
       {selectedAccount && (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 pt-2">
-          <Card className="lg:col-span-7">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6 pt-2">
+          <Card className="lg:col-span-7 min-w-0">
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h3 className="text-base font-bold text-white">

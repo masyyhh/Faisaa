@@ -169,9 +169,21 @@ export async function contributeToGoal(req, res, next) {
       });
     }
 
+    if (action === 'WITHDRAW' && existing.currentAmount <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Cannot withdraw from a goal with zero funds.',
+      });
+    }
+
+    const effectiveAmount =
+      action === 'WITHDRAW'
+        ? Math.min(existing.currentAmount, numericAmount)
+        : numericAmount;
+
     const newAmount =
       action === 'WITHDRAW'
-        ? Math.max(0, existing.currentAmount - numericAmount)
+        ? Math.max(0, existing.currentAmount - effectiveAmount)
         : existing.currentAmount + numericAmount;
 
     const updated = await prisma.$transaction(async (tx) => {
@@ -185,7 +197,7 @@ export async function contributeToGoal(req, res, next) {
             data: {
               balance:
                 action === 'WITHDRAW'
-                  ? { increment: numericAmount }
+                  ? { increment: effectiveAmount }
                   : { decrement: numericAmount },
             },
           });
@@ -217,7 +229,7 @@ export async function contributeToGoal(req, res, next) {
         data: {
           userId: req.user.id,
           title: `Goal Completed: ${updated.name}!`,
-          message: `Congratulations! You reached 100% ($${updated.targetAmount.toLocaleString()}) of your ${updated.name} goal!`,
+          message: `Congratulations! You reached 100% (${updated.targetAmount.toLocaleString()}) of your ${updated.name} goal!`,
           type: 'GOAL_MILESTONE',
           severity: 'SUCCESS',
           actionUrl: '/goals',

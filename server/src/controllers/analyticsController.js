@@ -274,6 +274,8 @@ export async function getDashboardSummary(req, res, next) {
         netCashflowUsd: toUSD(netCashflow, 'MVR', rate),
         incomeChangePct,
         expenseChangePct,
+        netWorth: totalBalance,
+        netWorthUsd: totalBalanceUsd,
         savingsRate:
           totalIncome > 0
             ? Number((((totalIncome - totalExpenses) / totalIncome) * 100).toFixed(1))

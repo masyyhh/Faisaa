@@ -71,14 +71,14 @@ export default function CurrencyExchangeModal() {
 
       const usdAccs = allAccs.filter((a) => a.currency === 'USD');
       const mvrAccs = allAccs.filter((a) => a.currency !== 'USD');
-      if (usdAccs.length > 0 && !fromAccountId) setFromAccountId(usdAccs[0].id);
-      if (mvrAccs.length > 0 && !toAccountId) setToAccountId(mvrAccs[0].id);
+      setFromAccountId((prev) => (prev ? prev : (usdAccs[0]?.id || '')));
+      setToAccountId((prev) => (prev ? prev : (mvrAccs[0]?.id || '')));
     } catch {
       // Ignore error
     } finally {
       setLoading(false);
     }
-  }, [user?.usdToMvrRate, fromAccountId, toAccountId]);
+  }, [user?.usdToMvrRate]);
 
   useEffect(() => {
     if (exchangeModalOpen) {
@@ -216,7 +216,7 @@ export default function CurrencyExchangeModal() {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm overflow-y-auto">
-      <div className="finora-card w-full max-w-2xl bg-[#111422] border border-white/[0.1] rounded-3xl shadow-2xl overflow-hidden my-8">
+      <div className="faisaa-card finora-card w-full max-w-2xl bg-[#111422] border border-white/[0.1] rounded-3xl shadow-2xl overflow-hidden my-8">
         {/* Header */}
         <div className="px-6 py-4 border-b border-white/[0.08] flex items-center justify-between">
           <div className="flex items-center gap-3">

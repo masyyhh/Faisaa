@@ -21,12 +21,33 @@ export async function register(req, res, next) {
       });
     }
 
+    let username = parsed.username ? parsed.username.toLowerCase().trim() : null;
+    if (username) {
+      const existingUsername = await prisma.user.findFirst({ where: { username } });
+      if (existingUsername) {
+        return res.status(400).json({
+          success: false,
+          message: 'That username is already taken. Please choose another.',
+        });
+      }
+    } else {
+      // Auto-assign clean username candidate from email prefix if available
+      const candidate = email.split('@')[0].replace(/[^a-z0-9_.-]/g, '').slice(0, 30);
+      if (candidate.length >= 3) {
+        const taken = await prisma.user.findFirst({ where: { username: candidate } });
+        if (!taken) {
+          username = candidate;
+        }
+      }
+    }
+
     const passwordHash = await bcrypt.hash(parsed.password, 10);
 
     const user = await prisma.user.create({
       data: {
         firstName: parsed.firstName.trim(),
         lastName: parsed.lastName.trim(),
+        username,
         email,
         passwordHash,
         currency: parsed.currency || 'MVR',
@@ -81,7 +102,7 @@ export async function register(req, res, next) {
     await prisma.notification.create({
       data: {
         userId: user.id,
-        title: 'Welcome to Finora (MVR & USD Edition)!',
+        title: 'Welcome to Faisaa (MVR & USD Edition)!',
         message: 'MVR is set as your base currency and USD ($) as secondary. Update your USD→MVR exchange rate anytime.',
         type: 'SYSTEM',
         severity: 'SUCCESS',
@@ -105,13 +126,21 @@ export async function register(req, res, next) {
 export async function login(req, res, next) {
   try {
     const parsed = loginSchema.parse(req.body);
-    const email = parsed.email.toLowerCase().trim();
+    const identifier = (parsed.identifier || parsed.username || parsed.email || '').trim().toLowerCase();
 
-    const user = await prisma.user.findUnique({ where: { email } });
+    const user = await prisma.user.findFirst({
+      where: {
+        OR: [
+          { email: identifier },
+          { username: identifier },
+        ],
+      },
+    });
+
     if (!user) {
       return res.status(401).json({
         success: false,
-        message: 'Invalid email or password.',
+        message: 'Invalid email/username or password.',
       });
     }
 
@@ -119,7 +148,7 @@ export async function login(req, res, next) {
     if (!valid) {
       return res.status(401).json({
         success: false,
-        message: 'Invalid email or password.',
+        message: 'Invalid email/username or password.',
       });
     }
 
@@ -170,6 +199,24 @@ export async function updateProfile(req, res, next) {
       }
     }
 
+    if (parsed.username !== undefined && parsed.username !== null) {
+      const cleanUsername = parsed.username.toLowerCase().trim();
+      if (cleanUsername && cleanUsername !== req.user.username?.toLowerCase()) {
+        const usernameTaken = await prisma.user.findFirst({
+          where: {
+            username: cleanUsername,
+            NOT: { id: req.user.id },
+          },
+        });
+        if (usernameTaken) {
+          return res.status(400).json({
+            success: false,
+            message: 'That username is already taken. Please choose another.',
+          });
+        }
+      }
+    }
+
     if (parsed.usdToMvrRate && parsed.usdToMvrRate !== req.user.usdToMvrRate) {
       await prisma.exchangeRateHistory.create({
         data: {
@@ -184,12 +231,14 @@ export async function updateProfile(req, res, next) {
       where: { id: req.user.id },
       data: {
         ...parsed,
-        ...(parsed.email ? { email: parsed.email.toLowerCase() } : {}),
+        ...(parsed.email ? { email: parsed.email.toLowerCase().trim() } : {}),
+        ...(parsed.username !== undefined ? { username: parsed.username ? parsed.username.toLowerCase().trim() : null } : {}),
       },
       select: {
         id: true,
         firstName: true,
         lastName: true,
+        username: true,
         email: true,
         currency: true,
         secondaryCurrency: true,

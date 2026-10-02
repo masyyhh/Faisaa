@@ -48,6 +48,7 @@ import {
   createRecurringTransaction,
   updateRecurringTransaction,
   processRecurringTransactionNow,
+  processDueTransactions,
   deleteRecurringTransaction,
 } from '../controllers/recurringController.js';
 import {
@@ -83,6 +84,14 @@ import {
   createCurrencyExchange,
   deleteCurrencyExchange,
 } from '../controllers/exchangeController.js';
+import {
+  handleWebhook,
+  setupWebhook,
+  getBotStatus,
+  simulateCommand,
+  triggerDailyBriefing,
+  generateLinkingCode,
+} from '../controllers/telegramBotController.js';
 
 import prisma from '../prisma/client.js';
 
@@ -95,7 +104,7 @@ router.get('/health', async (req, res) => {
     res.json({
       success: true,
       status: 'healthy',
-      service: 'Finora REST API (MVR & USD Edition)',
+      service: 'Faisaa REST API (MVR & USD Edition)',
       database: 'connected',
       environment: process.env.NODE_ENV || 'development',
       uptimeSeconds: Math.floor(process.uptime()),
@@ -105,7 +114,7 @@ router.get('/health', async (req, res) => {
     res.status(503).json({
       success: false,
       status: 'degraded',
-      service: 'Finora REST API (MVR & USD Edition)',
+      service: 'Faisaa REST API (MVR & USD Edition)',
       database: 'disconnected',
       error: process.env.NODE_ENV === 'production' ? 'Database unreachable' : err.message,
       timestamp: new Date().toISOString(),
@@ -167,6 +176,7 @@ router.get('/recurring', protect, getRecurringTransactions);
 router.post('/recurring', protect, createRecurringTransaction);
 router.put('/recurring/:id', protect, updateRecurringTransaction);
 router.post('/recurring/:id/process', protect, processRecurringTransactionNow);
+router.post('/recurring/process-due', protect, processDueTransactions);
 router.delete('/recurring/:id', protect, deleteRecurringTransaction);
 
 // Bills & Subscriptions Routes
@@ -183,9 +193,17 @@ router.get('/analytics/categories', protect, getCategoryAnalytics);
 router.get('/analytics/net-worth', protect, getNetWorthAnalytics);
 router.get('/analytics/budgets', protect, getBudgetAnalytics);
 
+// Two-Way Telegram Expense Bot Routes
+router.post('/telegram/webhook', handleWebhook);
+router.post('/telegram/setup-webhook', protect, setupWebhook);
+router.post('/telegram/generate-link-code', protect, generateLinkingCode);
+router.get('/telegram/status', protect, getBotStatus);
+router.post('/telegram/simulate', protect, simulateCommand);
+
 // Notifications & Telegram Bot Routes
 router.get('/notifications', protect, getNotifications);
 router.post('/notifications/telegram-test', protect, sendTestTelegramAlert);
+router.post('/notifications/send-briefing', protect, triggerDailyBriefing);
 router.put('/notifications/read-all', protect, markAllNotificationsRead);
 router.put('/notifications/:id/read', protect, markNotificationRead);
 router.delete('/notifications/:id', protect, deleteNotification);

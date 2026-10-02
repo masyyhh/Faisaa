@@ -4,14 +4,20 @@ import prisma from '../prisma/client.js';
 const INSECURE_PLACEHOLDERS = new Set([
   'your-secure-256-bit-jwt-secret',
   'replace-with-a-cryptographically-secure-256-bit-secret-key',
+  'faisaa_production_jwt_secret_change_me_in_env_2026',
+  'finora_super_secret_jwt_key_2026_production_ready',
+  'secret',
+  'changeme',
 ]);
 
 if (
   process.env.NODE_ENV === 'production' &&
-  (!process.env.JWT_SECRET || INSECURE_PLACEHOLDERS.has(process.env.JWT_SECRET))
+  (!process.env.JWT_SECRET ||
+    INSECURE_PLACEHOLDERS.has(process.env.JWT_SECRET) ||
+    process.env.JWT_SECRET.length < 32)
 ) {
   console.error(
-    '❌ FATAL: JWT_SECRET environment variable must be set to a strong secret in production.'
+    '❌ FATAL: JWT_SECRET environment variable must be set to a cryptographically strong secret (minimum 32 characters) in production.'
   );
   process.exit(1);
 }
@@ -48,6 +54,7 @@ export async function protect(req, res, next) {
         id: true,
         firstName: true,
         lastName: true,
+        username: true,
         email: true,
         currency: true,
         secondaryCurrency: true,

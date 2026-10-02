@@ -1,7 +1,7 @@
 {
-  "name": "finora-server",
+  "name": "faisaa-server",
   "version": "1.0.0",
-  "description": "Finora REST API Server with Express, Prisma ORM & JWT Auth",
+  "description": "Faisaa REST API Server with Express, Prisma ORM & JWT Auth",
   "main": "src/index.js",
   "type": "module",
   "scripts": {

@@ -5,7 +5,7 @@ export function Card({ children, className = '', onClick }) {
   return (
     <div
       onClick={onClick}
-      className={`finora-card bg-[#111218] border border-white/[0.06] rounded-xl p-5 transition-colors duration-150 ${
+      className={`faisaa-card finora-card bg-[#111218] border border-white/[0.06] rounded-xl p-5 transition-colors duration-150 ${
         onClick ? 'cursor-pointer hover:border-white/[0.14] hover:bg-[#14161e]' : ''
       } ${className}`}
     >
@@ -103,7 +103,7 @@ export function Modal({ isOpen, onClose, title, subtitle, children, maxWidth = '
       aria-modal="true"
     >
       <div
-        className={`finora-card w-full ${maxWidth} bg-[#111218] border border-white/[0.08] rounded-t-2xl sm:rounded-2xl shadow-2xl overflow-hidden max-h-[92vh] flex flex-col`}
+        className={`faisaa-card finora-card w-full ${maxWidth} bg-[#111218] border border-white/[0.08] rounded-t-2xl sm:rounded-2xl shadow-2xl overflow-hidden max-h-[92vh] flex flex-col`}
       >
         <div className="flex items-center justify-between px-5 py-4 border-b border-white/[0.06]">
           <div>

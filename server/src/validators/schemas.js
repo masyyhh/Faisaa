@@ -3,19 +3,42 @@ import { z } from 'zod';
 export const registerSchema = z.object({
   firstName: z.string().min(1, 'First name is required').max(60),
   lastName: z.string().min(1, 'Last name is required').max(60),
+  username: z
+    .string()
+    .trim()
+    .min(3, 'Username must be at least 3 characters')
+    .max(30, 'Username cannot exceed 30 characters')
+    .regex(/^[a-zA-Z0-9_.-]+$/, 'Username can only contain letters, numbers, underscores, dots, and hyphens')
+    .optional()
+    .nullable(),
   email: z.string().email('Please enter a valid email address'),
   password: z.string().min(6, 'Password must be at least 6 characters'),
   currency: z.enum(['MVR', 'USD']).optional().default('MVR'),
 });
 
-export const loginSchema = z.object({
-  email: z.string().email('Please enter a valid email address'),
-  password: z.string().min(1, 'Password is required'),
-});
+export const loginSchema = z
+  .object({
+    email: z.string().trim().min(1, 'Please enter your email or username').optional(),
+    username: z.string().trim().min(1).optional(),
+    identifier: z.string().trim().min(1).optional(),
+    password: z.string().min(1, 'Password is required'),
+  })
+  .refine((data) => data.email || data.username || data.identifier, {
+    message: 'Please enter your email or username',
+    path: ['email'],
+  });
 
 export const profileUpdateSchema = z.object({
   firstName: z.string().min(1).max(60).optional(),
   lastName: z.string().min(1).max(60).optional(),
+  username: z
+    .string()
+    .trim()
+    .min(3, 'Username must be at least 3 characters')
+    .max(30, 'Username cannot exceed 30 characters')
+    .regex(/^[a-zA-Z0-9_.-]+$/, 'Username can only contain letters, numbers, underscores, dots, and hyphens')
+    .optional()
+    .nullable(),
   email: z.string().email().optional(),
   currency: z.enum(['MVR', 'USD']).optional(),
   secondaryCurrency: z.enum(['USD', 'MVR']).optional(),
@@ -114,6 +137,7 @@ export const recurringSchema = z.object({
   categoryId: z.string().optional().nullable(),
   type: z.enum(['INCOME', 'EXPENSE']),
   amount: z.coerce.number().positive('Amount must be positive'),
+  currency: z.enum(['MVR', 'USD']).optional().default('MVR'),
   payee: z.string().min(1, 'Payee is required'),
   description: z.string().optional().nullable(),
   frequency: z.enum(['DAILY', 'WEEKLY', 'BIWEEKLY', 'MONTHLY', 'QUARTERLY', 'YEARLY']),

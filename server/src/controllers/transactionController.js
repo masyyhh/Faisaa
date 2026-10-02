@@ -2,6 +2,20 @@ import prisma from '../prisma/client.js';
 import { transactionSchema } from '../validators/schemas.js';
 import { sendTelegramNotification } from '../services/telegramService.js';
 
+function getTransferConvertedAmount(sourceCurrency, targetCurrency, amount, rate = 15.42) {
+  if (!sourceCurrency || !targetCurrency || sourceCurrency === targetCurrency) {
+    return amount;
+  }
+  const r = Number(rate || 15.42);
+  if (sourceCurrency === 'USD' && targetCurrency === 'MVR') {
+    return Number((amount * r).toFixed(2));
+  }
+  if (sourceCurrency === 'MVR' && targetCurrency === 'USD') {
+    return Number((amount / r).toFixed(2));
+  }
+  return amount;
+}
+
 async function checkBudgetThresholdAndNotify(userId, categoryId, txDate, rate = 15.42) {
   if (!categoryId) return;
   const dateObj = new Date(txDate);
@@ -201,8 +215,8 @@ export async function getTransactions(req, res, next) {
 
     const formatted = transactions.map((t) => ({
       ...t,
-      tags: t.transactionTags.map((tt) => tt.tag.name),
-      tagObjects: t.transactionTags.map((tt) => tt.tag),
+      tags: (t.transactionTags || []).map((tt) => tt?.tag?.name).filter(Boolean),
+      tagObjects: (t.transactionTags || []).map((tt) => tt?.tag).filter(Boolean),
     }));
 
     res.json({
@@ -248,7 +262,7 @@ export async function getTransactionById(req, res, next) {
       success: true,
       transaction: {
         ...tx,
-        tags: tx.transactionTags.map((tt) => tt.tag.name),
+        tags: (tx.transactionTags || []).map((tt) => tt?.tag?.name).filter(Boolean),
       },
     });
   } catch (err) {
@@ -271,8 +285,9 @@ export async function createTransaction(req, res, next) {
       });
     }
 
+    let destAcc = null;
     if (parsed.transferToAccountId) {
-      const destAcc = await prisma.account.findFirst({
+      destAcc = await prisma.account.findFirst({
         where: { id: parsed.transferToAccountId, userId },
       });
       if (!destAcc) {
@@ -308,6 +323,11 @@ export async function createTransaction(req, res, next) {
           data: { balance: { decrement: parsed.amount } },
         });
       } else if (parsed.type === 'TRANSFER') {
+        const rate = Number(req.user.usdToMvrRate || 15.42);
+        const creditAmount = destAcc
+          ? getTransferConvertedAmount(account.currency, destAcc.currency, parsed.amount, rate)
+          : parsed.amount;
+
         await tx.account.update({
           where: { id: account.id },
           data: { balance: { decrement: parsed.amount } },
@@ -315,7 +335,7 @@ export async function createTransaction(req, res, next) {
         if (parsed.transferToAccountId) {
           await tx.account.update({
             where: { id: parsed.transferToAccountId },
-            data: { balance: { increment: parsed.amount } },
+            data: { balance: { increment: creditAmount } },
           });
         }
       }
@@ -386,7 +406,7 @@ export async function createTransaction(req, res, next) {
       success: true,
       transaction: {
         ...created,
-        tags: created.transactionTags.map((tt) => tt.tag.name),
+        tags: (created.transactionTags || []).map((tt) => tt?.tag?.name).filter(Boolean),
       },
     });
   } catch (err) {
@@ -460,6 +480,15 @@ export async function updateTransaction(req, res, next) {
           data: { balance: { increment: existing.amount } },
         });
       } else if (existing.type === 'TRANSFER') {
+        const rate = existing.exchangeRateUsed || Number(req.user.usdToMvrRate || 15.42);
+        const oldFromAcc = await tx.account.findUnique({ where: { id: existing.accountId } });
+        const oldToAcc = existing.transferToAccountId
+          ? await tx.account.findUnique({ where: { id: existing.transferToAccountId } })
+          : null;
+        const oldCredit = oldFromAcc && oldToAcc
+          ? getTransferConvertedAmount(oldFromAcc.currency, oldToAcc.currency, existing.amount, rate)
+          : existing.amount;
+
         await tx.account.update({
           where: { id: existing.accountId },
           data: { balance: { increment: existing.amount } },
@@ -467,7 +496,7 @@ export async function updateTransaction(req, res, next) {
         if (existing.transferToAccountId) {
           await tx.account.update({
             where: { id: existing.transferToAccountId },
-            data: { balance: { decrement: existing.amount } },
+            data: { balance: { decrement: oldCredit } },
           });
         }
       }
@@ -492,6 +521,15 @@ export async function updateTransaction(req, res, next) {
           data: { balance: { decrement: newAmount } },
         });
       } else if (newType === 'TRANSFER') {
+        const rate = Number(req.user.usdToMvrRate || 15.42);
+        const newFromAcc = await tx.account.findUnique({ where: { id: newAccountId } });
+        const newToAcc = newTransferToId
+          ? await tx.account.findUnique({ where: { id: newTransferToId } })
+          : null;
+        const newCredit = newFromAcc && newToAcc
+          ? getTransferConvertedAmount(newFromAcc.currency, newToAcc.currency, newAmount, rate)
+          : newAmount;
+
         await tx.account.update({
           where: { id: newAccountId },
           data: { balance: { decrement: newAmount } },
@@ -499,7 +537,7 @@ export async function updateTransaction(req, res, next) {
         if (newTransferToId) {
           await tx.account.update({
             where: { id: newTransferToId },
-            data: { balance: { increment: newAmount } },
+            data: { balance: { increment: newCredit } },
           });
         }
       }
@@ -549,7 +587,7 @@ export async function updateTransaction(req, res, next) {
       success: true,
       transaction: {
         ...updated,
-        tags: updated.transactionTags.map((tt) => tt.tag.name),
+        tags: (updated.transactionTags || []).map((tt) => tt?.tag?.name).filter(Boolean),
       },
     });
   } catch (err) {
@@ -584,6 +622,15 @@ export async function deleteTransaction(req, res, next) {
           data: { balance: { increment: existing.amount } },
         });
       } else if (existing.type === 'TRANSFER') {
+        const rate = existing.exchangeRateUsed || Number(req.user.usdToMvrRate || 15.42);
+        const oldFromAcc = await tx.account.findUnique({ where: { id: existing.accountId } });
+        const oldToAcc = existing.transferToAccountId
+          ? await tx.account.findUnique({ where: { id: existing.transferToAccountId } })
+          : null;
+        const oldCredit = oldFromAcc && oldToAcc
+          ? getTransferConvertedAmount(oldFromAcc.currency, oldToAcc.currency, existing.amount, rate)
+          : existing.amount;
+
         await tx.account.update({
           where: { id: existing.accountId },
           data: { balance: { increment: existing.amount } },
@@ -591,7 +638,7 @@ export async function deleteTransaction(req, res, next) {
         if (existing.transferToAccountId) {
           await tx.account.update({
             where: { id: existing.transferToAccountId },
-            data: { balance: { decrement: existing.amount } },
+            data: { balance: { decrement: oldCredit } },
           });
         }
       }
@@ -675,7 +722,7 @@ export async function duplicateTransaction(req, res, next) {
       success: true,
       transaction: {
         ...duplicated,
-        tags: duplicated.transactionTags.map((tt) => tt.tag.name),
+        tags: (duplicated.transactionTags || []).map((tt) => tt?.tag?.name).filter(Boolean),
       },
     });
   } catch (err) {

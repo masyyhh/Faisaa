@@ -47,7 +47,7 @@ export function AuthProvider({ children }) {
   }, []);
 
   const fetchMe = useCallback(async () => {
-    const token = localStorage.getItem('finora_token');
+    const token = localStorage.getItem('faisaa_token') || localStorage.getItem('finora_token');
     if (!token) {
       setLoading(false);
       return;
@@ -59,6 +59,7 @@ export function AuthProvider({ children }) {
         applyTheme(data.user.theme || 'dark');
       }
     } catch {
+      localStorage.removeItem('faisaa_token');
       localStorage.removeItem('finora_token');
       setUser(null);
     } finally {
@@ -70,9 +71,15 @@ export function AuthProvider({ children }) {
     fetchMe();
   }, [fetchMe]);
 
-  const login = async (email, password) => {
-    const { data } = await api.post('/auth/login', { email, password });
-    localStorage.setItem('finora_token', data.token);
+  const login = async (identifier, password) => {
+    const { data } = await api.post('/auth/login', {
+      email: identifier,
+      username: identifier,
+      identifier,
+      password,
+    });
+    localStorage.setItem('faisaa_token', data.token);
+    localStorage.removeItem('finora_token');
     setUser(data.user);
     applyTheme(data.user.theme || 'dark');
     addToast(`Welcome back, ${data.user.firstName}!`, 'success');
@@ -81,10 +88,11 @@ export function AuthProvider({ children }) {
 
   const register = async (payload) => {
     const { data } = await api.post('/auth/register', payload);
-    localStorage.setItem('finora_token', data.token);
+    localStorage.setItem('faisaa_token', data.token);
+    localStorage.removeItem('finora_token');
     setUser(data.user);
     applyTheme(data.user.theme || 'dark');
-    addToast(`Welcome to Finora, ${data.user.firstName}!`, 'success');
+    addToast(`Welcome to Faisaa, ${data.user.firstName}!`, 'success');
     return data.user;
   };
 
@@ -94,6 +102,7 @@ export function AuthProvider({ children }) {
     } catch {
       // Ignore network errors on logout
     }
+    localStorage.removeItem('faisaa_token');
     localStorage.removeItem('finora_token');
     setUser(null);
     addToast('Signed out safely.', 'info');

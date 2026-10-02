@@ -1,8 +1,8 @@
 {
-  "name": "finora",
+  "name": "faisaa",
   "version": "1.0.0",
   "private": true,
-  "description": "Finora - Premium Personal Finance & Wealth Tracker",
+  "description": "Faisaa - Premium Personal Finance & Wealth Tracker",
   "scripts": {
     "dev": "node scripts/dev.mjs",
     "dev:server": "npm --prefix server run dev",
