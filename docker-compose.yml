@@ -31,7 +31,7 @@ services:
     environment:
       NODE_ENV: production
       PORT: 5001
-      DATABASE_URL: postgresql://${POSTGRES_USER:-finora}:${POSTGRES_PASSWORD:-finora_secure_password}@postgres:5432/${POSTGRES_DB:-finora}?schema=public
+      DATABASE_URL: postgresql://${POSTGRES_USER:-finora}:${POSTGRES_PASSWORD:F7f7Qn_EZW6FUHNL-Mgmz_dQ}@postgres:5432/${POSTGRES_DB:-finora}?schema=public
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET environment variable must be set in .env}
       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-7d}
       CLIENT_URL: ${CLIENT_URL:-http://localhost:5001}
