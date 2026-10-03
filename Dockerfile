@@ -33,7 +33,8 @@ COPY server/ ./
 # Optional build arg to choose Prisma DB provider ("sqlite" or "postgresql")
 ARG DB_PROVIDER=postgresql
 RUN sed -i "s/provider = \"sqlite\"/provider = \"${DB_PROVIDER}\"/g" prisma/schema.prisma && \
-    npx prisma generate
+    npx prisma generate && \
+    npm run build
 
 # Copy compiled frontend assets from Stage 1
 COPY --from=client-builder /app/client/dist /app/client/dist
@@ -47,4 +48,4 @@ EXPOSE 5001
 HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
   CMD wget -qO- http://localhost:5001/api/health || exit 1
 
-CMD ["sh", "-c", "npx prisma db push --skip-generate && node src/index.js"]
+CMD ["sh", "-c", "npx prisma db push --skip-generate && node dist/index.js"]

@@ -97,7 +97,8 @@ Create `server/.env` (already pre-configured for local development):
 # Local Zero-Config SQL URL:
 DATABASE_URL="file:./faisaa.db"
 
-JWT_SECRET="faisaa_super_secret_jwt_key_2026_production_ready"
+JWT_SECRET="replace-with-a-secure-secret"
+ENCRYPTION_KEY="replace-with-a-secure-secret"
 PORT=5000
 CLIENT_URL="http://localhost:5173"
 ```
@@ -140,6 +141,9 @@ npm run dev
 ---
 
 ## 11. Production Build & Deployment
+
+> [!TIP]
+> For complete step-by-step guides covering Docker Compose with automated Caddy SSL, Ubuntu VPS + Nginx, PaaS (Railway/Render), backups, and security hardening, see the [Production Hosting & Deployment Guide](docs/HOSTING_AND_DEPLOYMENT_GUIDE.md).
 
 ### Option A: Unified Node.js Production Server (Single Port)
 Builds the React SPA into `client/dist`, generates the Prisma Client, and serves both the frontend (with immutable asset caching & SPA routing) and `/api/*` REST endpoints from Express on `PORT` (`5001`):

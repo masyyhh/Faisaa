@@ -2,16 +2,18 @@
   "name": "faisaa-server",
   "version": "1.0.0",
   "description": "Faisaa REST API Server with Express, Prisma ORM & JWT Auth",
-  "main": "src/index.js",
+  "main": "dist/index.js",
   "type": "module",
   "scripts": {
-    "dev": "node --watch src/index.js",
-    "start": "node src/index.js",
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "typecheck": "tsc --noEmit",
     "prisma:generate": "npx prisma generate",
     "prisma:push": "npx prisma db push",
     "prisma:migrate": "npx prisma migrate dev --name init",
     "prisma:deploy": "npx prisma migrate deploy",
-    "seed": "node src/prisma/seed.js"
+    "seed": "tsx src/prisma/seed.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.4.1",
@@ -25,6 +27,13 @@
     "zod": "^3.24.2"
   },
   "devDependencies": {
-    "prisma": "^6.4.1"
+    "@types/bcryptjs": "^2.4.6",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/node": "^26.6.4",
+    "prisma": "^6.4.1",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2"
   }
 }
