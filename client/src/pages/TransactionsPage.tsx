@@ -25,6 +25,7 @@ import {
   ConfirmDialog,
   EmptyState,
   LoadingState,
+  SkeletonTable,
 } from '../components/ui';
 import { formatCurrency, formatDate, DynamicIcon } from '../utils/formatters';
 
@@ -476,7 +477,7 @@ export default function TransactionsPage() {
 
           {/* Transactions Table / List */}
           {loading ? (
-            <LoadingState label="Fetching transactions..." />
+            <SkeletonTable rows={7} />
           ) : transactions.length === 0 ? (
             <EmptyState
               title="No matching transactions found"

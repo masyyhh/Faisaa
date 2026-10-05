@@ -227,3 +227,12 @@ export function LoadingState({ label = 'Loading...' }: { label?: string }) {
     </div>
   );
 }
+
+export {
+  Skeleton,
+  SkeletonCard,
+  SkeletonMetric,
+  SkeletonTable,
+  SkeletonChart,
+  SkeletonList,
+} from './Skeleton';

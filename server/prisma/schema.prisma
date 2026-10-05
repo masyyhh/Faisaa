@@ -45,6 +45,8 @@ model User {
   currencyExchanges     CurrencyExchange[]
   exchangeRateHistory   ExchangeRateHistory[]
   refreshTokens         RefreshToken[]
+  loans                 Loan[]
+  loanPayments          LoanPayment[]
 }
 
 model Account {
@@ -71,6 +73,7 @@ model Account {
   bills                 Bill[]
   exchangesFrom         CurrencyExchange[]     @relation("ExchangeFromAccount")
   exchangesTo           CurrencyExchange[]     @relation("ExchangeToAccount")
+  loans                 Loan[]
 
   @@index([userId])
   @@index([userId, isActive])
@@ -339,3 +342,56 @@ model RefreshToken {
   @@index([userId])
   @@index([tokenHash])
 }
+
+model Loan {
+  id               String        @id @default(uuid())
+  userId           String
+  name             String
+  type             String        // OWED_BY_ME, OWED_TO_ME
+  category         String        @default("PERSONAL_LOAN") // PERSONAL_LOAN, VEHICLE, MORTGAGE, STUDENT, CREDIT_CARD, FRIENDS_FAMILY, ISLAMIC_FINANCING, OTHER
+  lender           String?
+  originalAmount   Float
+  remainingBalance Float
+  interestRate     Float         @default(0) // Annual interest/profit rate %
+  minimumPayment   Float         @default(0) // Monthly installment amount
+  currency         String        @default("MVR") // MVR or USD
+  startDate        DateTime      @default(now())
+  dueDate          DateTime?     // Target payoff date
+  dueDay           Int?          @default(1) // Day of month when installment is due
+  accountId        String?       // Linked bank account for repayments
+  color            String        @default("#6366F1")
+  notes            String?
+  status           String        @default("ACTIVE") // ACTIVE, PAID_OFF, ARCHIVED
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  user             User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  account          Account?      @relation(fields: [accountId], references: [id], onDelete: SetNull)
+  payments         LoanPayment[]
+
+  @@index([userId, status])
+  @@index([userId, type])
+  @@index([userId, dueDate])
+}
+
+model LoanPayment {
+  id              String   @id @default(uuid())
+  loanId          String
+  userId          String
+  amount          Float
+  principalAmount Float    @default(0)
+  interestAmount  Float    @default(0)
+  date            DateTime @default(now())
+  accountId       String?
+  transactionId   String?
+  notes           String?
+  createdAt       DateTime @default(now())
+
+  loan            Loan     @relation(fields: [loanId], references: [id], onDelete: Cascade)
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([loanId])
+  @@index([userId])
+  @@index([date])
+}
+

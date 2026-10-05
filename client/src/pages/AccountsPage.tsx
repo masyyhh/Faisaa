@@ -27,6 +27,9 @@ import {
   Modal,
   ConfirmDialog,
   LoadingState,
+  Skeleton,
+  SkeletonCard,
+  SkeletonMetric,
 } from '../components/ui';
 import { formatCurrency, formatSecondaryUSD, formatDate, DynamicIcon } from '../utils/formatters';
 
@@ -213,7 +216,23 @@ export default function AccountsPage() {
   const hide = user?.hideBalances;
 
   if (loading && accounts.length === 0) {
-    return <LoadingState label="Loading your financial accounts..." />;
+    return (
+      <div className="space-y-6 animate-fade-in">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="space-y-2">
+            <Skeleton className="h-8 w-64" />
+            <Skeleton className="h-4 w-96" />
+          </div>
+          <Skeleton className="h-9 w-32 rounded-xl" />
+        </div>
+        <SkeletonMetric count={4} />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <SkeletonCard key={i} className="h-48 flex flex-col justify-between" />
+          ))}
+        </div>
+      </div>
+    );
   }
 
   return (

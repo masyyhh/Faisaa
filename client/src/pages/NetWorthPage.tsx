@@ -19,7 +19,16 @@ import {
 } from 'recharts';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
-import { Card, Badge, ProgressBar, LoadingState } from '../components/ui';
+import {
+  Card,
+  Badge,
+  ProgressBar,
+  LoadingState,
+  Skeleton,
+  SkeletonCard,
+  SkeletonMetric,
+  SkeletonChart,
+} from '../components/ui';
 import { formatCurrency, DynamicIcon } from '../utils/formatters';
 
 export interface NetWorthItem {
@@ -75,7 +84,20 @@ export default function NetWorthPage() {
   }, [refreshTrigger]);
 
   if (loading || !data) {
-    return <LoadingState label="Calculating net worth, assets, and liabilities..." />;
+    return (
+      <div className="space-y-6 animate-fade-in">
+        <div className="space-y-2">
+          <Skeleton className="h-8 w-64" />
+          <Skeleton className="h-4 w-96" />
+        </div>
+        <SkeletonMetric count={3} />
+        <SkeletonChart height="h-72" />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <SkeletonCard className="h-64" />
+          <SkeletonCard className="h-64" />
+        </div>
+      </div>
+    );
   }
 
   const currency = user?.currency || 'MVR';

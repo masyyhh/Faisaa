@@ -31,7 +31,7 @@ Faisaa empowers users to track multi-institution financial accounts, log income/
 
 ## 3. Core Features
 
-1. **Authentication & Security**: Register, Login, 1-Click Demo Login (`alex@faisaa.io` / `Password123!`), JWT protected routes, profile management, and password change.
+1. **Authentication & Security**: Register, Login, 1-Click Demo Login (`alex@faisaa.online` / `Password123!`), JWT protected routes, profile management, and password change.
 2. **Executive Dashboard**: Hero balance card with account switcher, hide/show balance privacy toggle (`••••••`), quick actions (`+ Income`, `+ Expense`, `Transfer`, `+ Account`), monthly KPIs, 6-month cashflow trend chart, category donut chart, budget health, savings goals, and upcoming bills.
 3. **Accounts & Institutions**: Support for Checking, Savings, Credit Card, Investment, Cash, Loan, and Other accounts, 6-month balance history curves, and atomic account-to-account money transfers.
 4. **Transactions & Recurring Engine**: Fast transaction modal, multi-parameter filtering (search, date range, account, category, type, sort), pagination, transaction duplication, and automated recurring schedules (`DAILY`, `WEEKLY`, `BIWEEKLY`, `MONTHLY`, `QUARTERLY`, `YEARLY`).
@@ -125,7 +125,7 @@ npm run prisma:migrate
 npm run seed
 ```
 This populates the demo account:
-- **Email**: `alex@faisaa.io`
+- **Email**: `alex@faisaa.online`
 - **Password**: `Password123!`
 
 ---

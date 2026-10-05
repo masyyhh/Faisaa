@@ -21,6 +21,7 @@ import {
   CheckCheck,
   X,
   Menu,
+  Coins,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import api, { Notification, Transaction } from '../services/api';
@@ -35,6 +36,7 @@ const NAV_ITEMS = [
   { name: 'Budgets', path: '/budgets', icon: PieChart },
   { name: 'Goals', path: '/goals', icon: Target },
   { name: 'Bills', path: '/bills', icon: Receipt },
+  { name: 'Loans & Debts', path: '/loans', icon: Coins },
   { name: 'Analytics', path: '/analytics', icon: BarChart3 },
   { name: 'Net Worth', path: '/net-worth', icon: TrendingUp },
   { name: 'Settings', path: '/settings', icon: Settings },

@@ -355,7 +355,7 @@ export async function checkAndSendBillReminders(userId: string): Promise<string[
       await sendTelegramNotification(
         bill.user,
         'Bill Due Reminder',
-        `⚠️ *Bill Reminder:* Your payment of *MVR ${bill.amount.toFixed(2)}* for *${bill.name}* is due *${dueInText}*.\n\nOpen Faisaa to settle: https://faisaa.io/bills`
+        `⚠️ *Bill Reminder:* Your payment of *MVR ${bill.amount.toFixed(2)}* for *${bill.name}* is due *${dueInText}*.\n\nOpen Faisaa to settle: https://faisaa.online/bills`
       );
     }
 

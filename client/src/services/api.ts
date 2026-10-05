@@ -208,6 +208,66 @@ export interface ExchangeRateHistory {
   createdAt: string | Date;
 }
 
+export interface LoanPayment {
+  id: string;
+  loanId: string;
+  userId: string;
+  amount: number;
+  principalAmount: number;
+  interestAmount: number;
+  date: string;
+  accountId?: string | null;
+  transactionId?: string | null;
+  notes?: string | null;
+  createdAt: string;
+}
+
+export interface Loan {
+  id: string;
+  userId: string;
+  name: string;
+  type: 'OWED_BY_ME' | 'OWED_TO_ME';
+  category: string;
+  lender?: string | null;
+  originalAmount: number;
+  remainingBalance: number;
+  interestRate: number;
+  minimumPayment: number;
+  currency: string;
+  startDate: string;
+  dueDate?: string | null;
+  dueDay?: number | null;
+  accountId?: string | null;
+  color: string;
+  notes?: string | null;
+  status: 'ACTIVE' | 'PAID_OFF' | 'ARCHIVED';
+  paidAmount?: number;
+  progressPercentage?: number;
+  estimatedMonths?: number | null;
+  projectedPayoffDate?: string | null;
+  monthlyInterestAmount?: number;
+  account?: Account | null;
+  payments?: LoanPayment[];
+}
+
+export interface LoanSummary {
+  totalOwedByMe: number;
+  totalOwedToMe: number;
+  netDebtBalance: number;
+  totalMonthlyCommitment: number;
+  activeDebtsCount: number;
+  activeReceivablesCount: number;
+  paidOffCount: number;
+}
+
+export interface LoansResponse {
+  success: boolean;
+  loans: Loan[];
+  snowballRanked: Array<{ id: string; name: string; rank: number; remainingBalance: number }>;
+  avalancheRanked: Array<{ id: string; name: string; rank: number; interestRate: number }>;
+  summary: LoanSummary;
+}
+
 export interface ApiResponse<T = any> {
   success: boolean;
   message?: string;

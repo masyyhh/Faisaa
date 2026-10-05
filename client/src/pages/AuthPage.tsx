@@ -52,7 +52,11 @@ export default function AuthPage() {
       try {
         await login('alex', 'Password123!');
       } catch {
-        await login('alex@faisaa.io', 'Password123!');
+        try {
+          await login('alex@faisaa.online', 'Password123!');
+        } catch {
+          await login('alex@faisaa.io', 'Password123!');
+        }
       }
       navigate('/');
     } catch {
@@ -182,7 +186,7 @@ export default function AuthPage() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder={isRegister ? 'alex@faisaa.io' : 'alex@faisaa.io or alex'}
+                placeholder={isRegister ? 'alex@faisaa.online' : 'alex@faisaa.online or alex'}
                 autoCapitalize="none"
                 autoCorrect="off"
                 className="w-full pl-9 pr-3 py-2 rounded-lg bg-white/[0.03] border border-white/[0.08] text-xs text-white placeholder-zinc-600 focus:outline-none focus:border-indigo-500"

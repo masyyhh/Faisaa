@@ -28,6 +28,9 @@ import {
   ConfirmDialog,
   LoadingState,
   EmptyState,
+  Skeleton,
+  SkeletonCard,
+  SkeletonMetric,
 } from '../components/ui';
 import { formatCurrency, DynamicIcon } from '../utils/formatters';
 
@@ -162,7 +165,26 @@ export default function BudgetsPage() {
   const hide = user?.hideBalances;
 
   if (loading && budgets.length === 0) {
-    return <LoadingState label="Calculating monthly budget performance..." />;
+    return (
+      <div className="space-y-6 animate-fade-in">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="space-y-2">
+            <Skeleton className="h-8 w-56" />
+            <Skeleton className="h-4 w-80" />
+          </div>
+          <div className="flex gap-2">
+            <Skeleton className="h-9 w-28 rounded-xl" />
+            <Skeleton className="h-9 w-32 rounded-xl" />
+          </div>
+        </div>
+        <SkeletonMetric count={3} />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <SkeletonCard key={i} className="h-44 flex flex-col justify-between" />
+          ))}
+        </div>
+      </div>
+    );
   }
 
   return (

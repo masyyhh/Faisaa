@@ -15,6 +15,7 @@ const GoalsPage = lazy(() => import('./pages/GoalsPage'));
 const BillsPage = lazy(() => import('./pages/BillsPage'));
 const AnalyticsPage = lazy(() => import('./pages/AnalyticsPage'));
 const NetWorthPage = lazy(() => import('./pages/NetWorthPage'));
+const LoansPage = lazy(() => import('./pages/LoansPage'));
 const SettingsPage = lazy(() => import('./pages/SettingsPage'));
 
 function ProtectedRoute({ children }: { children: React.ReactElement }) {
@@ -81,6 +82,7 @@ export default function App() {
                 <Route path="bills" element={<BillsPage />} />
                 <Route path="analytics" element={<AnalyticsPage />} />
                 <Route path="net-worth" element={<NetWorthPage />} />
+                <Route path="loans" element={<LoansPage />} />
                 <Route path="settings" element={<SettingsPage />} />
               </Route>
 

@@ -924,7 +924,7 @@ export default function SettingsPage() {
               </div>
               <Button
                 size="sm"
-                variant={profileForm.telegramChatId ? 'secondary' : 'default'}
+                variant={profileForm.telegramChatId ? 'secondary' : 'primary'}
                 loading={generatingCode}
                 onClick={handleGenerateLinkingCode}
                 className="shrink-0 w-full sm:w-auto"

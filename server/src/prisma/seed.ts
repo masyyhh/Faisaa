@@ -16,6 +16,7 @@ export async function seedDatabase() {
     : null;
 
   const existingUser =
+    (await prisma.user.findUnique({ where: { email: 'alex@faisaa.online' } })) ||
     (await prisma.user.findUnique({ where: { email: 'alex@faisaa.io' } })) ||
     (await prisma.user.findUnique({ where: { email: 'alex@finora.io' } }));
 
@@ -44,7 +45,7 @@ export async function seedDatabase() {
       firstName: 'Alex',
       lastName: 'Morgan',
       username: 'alex',
-      email: 'alex@faisaa.io',
+      email: 'alex@faisaa.online',
       passwordHash,
       currency: 'MVR',
       secondaryCurrency: 'USD',

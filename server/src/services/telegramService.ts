@@ -44,7 +44,7 @@ export async function sendTelegramNotification(
     }
 
     const isDemoUser = Boolean(
-      user && (user.email === 'alex@faisaa.io' || user.email === 'alex@finora.io')
+      user && (user.email === 'alex@faisaa.online' || user.email === 'alex@faisaa.io' || user.email === 'alex@finora.io')
     );
 
     const decryptedUserToken = user?.telegramBotToken ? decrypt(user.telegramBotToken) : '';

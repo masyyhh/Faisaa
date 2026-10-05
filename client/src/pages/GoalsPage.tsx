@@ -19,7 +19,11 @@ import {
   Modal,
   ConfirmDialog,
   LoadingState,
+  Skeleton,
+  SkeletonCard,
+  SkeletonMetric,
 } from '../components/ui';
+import { triggerConfetti } from '../utils/confetti';
 import { formatCurrency, formatDate, DynamicIcon } from '../utils/formatters';
 
 export interface GoalWithMetrics extends SavingsGoal {
@@ -146,17 +150,24 @@ export default function GoalsPage() {
     e.preventDefault();
     if (!contributeModal.goal) return;
     try {
+      const amt = parseFloat(contributeModal.amount);
       await api.post(`/goals/${contributeModal.goal.id}/contribute`, {
-        amount: parseFloat(contributeModal.amount),
+        amount: amt,
         action: contributeModal.action,
         accountId: contributeModal.accountId || undefined,
       });
-      addToast(
-        contributeModal.action === 'ADD'
-          ? `Added funds to ${contributeModal.goal.name}!`
-          : `Withdrew funds from ${contributeModal.goal.name}.`,
-        'success'
-      );
+
+      if (contributeModal.action === 'ADD' && contributeModal.goal.currentAmount + amt >= contributeModal.goal.targetAmount) {
+        triggerConfetti();
+        addToast(`🎉 Outstanding! You reached 100% of your ${contributeModal.goal.name} goal!`, 'success');
+      } else {
+        addToast(
+          contributeModal.action === 'ADD'
+            ? `Added funds to ${contributeModal.goal.name}!`
+            : `Withdrew funds from ${contributeModal.goal.name}.`,
+          'success'
+        );
+      }
       setContributeModal({ isOpen: false, goal: null, action: 'ADD', amount: '', accountId: '' });
       triggerDataRefresh();
     } catch (err: any) {
@@ -180,7 +191,23 @@ export default function GoalsPage() {
   const hide = user?.hideBalances;
 
   if (loading && goals.length === 0) {
-    return <LoadingState label="Loading your savings goals & milestones..." />;
+    return (
+      <div className="space-y-6 animate-fade-in">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="space-y-2">
+            <Skeleton className="h-8 w-64" />
+            <Skeleton className="h-4 w-96" />
+          </div>
+          <Skeleton className="h-9 w-32 rounded-xl" />
+        </div>
+        <SkeletonMetric count={3} />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <SkeletonCard key={i} className="h-56 flex flex-col justify-between" />
+          ))}
+        </div>
+      </div>
+    );
   }
 
   return (

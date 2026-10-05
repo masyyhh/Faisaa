@@ -213,6 +213,46 @@ export const exchangeRateUpdateSchema = z.object({
   note: z.string().max(120).optional().nullable(),
 });
 
+export const loanSchema = z.object({
+  name: z.string().min(1, 'Loan name is required').max(100),
+  type: z.enum(['OWED_BY_ME', 'OWED_TO_ME']),
+  category: z
+    .enum([
+      'PERSONAL_LOAN',
+      'VEHICLE',
+      'MORTGAGE',
+      'STUDENT',
+      'CREDIT_CARD',
+      'FRIENDS_FAMILY',
+      'ISLAMIC_FINANCING',
+      'OTHER',
+    ])
+    .optional()
+    .default('PERSONAL_LOAN'),
+  lender: z.string().max(100).optional().nullable(),
+  originalAmount: z.coerce.number().positive('Original amount must be greater than 0'),
+  remainingBalance: z.coerce.number().min(0, 'Remaining balance cannot be negative').optional(),
+  interestRate: z.coerce.number().min(0).max(100).optional().default(0),
+  minimumPayment: z.coerce.number().min(0).optional().default(0),
+  currency: z.enum(['MVR', 'USD']).optional().default('MVR'),
+  startDate: z.string().optional(),
+  dueDate: z.string().optional().nullable(),
+  dueDay: z.coerce.number().min(1).max(31).optional().default(1),
+  accountId: z.string().optional().nullable(),
+  color: z.string().optional().default('#6366F1'),
+  notes: z.string().optional().nullable(),
+  status: z.enum(['ACTIVE', 'PAID_OFF', 'ARCHIVED']).optional().default('ACTIVE'),
+});
+
+export const loanPaymentSchema = z.object({
+  amount: z.coerce.number().positive('Payment amount must be greater than 0'),
+  principalAmount: z.coerce.number().min(0).optional(),
+  interestAmount: z.coerce.number().min(0).optional(),
+  accountId: z.string().optional().nullable(),
+  date: z.string().optional(),
+  notes: z.string().optional().nullable(),
+});
+
 // Explicit DTO Types Inferred from Zod Schemas
 export type RegisterDTO = z.infer<typeof registerSchema>;
 export type LoginDTO = z.infer<typeof loginSchema>;
@@ -229,3 +269,5 @@ export type RecurringTransactionDTO = z.infer<typeof recurringTransactionSchema>
 export type BillDTO = z.infer<typeof billSchema>;
 export type CurrencyExchangeDTO = z.infer<typeof currencyExchangeSchema>;
 export type ExchangeRateUpdateDTO = z.infer<typeof exchangeRateUpdateSchema>;
+export type LoanDTO = z.infer<typeof loanSchema>;
+export type LoanPaymentDTO = z.infer<typeof loanPaymentSchema>;

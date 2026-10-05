@@ -19,7 +19,17 @@ import {
 } from 'recharts';
 import { useAuth } from '../context/AuthContext';
 import api, { Account, Transaction, SavingsGoal, Bill, Category } from '../services/api';
-import { Card, Badge, ProgressBar, LoadingState, Button } from '../components/ui';
+import {
+  Card,
+  Badge,
+  ProgressBar,
+  LoadingState,
+  Button,
+  Skeleton,
+  SkeletonCard,
+  SkeletonChart,
+  SkeletonTable,
+} from '../components/ui';
 import { formatCurrency, formatSecondaryUSD, formatDate, DynamicIcon } from '../utils/formatters';
 
 interface DashboardData {
@@ -117,7 +127,61 @@ export default function DashboardPage() {
   };
 
   if (loading || !data) {
-    return <LoadingState label="Loading overview..." />;
+    return (
+      <div className="space-y-6 pb-12 animate-fade-in">
+        {/* Hero Balance Card Skeleton */}
+        <div className="faisaa-card finora-card bg-[#111218] border border-white/[0.06] rounded-2xl p-6 sm:p-8 space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="space-y-2.5">
+              <Skeleton className="h-4 w-32" />
+              <Skeleton className="h-10 w-64" />
+              <Skeleton className="h-4 w-48" />
+            </div>
+            <div className="flex items-center gap-3">
+              <Skeleton className="h-9 w-28 rounded-xl" />
+              <Skeleton className="h-9 w-28 rounded-xl" />
+            </div>
+          </div>
+        </div>
+
+        {/* 3 Metric Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div
+              key={i}
+              className="faisaa-card finora-card bg-[#111218] border border-white/[0.06] rounded-xl p-5 space-y-3"
+            >
+              <div className="flex items-center justify-between">
+                <Skeleton className="h-3.5 w-24" />
+                <Skeleton className="h-7 w-7 rounded-lg" />
+              </div>
+              <Skeleton className="h-7 w-32" />
+              <Skeleton className="h-3 w-40" />
+            </div>
+          ))}
+        </div>
+
+        {/* Charts Grid Skeleton */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2">
+            <SkeletonChart height="h-72" />
+          </div>
+          <div>
+            <SkeletonCard className="h-full flex flex-col justify-between" />
+          </div>
+        </div>
+
+        {/* Recent Transactions & Bills Skeleton */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2">
+            <SkeletonTable rows={4} />
+          </div>
+          <div>
+            <SkeletonCard className="h-full" />
+          </div>
+        </div>
+      </div>
+    );
   }
 
   const {

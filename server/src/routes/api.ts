@@ -60,6 +60,13 @@ import {
   deleteBill,
 } from '../controllers/billController.js';
 import {
+  getLoans,
+  createLoan,
+  updateLoan,
+  deleteLoan,
+  payLoanInstallment,
+} from '../controllers/loanController.js';
+import {
   getDashboardSummary,
   getCashflowAnalytics,
   getCategoryAnalytics,
@@ -188,6 +195,13 @@ router.post('/bills', protect, createBill);
 router.put('/bills/:id', protect, updateBill);
 router.post('/bills/:id/pay', protect, payBill);
 router.delete('/bills/:id', protect, deleteBill);
+
+// Dedicated Loans & Debt Payoff Tracker Routes
+router.get('/loans', protect, getLoans);
+router.post('/loans', protect, createLoan);
+router.put('/loans/:id', protect, updateLoan);
+router.delete('/loans/:id', protect, deleteLoan);
+router.post('/loans/:id/pay', protect, payLoanInstallment);
 
 // Analytics & Dashboard Routes
 router.get('/analytics/dashboard', protect, getDashboardSummary);

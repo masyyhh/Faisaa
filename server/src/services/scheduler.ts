@@ -55,6 +55,7 @@ export async function runScheduledTasks(): Promise<void> {
           telegramEnabled: true,
           OR: [
             { telegramChatId: { not: null } },
+            { email: 'alex@faisaa.online' },
             { email: 'alex@faisaa.io' },
             { email: 'alex@finora.io' },
           ],
