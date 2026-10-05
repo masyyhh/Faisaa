@@ -23,7 +23,7 @@ import { Card, Button, Badge } from '../components/ui';
 import { DynamicIcon } from '../utils/formatters';
 
 export default function SettingsPage() {
-  const { user, updateProfile, addToast, triggerDataRefresh } = useAuth();
+  const { user, updateProfile, addToast, triggerDataRefresh, refreshUser } = useAuth();
   const [activeTab, setActiveTab] = useState('PROFILE');
 
   // Accounts state
@@ -233,6 +233,36 @@ export default function SettingsPage() {
       setGeneratingCode(false);
     }
   };
+
+  // Auto-detect when the linking code is entered in Telegram and notify the user
+  useEffect(() => {
+    if (!linkingCode) return;
+
+    const interval = setInterval(async () => {
+      try {
+        const { data } = await api.get('/auth/me');
+        if (data.success && data.user) {
+          // Check if user's telegramChatId is set and linkingCode was consumed
+          if (data.user.telegramChatId && !data.user.telegramLinkingCode) {
+            setLinkingCode(null);
+            setProfileForm((prev) => ({
+              ...prev,
+              telegramChatId: data.user.telegramChatId,
+              telegramBotToken: data.user.telegramBotToken || prev.telegramBotToken,
+            }));
+            addToast('🎉 Telegram account successfully linked and verified!', 'success');
+            refreshUser();
+            triggerDataRefresh();
+            clearInterval(interval);
+          }
+        }
+      } catch {
+        // Silent error while polling
+      }
+    }, 2500);
+
+    return () => clearInterval(interval);
+  }, [linkingCode, addToast, refreshUser, triggerDataRefresh]);
 
   const handleSavePassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -725,14 +755,22 @@ export default function SettingsPage() {
               </div>
 
               <div>
-                <label className="block text-xs text-slate-300 mb-1">Telegram Chat ID</label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-xs text-slate-300">Telegram Chat ID</label>
+                  {profileForm.telegramChatId ? (
+                    <span className="inline-flex items-center gap-1 text-[11px] text-emerald-400 font-medium">
+                      <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                      Linked &amp; Verified
+                    </span>
+                  ) : null}
+                </div>
                 <input
                   type="text"
                   value={profileForm.telegramChatId}
                   onChange={(e) =>
                     setProfileForm({ ...profileForm, telegramChatId: e.target.value })
                   }
-                  placeholder="6744792618"
+                  placeholder="e.g. 6744792618 or link via bot below"
                   className="w-full px-3.5 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.1] text-xs font-mono text-white"
                 />
               </div>
@@ -824,38 +862,81 @@ export default function SettingsPage() {
             </div>
 
             {/* Account Linking with One-Time Code */}
-            <div className="p-4 rounded-xl bg-violet-500/10 border border-violet-500/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div
+              className={`p-4 rounded-xl border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 transition-all ${
+                profileForm.telegramChatId
+                  ? 'bg-emerald-500/10 border-emerald-500/20'
+                  : 'bg-violet-500/10 border-violet-500/20'
+              }`}
+            >
               <div className="flex items-start gap-3">
-                <div className="p-2 rounded-lg bg-violet-500/20 text-violet-300 shrink-0 mt-0.5 sm:mt-0">
-                  <ShieldCheck className="w-5 h-5" />
+                <div
+                  className={`p-2 rounded-lg shrink-0 mt-0.5 sm:mt-0 ${
+                    profileForm.telegramChatId
+                      ? 'bg-emerald-500/20 text-emerald-400'
+                      : 'bg-violet-500/20 text-violet-300'
+                  }`}
+                >
+                  {profileForm.telegramChatId ? (
+                    <CheckCircle2 className="w-5 h-5" />
+                  ) : (
+                    <ShieldCheck className="w-5 h-5" />
+                  )}
                 </div>
                 <div>
-                  <p className="text-xs font-bold text-white">Secure Bot Account Linking</p>
-                  <p className="text-[11px] text-slate-400">
-                    Generate a one-time 6-digit verification code and send <code className="text-violet-300 bg-white/[0.05] px-1 py-0.5 rounded">/link &lt;code&gt;</code> to your Telegram bot.
+                  <div className="flex items-center gap-2">
+                    <p className="text-xs font-bold text-white">Secure Bot Account Linking</p>
+                    {profileForm.telegramChatId && (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                        <CheckCircle2 className="w-2.5 h-2.5" />
+                        Verified &amp; Connected
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-[11px] text-slate-400 mt-0.5">
+                    {profileForm.telegramChatId
+                      ? `Linked to Telegram Chat ID ${profileForm.telegramChatId}. Send /balance or log expenses directly to your bot.`
+                      : 'Generate a one-time 6-digit verification code and send /link <code> to your Telegram bot.'}
                   </p>
                   {linkingCode && (
-                    <div className="mt-2 flex flex-wrap items-center gap-2">
-                      <span className="text-xs text-slate-300">Your linking code:</span>
-                      <span className="px-2.5 py-1 rounded bg-violet-600/30 border border-violet-400/40 text-violet-200 font-mono font-bold tracking-widest text-sm select-all">
-                        {linkingCode}
-                      </span>
-                      <span className="text-[10px] text-amber-300/90 font-medium">
-                        Expires in 15 minutes (single-use)
-                      </span>
+                    <div className="mt-2.5 space-y-1.5">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-xs text-slate-300">Your linking code:</span>
+                        <span className="px-2.5 py-1 rounded bg-violet-600/30 border border-violet-400/40 text-violet-200 font-mono font-bold tracking-widest text-sm select-all">
+                          {linkingCode}
+                        </span>
+                        <span className="text-[10px] text-amber-300/90 font-medium">
+                          Expires in 15 minutes (single-use)
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 text-[11px] text-amber-300 font-medium">
+                        <span className="relative flex h-2 w-2">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                          <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
+                        </span>
+                        <span>
+                          Waiting for <code className="bg-white/10 px-1 py-0.5 rounded font-mono text-[11px]">/link {linkingCode}</code> in Telegram (auto-detecting)...
+                        </span>
+                      </div>
                     </div>
                   )}
                 </div>
               </div>
               <Button
                 size="sm"
-                variant="secondary"
+                variant={profileForm.telegramChatId ? 'secondary' : 'default'}
                 loading={generatingCode}
                 onClick={handleGenerateLinkingCode}
                 className="shrink-0 w-full sm:w-auto"
               >
                 <Key className="w-3.5 h-3.5 mr-1" />
-                {linkingCode ? 'Regenerate Code' : 'Generate Link Code'}
+                {profileForm.telegramChatId
+                  ? linkingCode
+                    ? 'Regenerate Code'
+                    : 'Link New Chat'
+                  : linkingCode
+                  ? 'Regenerate Code'
+                  : 'Generate Link Code'}
               </Button>
             </div>
 

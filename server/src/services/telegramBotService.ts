@@ -170,50 +170,66 @@ export async function handleTelegramWebhookUpdate(
 
   const chatId = String(message.chat?.id || 'simulation');
   const text: string = message.text.trim();
+  console.log(`[TelegramBot] Incoming message from chatId=${chatId}: "${text}"`);
 
-  // 1. Find user by Telegram Chat ID or use userOverride
-  let user: any = userOverride;
-  if (!user) {
-    user = await prisma.user.findFirst({
-      where: { telegramChatId: chatId },
-      include: {
-        accounts: { where: { isActive: true } },
-        categories: true,
-      },
-    });
-  } else if (!user.accounts || !user.categories) {
-    const fresh = await prisma.user.findUnique({
-      where: { id: user.id },
-      include: {
-        accounts: { where: { isActive: true } },
-        categories: true,
-      },
-    });
-    if (fresh) user = fresh;
-  }
+  // Helper to resolve an active decrypted bot token
+  const resolveBotToken = async (potentialUser?: any): Promise<string | null> => {
+    const raw =
+      potentialUser?.telegramBotToken ||
+      defaultBotToken ||
+      process.env.TELEGRAM_BOT_TOKEN;
 
-  const rawToken =
-    user?.telegramBotToken ||
-    defaultBotToken ||
-    process.env.TELEGRAM_BOT_TOKEN;
-
-  const botToken = decrypt(rawToken);
-
-  const safeSend = async (chatIdToSend: string, textToSend: string) => {
-    if (botToken && chatIdToSend !== 'simulation') {
-      return await sendTelegramMessageRaw(botToken, chatIdToSend, textToSend);
+    if (raw) {
+      const dec = decrypt(raw);
+      if (dec) return dec;
     }
-    return { sent: true, simulated: true };
+
+    // Fallback: check if any user in DB has a configured bot token
+    const anyUser = await prisma.user.findFirst({
+      where: { telegramBotToken: { not: null } },
+      select: { telegramBotToken: true },
+    });
+    if (anyUser?.telegramBotToken) {
+      const dec = decrypt(anyUser.telegramBotToken);
+      if (dec) return dec;
+    }
+
+    return null;
   };
 
-  if (!botToken && !userOverride) {
-    return { handled: false, reason: 'Missing bot token to reply' };
-  }
-
-  // 2. Handle /link <code>
+  // 1. Handle Account Linking (/link <code>) FIRST
   if (text.startsWith('/link')) {
     const parts = text.split(/\s+/);
     const code = parts[1]?.trim();
+
+    let targetUser = null;
+    const now = new Date();
+
+    if (code && !code.includes('@') && !isNaN(Number(code))) {
+      targetUser = await prisma.user.findFirst({
+        where: {
+          telegramLinkingCode: code,
+          telegramLinkingExpires: { gte: now },
+        },
+        include: {
+          accounts: { where: { isActive: true } },
+          categories: true,
+        },
+      });
+    }
+
+    const botToken = await resolveBotToken(targetUser || userOverride);
+
+    const safeSend = async (chatIdToSend: string, textToSend: string) => {
+      if (botToken && chatIdToSend !== 'simulation') {
+        const res = await sendTelegramMessageRaw(botToken, chatIdToSend, textToSend);
+        if (!res.sent) {
+          console.warn(`[TelegramBot] Failed sending message to ${chatIdToSend}:`, res.reason);
+        }
+        return res;
+      }
+      return { sent: true, simulated: true };
+    };
 
     if (!code) {
       await safeSend(
@@ -240,21 +256,23 @@ export async function handleTelegramWebhookUpdate(
       return { handled: true };
     }
 
-    const now = new Date();
-    const targetUser = await prisma.user.findFirst({
-      where: {
-        telegramLinkingCode: code,
-        telegramLinkingExpires: { gte: now },
-      },
-    });
-
     if (!targetUser) {
+      console.warn(`[TelegramBot] Invalid or expired linking code: "${code}" from chatId=${chatId}`);
       await safeSend(
         chatId,
         `❌ Invalid or expired linking code.\n\nPlease generate a fresh 6-digit code in *Settings → Notifications & Telegram* on the web and try again.`
       );
       return { handled: true };
     }
+
+    // Disassociate this chatId from any existing users to prevent duplicate routing
+    await prisma.user.updateMany({
+      where: {
+        telegramChatId: chatId,
+        id: { not: targetUser.id },
+      },
+      data: { telegramChatId: null },
+    });
 
     // Link Telegram Chat ID and invalidate the one-time code
     await prisma.user.update({
@@ -267,7 +285,10 @@ export async function handleTelegramWebhookUpdate(
       },
     });
 
-    await safeSend(chatId,
+    console.log(`[TelegramBot] Successfully linked chatId=${chatId} to user ${targetUser.email} (${targetUser.id})`);
+
+    await safeSend(
+      chatId,
       `🎉 *Account Connected!*\n\nWelcome, *${targetUser.firstName}*! Your Telegram account is now securely linked to Faisaa.\n\n` +
       `💡 *Try these quick commands:*\n` +
       `• \`50 coffee\` — log a MVR 50 expense\n` +
@@ -281,8 +302,49 @@ export async function handleTelegramWebhookUpdate(
     return { handled: true };
   }
 
+  // 2. Find authenticated user by Telegram Chat ID or use userOverride
+  let user: any = userOverride;
+  if (!user) {
+    user = await prisma.user.findFirst({
+      where: { telegramChatId: chatId },
+      include: {
+        accounts: { where: { isActive: true } },
+        categories: true,
+      },
+      orderBy: { updatedAt: 'desc' },
+    });
+  } else if (!user.accounts || !user.categories) {
+    const fresh = await prisma.user.findUnique({
+      where: { id: user.id },
+      include: {
+        accounts: { where: { isActive: true } },
+        categories: true,
+      },
+    });
+    if (fresh) user = fresh;
+  }
+
+  const botToken = await resolveBotToken(user);
+
+  const safeSend = async (chatIdToSend: string, textToSend: string) => {
+    if (botToken && chatIdToSend !== 'simulation') {
+      const res = await sendTelegramMessageRaw(botToken, chatIdToSend, textToSend);
+      if (!res.sent) {
+        console.warn(`[TelegramBot] Failed sending message to ${chatIdToSend}:`, res.reason);
+      }
+      return res;
+    }
+    return { sent: true, simulated: true };
+  };
+
+  if (!botToken && !userOverride) {
+    console.warn(`[TelegramBot] Missing bot token to reply to chatId=${chatId}`);
+    return { handled: false, reason: 'Missing bot token to reply' };
+  }
+
   // 3. If user is still not linked:
   if (!user) {
+    console.warn(`[TelegramBot] Unlinked command from chatId=${chatId}: "${text}"`);
     await safeSend(chatId,
       `👋 *Welcome to Faisaa Expense Bot!*\n\n` +
       `Your Telegram Chat ID is: \`${chatId}\`\n\n` +
@@ -314,7 +376,7 @@ export async function handleTelegramWebhookUpdate(
     return { handled: true };
   }
 
-  if (lowerCmd === '/balance' || lowerCmd === '/bal') {
+  if (lowerCmd === '/balance' || lowerCmd === '/bal' || lowerCmd === '/balances') {
     let msg = `💰 *Your Faisaa Balances:*\n\n`;
     let mvrTotal = 0;
     let usdTotal = 0;

@@ -105,6 +105,23 @@ export async function sendTelegramMessageRaw(
 
     const data = (await response.json()) as TelegramApiResponse;
     if (!response.ok || !data.ok) {
+      // If Markdown parsing error, retry in plain text without parse_mode
+      if (data.description && (data.description.includes("can't parse entities") || data.description.includes('Bad Request'))) {
+        console.warn(`[TelegramService] Markdown parsing failed, retrying plain text:`, data.description);
+        const retryRes = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          signal: AbortSignal.timeout(8000),
+          body: JSON.stringify({
+            chat_id: chatId,
+            text: text.replace(/[*_`]/g, ''),
+          }),
+        });
+        const retryData = (await retryRes.json()) as TelegramApiResponse;
+        if (retryRes.ok && retryData.ok) {
+          return { sent: true, messageId: retryData.result?.message_id };
+        }
+      }
       return {
         sent: false,
         reason: data.description || `Telegram HTTP ${response.status}`,
@@ -153,6 +170,21 @@ export async function setTelegramWebhook(
 export async function getTelegramBotInfo(botToken: string): Promise<TelegramApiResponse> {
   try {
     const response = await fetch(`https://api.telegram.org/bot${botToken}/getMe`, {
+      signal: AbortSignal.timeout(5000),
+    });
+    return (await response.json()) as TelegramApiResponse;
+  } catch (err: unknown) {
+    const errorMsg = err instanceof Error ? err.message : String(err);
+    return { ok: false, description: errorMsg };
+  }
+}
+
+/**
+ * Get Webhook info from Telegram API
+ */
+export async function getTelegramWebhookInfo(botToken: string): Promise<TelegramApiResponse> {
+  try {
+    const response = await fetch(`https://api.telegram.org/bot${botToken}/getWebhookInfo`, {
       signal: AbortSignal.timeout(5000),
     });
     return (await response.json()) as TelegramApiResponse;

@@ -1,7 +1,7 @@
 import type { Request, Response, NextFunction } from 'express';
 import prisma from '../prisma/client.js';
 import { handleTelegramWebhookUpdate } from '../services/telegramBotService.js';
-import { setTelegramWebhook, getTelegramBotInfo } from '../services/telegramService.js';
+import { setTelegramWebhook, getTelegramBotInfo, getTelegramWebhookInfo } from '../services/telegramService.js';
 import { sendDailyBriefing } from '../services/briefingService.js';
 import { generateSecureOtp, decrypt } from '../utils/crypto.js';
 
@@ -26,7 +26,9 @@ export async function handleWebhook(req: Request, res: Response): Promise<void> 
 
     // Process update asynchronously in background
     if (req.body) {
-      await handleTelegramWebhookUpdate(req.body);
+      console.log('[TelegramWebhook] Received update:', JSON.stringify(req.body));
+      const result = await handleTelegramWebhookUpdate(req.body);
+      console.log('[TelegramWebhook] Handled update result:', JSON.stringify(result));
     }
   } catch (err) {
     console.error('[TelegramWebhook] Error handling update:', err);
@@ -70,10 +72,12 @@ export async function generateLinkingCode(req: Request, res: Response, next: Nex
 export async function setupWebhook(req: Request, res: Response, next: NextFunction) {
   try {
     const { webhookUrl, botToken } = req.body;
-    const rawToken =
-      botToken?.trim() ||
-      req.user!.telegramBotToken?.trim() ||
-      process.env.TELEGRAM_BOT_TOKEN;
+    let rawToken = botToken?.trim();
+
+    // If botToken was empty or the masked token with '•', fall back to stored token in DB or .env
+    if (!rawToken || rawToken.includes('•')) {
+      rawToken = req.user!.telegramBotToken?.trim() || process.env.TELEGRAM_BOT_TOKEN;
+    }
 
     const token = decrypt(rawToken);
 
@@ -128,12 +132,17 @@ export async function getBotStatus(req: Request, res: Response, next: NextFuncti
       });
     }
 
-    const botInfo = await getTelegramBotInfo(token);
+    const [botInfo, webhookInfo] = await Promise.all([
+      getTelegramBotInfo(token),
+      getTelegramWebhookInfo(token),
+    ]);
+
     res.json({
       success: true,
       connected: botInfo.ok === true,
       bot: botInfo.result || null,
-      error: botInfo.description || null,
+      webhook: webhookInfo.result || null,
+      error: botInfo.description || webhookInfo.description || null,
     });
   } catch (err) {
     next(err);
