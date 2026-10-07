@@ -42,6 +42,7 @@ export interface Account {
   institution?: string | null;
   lastFour?: string | null;
   notes?: string | null;
+  isDefault?: boolean;
   isActive: boolean;
   balanceInMvr?: number;
   balanceInUsd?: number;

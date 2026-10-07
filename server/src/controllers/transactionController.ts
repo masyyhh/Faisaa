@@ -749,3 +749,44 @@ export async function duplicateTransaction(req: Request, res: Response, next: Ne
     next(err);
   }
 }
+
+export async function getPayeeHistory(req: Request, res: Response, next: NextFunction) {
+  try {
+    const userId = req.user!.id;
+    const recent = await prisma.transaction.findMany({
+      where: {
+        userId,
+        payee: { not: '' },
+        categoryId: { not: null },
+      },
+      orderBy: { date: 'desc' },
+      take: 250,
+      select: {
+        payee: true,
+        categoryId: true,
+        category: {
+          select: { id: true, name: true },
+        },
+      },
+    });
+
+    const payeeMap: Record<string, { categoryId: string; categoryName: string }> = {};
+    for (const tx of recent) {
+      if (!tx.payee || !tx.categoryId || !tx.category) continue;
+      const key = tx.payee.trim().toLowerCase();
+      if (!payeeMap[key]) {
+        payeeMap[key] = {
+          categoryId: tx.categoryId,
+          categoryName: tx.category.name,
+        };
+      }
+    }
+
+    res.json({
+      success: true,
+      payeeMap,
+    });
+  } catch (err) {
+    next(err);
+  }
+}

@@ -11,8 +11,8 @@ export function Card({ children, className = '', onClick }: CardProps) {
   return (
     <div
       onClick={onClick}
-      className={`faisaa-card finora-card bg-[#111218] border border-white/[0.06] rounded-xl p-5 transition-colors duration-150 ${
-        onClick ? 'cursor-pointer hover:border-white/[0.14] hover:bg-[#14161e]' : ''
+      className={`faisaa-card finora-card bg-[#111218] border border-white/[0.06] rounded-2xl p-5 transition-all duration-150 ${
+        onClick ? 'cursor-pointer hover:border-white/[0.14] hover:bg-[#14161e] active:scale-[0.995]' : ''
       } ${className}`}
     >
       {children}
@@ -39,11 +39,11 @@ export function Button({
 }: ButtonProps) {
   const variants = {
     primary:
-      'bg-indigo-600 hover:bg-indigo-500 text-white border border-indigo-500/30',
+      'bg-indigo-600 hover:bg-indigo-500 text-white border border-indigo-500/40 shadow-xs shadow-indigo-600/20',
     secondary:
-      'bg-white/[0.04] hover:bg-white/[0.08] text-zinc-200 border border-white/[0.08]',
+      'bg-white/[0.04] hover:bg-white/[0.08] active:bg-white/[0.1] text-zinc-200 border border-white/[0.08]',
     emerald:
-      'bg-emerald-600 hover:bg-emerald-500 text-white border border-emerald-500/30',
+      'bg-emerald-600 hover:bg-emerald-500 text-white border border-emerald-500/40 shadow-xs shadow-emerald-600/20',
     danger:
       'bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20',
     ghost: 'hover:bg-white/[0.05] text-zinc-400 hover:text-white',
@@ -51,7 +51,7 @@ export function Button({
 
   const sizes = {
     sm: 'px-3 py-1.5 text-xs rounded-lg gap-1.5',
-    md: 'px-3.5 py-2 text-xs sm:text-sm rounded-lg gap-2',
+    md: 'px-3.5 py-2 text-xs sm:text-sm rounded-xl gap-2',
     lg: 'px-4 py-2.5 text-sm rounded-xl gap-2',
   };
 
@@ -60,7 +60,7 @@ export function Button({
       type={type}
       disabled={disabled || loading}
       onClick={onClick}
-      className={`inline-flex items-center justify-center font-medium transition-colors duration-150 disabled:opacity-50 disabled:pointer-events-none cursor-pointer ${variants[variant] || variants.primary} ${sizes[size] || sizes.md} ${className}`}
+      className={`inline-flex items-center justify-center font-medium transition-all duration-150 active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none cursor-pointer ${variants[variant] || variants.primary} ${sizes[size] || sizes.md} ${className}`}
       {...props}
     >
       {loading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
@@ -87,7 +87,7 @@ export function Badge({ children, variant = 'default', className = '' }: BadgePr
 
   return (
     <span
-      className={`inline-flex items-center gap-1 px-2 py-0.5 text-[11px] font-medium rounded-md border ${
+      className={`inline-flex items-center gap-1 px-2 py-0.5 text-[11px] font-medium rounded-md border tracking-tight ${
         styles[variant] || styles.default
       } ${className}`}
     >
@@ -132,16 +132,17 @@ export function Modal({ isOpen, onClose, title, subtitle, children, maxWidth = '
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/70 backdrop-blur-xs"
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/75 backdrop-blur-xs"
       role="dialog"
       aria-modal="true"
     >
       <div
         className={`faisaa-card finora-card w-full ${maxWidth} bg-[#111218] border border-white/[0.08] rounded-t-2xl sm:rounded-2xl shadow-2xl overflow-hidden max-h-[92vh] flex flex-col`}
       >
-        <div className="flex items-center justify-between px-5 py-4 border-b border-white/[0.06]">
+        <div className="w-10 h-1 bg-white/20 rounded-full mx-auto sm:hidden mt-2.5 mb-0.5" />
+        <div className="flex items-center justify-between px-5 py-3.5 sm:py-4 border-b border-white/[0.06]">
           <div>
-            <h3 className="text-base font-semibold text-white">{title}</h3>
+            <h3 className="text-sm sm:text-base font-semibold text-white">{title}</h3>
             {subtitle && <p className="text-xs text-zinc-400 mt-0.5">{subtitle}</p>}
           </div>
           <button

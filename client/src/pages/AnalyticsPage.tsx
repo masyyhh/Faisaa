@@ -162,26 +162,26 @@ export default function AnalyticsPage() {
   return (
     <div className="space-y-6">
       {/* Header & Date Filter Bar */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-2 border-b border-white/[0.06]">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-white font-display">
+          <h1 className="text-xl sm:text-2xl font-bold text-white font-display tracking-tight">
             Financial Intelligence & Analytics
           </h1>
-          <p className="text-xs sm:text-sm text-slate-400 mt-0.5">
-            8 interactive visualizations across cashflow, categories, merchants, accounts, and savings growth.
+          <p className="text-xs text-zinc-400 mt-0.5">
+            Interactive visualizations across cashflow, categories, merchants, accounts, and savings growth.
           </p>
         </div>
 
         {/* Date Filter Pills */}
-        <div className="flex items-center gap-1.5 bg-white/[0.03] border border-white/[0.08] p-1.5 rounded-2xl overflow-x-auto no-scrollbar max-w-full">
+        <div className="inline-flex items-center gap-1 bg-white/[0.03] border border-white/[0.06] p-1 rounded-xl overflow-x-auto no-scrollbar max-w-full">
           {DATE_RANGES.map((r) => (
             <button
               key={r.id}
               onClick={() => setRange(r.id)}
-              className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all shrink-0 whitespace-nowrap cursor-pointer ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all shrink-0 whitespace-nowrap cursor-pointer ${
                 range === r.id
-                  ? 'bg-violet-600 text-white shadow-md shadow-violet-600/25'
-                  : 'text-slate-400 hover:text-white'
+                  ? 'bg-indigo-600 text-white shadow-xs'
+                  : 'text-zinc-400 hover:text-white'
               }`}
             >
               {r.label}
@@ -192,46 +192,46 @@ export default function AnalyticsPage() {
 
       {range === 'custom' && (
         <Card className="flex flex-wrap items-center gap-3 py-3">
-          <span className="text-xs text-slate-400">Custom Date Filter:</span>
+          <span className="text-xs text-zinc-400">Custom Date Filter:</span>
           <input
             type="date"
             value={customStart}
             onChange={(e) => setCustomStart(e.target.value)}
-            className="px-3 py-1.5 rounded-xl bg-white/[0.05] border border-white/[0.1] text-xs text-white"
+            className="px-2.5 py-1 rounded-lg bg-white/[0.03] border border-white/[0.07] text-xs text-zinc-200 focus:outline-none"
           />
-          <span className="text-xs text-slate-500">to</span>
+          <span className="text-xs text-zinc-500">to</span>
           <input
             type="date"
             value={customEnd}
             onChange={(e) => setCustomEnd(e.target.value)}
-            className="px-3 py-1.5 rounded-xl bg-white/[0.05] border border-white/[0.1] text-xs text-white"
+            className="px-2.5 py-1 rounded-lg bg-white/[0.03] border border-white/[0.07] text-xs text-zinc-200 focus:outline-none"
           />
         </Card>
       )}
 
       {/* KPI Summary Strip */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-4">
-        <Card className="p-3.5 sm:p-5">
-          <p className="text-[11px] sm:text-xs text-slate-400">Period Income</p>
-          <p className="text-lg sm:text-2xl font-extrabold text-emerald-400 mt-1 truncate">
+        <Card className="p-4 flex flex-col justify-between">
+          <span className="text-xs font-medium text-zinc-400">Period Income</span>
+          <p className="text-lg sm:text-xl font-bold text-emerald-400 font-display tabular-nums mt-1 truncate">
             {formatCurrency(totals.totalIncome, currency, hide)}
           </p>
         </Card>
-        <Card className="p-3.5 sm:p-5">
-          <p className="text-[11px] sm:text-xs text-slate-400">Period Expenses</p>
-          <p className="text-lg sm:text-2xl font-extrabold text-rose-400 mt-1 truncate">
+        <Card className="p-4 flex flex-col justify-between">
+          <span className="text-xs font-medium text-zinc-400">Period Expenses</span>
+          <p className="text-lg sm:text-xl font-bold text-rose-400 font-display tabular-nums mt-1 truncate">
             {formatCurrency(totals.totalExpenses, currency, hide)}
           </p>
         </Card>
-        <Card className="p-3.5 sm:p-5">
-          <p className="text-[11px] sm:text-xs text-slate-400">Net Cashflow</p>
-          <p className="text-lg sm:text-2xl font-extrabold text-white mt-1 truncate">
+        <Card className="p-4 flex flex-col justify-between">
+          <span className="text-xs font-medium text-zinc-400">Net Cashflow</span>
+          <p className="text-lg sm:text-xl font-bold text-white font-display tabular-nums mt-1 truncate">
             {formatCurrency(totals.netCashflow, currency, hide)}
           </p>
         </Card>
-        <Card className="p-3.5 sm:p-5">
-          <p className="text-[11px] sm:text-xs text-slate-400">Savings Efficiency</p>
-          <p className="text-lg sm:text-2xl font-extrabold text-violet-400 mt-1 truncate">{totals.savingsRate}%</p>
+        <Card className="p-4 flex flex-col justify-between">
+          <span className="text-xs font-medium text-zinc-400">Savings Rate</span>
+          <p className="text-lg sm:text-xl font-bold text-indigo-400 font-display tabular-nums mt-1 truncate">{totals.savingsRate}%</p>
         </Card>
       </div>
 

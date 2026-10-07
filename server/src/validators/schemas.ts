@@ -82,6 +82,16 @@ export const passwordUpdateSchema = z.object({
   newPassword: passwordComplexitySchema,
 });
 
+export const forgotPasswordRequestSchema = z.object({
+  identifier: z.string().trim().min(1, 'Please enter your email or username'),
+});
+
+export const resetPasswordConfirmSchema = z.object({
+  identifier: z.string().trim().min(1, 'Please enter your email or username'),
+  code: z.string().trim().min(4, 'Please enter the verification code'),
+  newPassword: passwordComplexitySchema,
+});
+
 export const accountSchema = z.object({
   name: z.string().min(1, 'Account name is required').max(80),
   type: z.enum(['CASH', 'CHECKING', 'SAVINGS', 'CREDIT_CARD', 'INVESTMENT', 'LOAN', 'OTHER']),
@@ -94,6 +104,7 @@ export const accountSchema = z.object({
   lastFour: z.string().optional().nullable().transform(sanitizeLastFour),
   notes: z.string().optional().nullable(),
   isActive: z.boolean().optional().default(true),
+  isDefault: z.boolean().optional().default(false),
 });
 
 export const transferSchema = z.object({

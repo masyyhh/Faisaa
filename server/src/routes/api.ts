@@ -8,12 +8,16 @@ import {
   logout,
   updateProfile,
   updatePassword,
+  deleteAccount as deleteUserAccount,
+  requestPasswordReset,
+  confirmPasswordReset,
 } from '../controllers/authController.js';
 import {
   getAccounts,
   getAccountById,
   createAccount,
   updateAccount,
+  setDefaultAccount,
   deleteAccount,
   transferBetweenAccounts,
 } from '../controllers/accountController.js';
@@ -24,6 +28,7 @@ import {
   updateTransaction,
   deleteTransaction,
   duplicateTransaction,
+  getPayeeHistory,
 } from '../controllers/transactionController.js';
 import {
   getCategories,
@@ -134,11 +139,14 @@ router.get('/health', async (_req, res) => {
 // Authentication Routes
 router.post('/auth/register', register);
 router.post('/auth/login', login);
+router.post('/auth/forgot-password', requestPasswordReset);
+router.post('/auth/reset-password', confirmPasswordReset);
 router.post('/auth/refresh', refreshSession);
 router.get('/auth/me', protect, getMe);
 router.post('/auth/logout', logout);
 router.put('/auth/profile', protect, updateProfile);
 router.put('/auth/password', protect, updatePassword);
+router.delete('/auth/account', protect, deleteUserAccount);
 
 // Accounts Routes
 router.get('/accounts', protect, getAccounts);
@@ -146,6 +154,7 @@ router.post('/accounts', protect, createAccount);
 router.post('/accounts/transfer', protect, transferBetweenAccounts);
 router.get('/accounts/:id', protect, getAccountById);
 router.put('/accounts/:id', protect, updateAccount);
+router.patch('/accounts/:id/default', protect, setDefaultAccount);
 router.delete('/accounts/:id', protect, deleteAccount);
 
 // Currency Exchange ($ ↔ MVR) & Exchange Rate Tracker Routes
@@ -156,6 +165,7 @@ router.delete('/exchange/:id', protect, deleteCurrencyExchange);
 
 // Transactions Routes
 router.get('/transactions', protect, getTransactions);
+router.get('/transactions/payee-history', protect, getPayeeHistory);
 router.post('/transactions', protect, createTransaction);
 router.get('/transactions/:id', protect, getTransactionById);
 router.put('/transactions/:id', protect, updateTransaction);

@@ -86,7 +86,7 @@ export default function BillsPage() {
       amount: '',
       frequency: 'MONTHLY',
       dueDate: new Date().toISOString().split('T')[0],
-      accountId: accounts[0]?.id || '',
+      accountId: accounts.find((a) => a.isDefault)?.id || accounts[0]?.id || '',
       categoryId: categories[0]?.id || '',
       isSubscription: true,
       autoPay: true,
@@ -188,31 +188,31 @@ export default function BillsPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-white/[0.06]">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-white font-display">
+          <h1 className="text-xl sm:text-2xl font-bold text-white font-display tracking-tight">
             Bills & Subscriptions
           </h1>
-          <p className="text-xs sm:text-sm text-slate-400 mt-0.5">
+          <p className="text-xs text-zinc-400 mt-0.5">
             Monitor fixed monthly commitments, upcoming due dates, and active streaming/software subscriptions.
           </p>
         </div>
 
         <Button size="sm" onClick={openAddModal}>
-          <Plus className="w-4 h-4" /> Add Bill / Subscription
+          <Plus className="w-3.5 h-3.5" /> Add Bill / Subscription
         </Button>
       </div>
 
       {/* Overdue Warning Banner */}
       {summary.overdueCount > 0 && (
-        <div className="p-4 rounded-2xl bg-rose-500/15 border border-rose-500/30 flex items-center justify-between gap-4">
+        <div className="p-3.5 sm:p-4 rounded-2xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <AlertTriangle className="w-5 h-5 text-rose-400 shrink-0" />
+            <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />
             <div>
-              <p className="text-sm font-bold text-white">
+              <p className="text-xs sm:text-sm font-semibold text-white">
                 Action Required: {summary.overdueCount} Overdue Bill(s)
               </p>
-              <p className="text-xs text-rose-200/80">
+              <p className="text-xs text-zinc-400">
                 Review overdue payments below and click "Mark as Paid" once settled.
               </p>
             </div>
@@ -225,55 +225,55 @@ export default function BillsPage() {
 
       {/* KPI Summary Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
-        <Card className="p-3.5 sm:p-5">
-          <p className="text-[11px] sm:text-xs uppercase tracking-wider text-slate-400">Monthly Recurring Cost</p>
-          <p className="text-xl sm:text-2xl font-extrabold text-white mt-1 truncate">
+        <Card className="p-4 flex flex-col justify-between">
+          <span className="text-xs font-medium text-zinc-400">Monthly Burn</span>
+          <p className="text-lg sm:text-xl font-bold text-white font-display tabular-nums mt-1 truncate">
             {formatCurrency(summary.monthlyRecurringCost, currency, hide)}
           </p>
-          <span className="text-[11px] sm:text-xs text-slate-400 mt-1 block truncate">Normalized monthly burn</span>
+          <span className="text-[11px] text-zinc-500 mt-0.5 block truncate">Normalized monthly cost</span>
         </Card>
 
-        <Card className="p-3.5 sm:p-5">
-          <p className="text-[11px] sm:text-xs uppercase tracking-wider text-slate-400">Yearly Recurring Cost</p>
-          <p className="text-xl sm:text-2xl font-extrabold text-violet-400 mt-1 truncate">
+        <Card className="p-4 flex flex-col justify-between">
+          <span className="text-xs font-medium text-zinc-400">Yearly Total</span>
+          <p className="text-lg sm:text-xl font-bold text-indigo-400 font-display tabular-nums mt-1 truncate">
             {formatCurrency(summary.yearlyRecurringCost, currency, hide)}
           </p>
-          <span className="text-[11px] sm:text-xs text-slate-400 mt-1 block truncate">12-month annualized total</span>
+          <span className="text-[11px] text-zinc-500 mt-0.5 block truncate">Annualized recurring</span>
         </Card>
 
-        <Card className="p-3.5 sm:p-5">
-          <p className="text-[11px] sm:text-xs uppercase tracking-wider text-slate-400">Active Subscriptions</p>
-          <p className="text-xl sm:text-2xl font-extrabold text-cyan-400 mt-1 truncate">
+        <Card className="p-4 flex flex-col justify-between">
+          <span className="text-xs font-medium text-zinc-400">Active Plans</span>
+          <p className="text-lg sm:text-xl font-bold text-sky-400 font-display tabular-nums mt-1 truncate">
             {summary.subscriptionCount} Active
           </p>
-          <span className="text-[11px] sm:text-xs text-slate-400 mt-1 block truncate">Digital & recurring plans</span>
+          <span className="text-[11px] text-zinc-500 mt-0.5 block truncate">Digital subscriptions</span>
         </Card>
 
-        <Card className="p-3.5 sm:p-5">
-          <p className="text-[11px] sm:text-xs uppercase tracking-wider text-slate-400">Upcoming & Overdue</p>
-          <p className="text-xl sm:text-2xl font-extrabold text-amber-400 mt-1 truncate">
+        <Card className="p-4 flex flex-col justify-between">
+          <span className="text-xs font-medium text-zinc-400">Upcoming & Overdue</span>
+          <p className="text-lg sm:text-xl font-bold text-amber-400 font-display tabular-nums mt-1 truncate">
             {summary.upcomingCount} Due • {summary.overdueCount} Late
           </p>
-          <span className="text-[11px] sm:text-xs text-slate-400 mt-1 block truncate">Next 30 days cycle</span>
+          <span className="text-[11px] text-zinc-500 mt-0.5 block truncate">Next 30 days</span>
         </Card>
       </div>
 
-      {/* Filter Tabs */}
-      <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1">
+      {/* Segmented Filter Control */}
+      <div className="inline-flex p-1 rounded-xl bg-white/[0.03] border border-white/[0.06] gap-1 overflow-x-auto no-scrollbar">
         {[
           { id: 'ALL', label: `All (${bills.length})` },
           { id: 'UPCOMING', label: `Upcoming (${summary.upcomingCount})` },
           { id: 'OVERDUE', label: `Overdue (${summary.overdueCount})` },
           { id: 'PAID', label: 'Paid' },
-          { id: 'SUBSCRIPTIONS', label: 'Subscriptions Only' },
+          { id: 'SUBSCRIPTIONS', label: 'Subscriptions' },
         ].map((t) => (
           <button
             key={t.id}
             onClick={() => setFilterTab(t.id)}
-            className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all shrink-0 whitespace-nowrap cursor-pointer ${
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all shrink-0 whitespace-nowrap cursor-pointer ${
               filterTab === t.id
-                ? 'bg-violet-600 text-white'
-                : 'bg-white/[0.04] text-slate-400 hover:text-white'
+                ? 'bg-indigo-600 text-white shadow-xs'
+                : 'text-zinc-400 hover:text-white'
             }`}
           >
             {t.label}
@@ -282,21 +282,21 @@ export default function BillsPage() {
       </div>
 
       {/* Bills List */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5 sm:gap-4">
         {filteredBills.map((bill) => (
           <Card key={bill.id} className="flex flex-col justify-between gap-4">
             <div>
               <div className="flex items-start justify-between gap-2">
                 <div>
-                  <div className="flex items-center gap-2">
-                    <h3 className="text-base font-bold text-white">{bill.name}</h3>
+                  <div className="flex items-center gap-1.5">
+                    <h3 className="text-sm sm:text-base font-semibold text-white">{bill.name}</h3>
                     {bill.autoPay && (
-                      <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-300">
+                      <span className="inline-flex items-center gap-0.5 text-[10px] font-medium px-1.5 py-0.2 rounded-md bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
                         <Zap className="w-2.5 h-2.5" /> AutoPay
                       </span>
                     )}
                   </div>
-                  <p className="text-xs text-slate-400 mt-0.5">
+                  <p className="text-xs text-zinc-400 mt-0.5">
                     {bill.category?.name || 'Utilities'} • {bill.account?.name || 'Primary'}
                   </p>
                 </div>
@@ -315,14 +315,14 @@ export default function BillsPage() {
               </div>
 
               <div className="mt-4 flex items-baseline justify-between">
-                <p className="text-2xl font-extrabold text-white font-display">
+                <p className="text-xl sm:text-2xl font-bold text-white font-display tabular-nums">
                   {formatCurrency(bill.amount, currency, hide)}
-                  <span className="text-xs font-normal text-slate-400 ml-1">
+                  <span className="text-xs font-normal text-zinc-500 ml-1">
                     / {bill.frequency.toLowerCase()}
                   </span>
                 </p>
-                <span className="text-xs text-slate-400 flex items-center gap-1">
-                  <Calendar className="w-3.5 h-3.5 text-violet-400" />
+                <span className="text-xs text-zinc-400 flex items-center gap-1">
+                  <Calendar className="w-3.5 h-3.5 text-indigo-400" />
                   Due {formatDate(bill.dueDate, user?.dateFormat)}
                 </span>
               </div>
@@ -432,7 +432,7 @@ export default function BillsPage() {
               >
                 {accounts.map((a) => (
                   <option key={a.id} value={a.id}>
-                    {a.name}
+                    {a.name}{a.isDefault ? ' ★ Default' : ''}
                   </option>
                 ))}
               </select>

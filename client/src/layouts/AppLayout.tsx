@@ -22,6 +22,8 @@ import {
   X,
   Menu,
   Coins,
+  Calendar,
+  Clock,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import api, { Notification, Transaction } from '../services/api';
@@ -29,18 +31,51 @@ import { formatCurrency, formatDate } from '../utils/formatters';
 import TransactionModal from '../features/transactions/TransactionModal';
 import CurrencyExchangeModal from '../features/exchange/CurrencyExchangeModal';
 
-const NAV_ITEMS = [
-  { name: 'Dashboard', path: '/', icon: LayoutDashboard },
-  { name: 'Transactions', path: '/transactions', icon: ArrowLeftRight },
-  { name: 'Accounts', path: '/accounts', icon: Landmark },
-  { name: 'Budgets', path: '/budgets', icon: PieChart },
-  { name: 'Goals', path: '/goals', icon: Target },
-  { name: 'Bills', path: '/bills', icon: Receipt },
-  { name: 'Loans & Debts', path: '/loans', icon: Coins },
-  { name: 'Analytics', path: '/analytics', icon: BarChart3 },
-  { name: 'Net Worth', path: '/net-worth', icon: TrendingUp },
-  { name: 'Settings', path: '/settings', icon: Settings },
+export interface NavItem {
+  name: string;
+  path: string;
+  icon: any;
+}
+
+export interface NavSection {
+  title?: string;
+  items: NavItem[];
+}
+
+const NAV_SECTIONS: NavSection[] = [
+  {
+    title: 'Core',
+    items: [
+      { name: 'Dashboard', path: '/', icon: LayoutDashboard },
+      { name: 'Transactions', path: '/transactions', icon: ArrowLeftRight },
+      { name: 'Accounts', path: '/accounts', icon: Landmark },
+    ],
+  },
+  {
+    title: 'Planning',
+    items: [
+      { name: 'Budgets', path: '/budgets', icon: PieChart },
+      { name: 'Goals', path: '/goals', icon: Target },
+      { name: 'Bills', path: '/bills', icon: Receipt },
+      { name: 'Loans & Debts', path: '/loans', icon: Coins },
+    ],
+  },
+  {
+    title: 'Insights',
+    items: [
+      { name: 'Analytics', path: '/analytics', icon: BarChart3 },
+      { name: 'Net Worth', path: '/net-worth', icon: TrendingUp },
+    ],
+  },
+  {
+    title: 'System',
+    items: [
+      { name: 'Settings', path: '/settings', icon: Settings },
+    ],
+  },
 ];
+
+const ALL_NAV_ITEMS: NavItem[] = NAV_SECTIONS.flatMap((s) => s.items);
 
 export default function AppLayout() {
   const {
@@ -66,6 +101,15 @@ export default function AppLayout() {
   const [searching, setSearching] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
+  // Live navbar clock ticker
+  const [currentDateTime, setCurrentDateTime] = useState<Date>(new Date());
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentDateTime(new Date());
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
   useEffect(() => {
     async function loadNotifications() {
       try {
@@ -83,9 +127,20 @@ export default function AppLayout() {
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      const isInputActive =
+        target &&
+        (target.tagName === 'INPUT' ||
+          target.tagName === 'TEXTAREA' ||
+          target.tagName === 'SELECT' ||
+          target.isContentEditable);
+
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
         e.preventDefault();
         setSearchOpen((prev) => !prev);
+      } else if (!isInputActive && (e.key === 'n' || e.key === 'N') && !e.metaKey && !e.ctrlKey) {
+        e.preventDefault();
+        openTransactionModal('EXPENSE');
       } else if (e.key === 'Escape') {
         setSearchOpen(false);
         setNotifOpen(false);
@@ -93,7 +148,7 @@ export default function AppLayout() {
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
+  }, [openTransactionModal]);
 
   useEffect(() => {
     if (searchOpen) {
@@ -203,27 +258,40 @@ export default function AppLayout() {
         </div>
 
         {/* Navigation Links */}
-        <nav className="flex-1 px-3 py-1 space-y-0.5 overflow-y-auto" aria-label="Main Navigation">
-          {NAV_ITEMS.map((item) => {
-            const Icon = item.icon;
-            return (
-              <NavLink
-                key={item.path}
-                to={item.path}
-                end={item.path === '/'}
-                className={({ isActive }) =>
-                  `flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
-                    isActive
-                      ? 'bg-white/[0.07] text-white'
-                      : 'text-zinc-400 hover:text-white hover:bg-white/[0.03]'
-                  }`
-                }
-              >
-                <Icon className="w-4 h-4 shrink-0 opacity-80" />
-                <span>{item.name}</span>
-              </NavLink>
-            );
-          })}
+        <nav className="flex-1 px-3 py-2 space-y-3.5 overflow-y-auto" aria-label="Main Navigation">
+          {NAV_SECTIONS.map((section) => (
+            <div key={section.title || 'main'}>
+              {section.title && (
+                <p className="px-3 pb-1 text-[10px] font-semibold uppercase tracking-wider text-zinc-500 select-none">
+                  {section.title}
+                </p>
+              )}
+              <div className="space-y-0.5">
+                {section.items.map((item) => {
+                  const Icon = item.icon;
+                  return (
+                    <NavLink
+                      key={item.path}
+                      to={item.path}
+                      end={item.path === '/'}
+                      className={({ isActive }) =>
+                        `group flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium transition-all ${
+                          isActive
+                            ? 'bg-white/[0.08] text-white shadow-xs font-semibold'
+                            : 'text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.03]'
+                        }`
+                      }
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <Icon className="w-4 h-4 shrink-0 opacity-75 group-hover:opacity-100 transition-opacity" />
+                        <span>{item.name}</span>
+                      </div>
+                    </NavLink>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
         </nav>
 
         {/* User Footer */}
@@ -288,6 +356,39 @@ export default function AppLayout() {
             </kbd>
           </button>
 
+          {/* Live Day & Time Indicator */}
+          <div className="hidden sm:flex items-center gap-1.5 md:gap-2 px-2.5 sm:px-3 py-1.5 rounded-lg bg-white/[0.03] border border-white/[0.06] text-zinc-300 text-xs font-medium select-none shrink-0">
+            <Calendar className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
+            <span className="text-zinc-200 font-medium">
+              {currentDateTime.toLocaleDateString('en-US', {
+                weekday: 'short',
+                month: 'short',
+                day: 'numeric',
+              })}
+            </span>
+            <span className="text-zinc-600 font-mono">•</span>
+            <Clock className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
+            <span className="tabular-nums font-mono text-white text-xs font-semibold">
+              {currentDateTime.toLocaleTimeString('en-US', {
+                hour: 'numeric',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: true,
+              })}
+            </span>
+          </div>
+
+          <div className="flex sm:hidden items-center gap-1 px-2 py-1 rounded-lg bg-white/[0.03] border border-white/[0.06] text-zinc-300 font-mono text-[11px] select-none shrink-0">
+            <Clock className="w-3 h-3 text-indigo-400 shrink-0" />
+            <span className="tabular-nums text-white font-medium">
+              {currentDateTime.toLocaleTimeString('en-US', {
+                hour: 'numeric',
+                minute: '2-digit',
+                hour12: true,
+              })}
+            </span>
+          </div>
+
           {/* Right Controls */}
           <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
             {/* Currency Rate Indicator */}
@@ -321,6 +422,17 @@ export default function AppLayout() {
               ) : (
                 <Sun className="w-4 h-4" />
               )}
+            </button>
+
+            {/* Quick Add Button */}
+            <button
+              onClick={() => openTransactionModal('EXPENSE')}
+              title="Add new transaction (Press 'N')"
+              className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-xs transition-colors cursor-pointer"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Add</span>
+              <kbd className="hidden md:inline-block ml-0.5 px-1 py-0.2 text-[9px] font-mono bg-white/20 rounded">N</kbd>
             </button>
 
             {/* Notifications */}
@@ -439,28 +551,39 @@ export default function AppLayout() {
             </div>
 
             {/* Nav links */}
-            <nav className="flex-1 space-y-1 overflow-y-auto pr-1">
-              {NAV_ITEMS.map((item) => {
-                const Icon = item.icon;
-                return (
-                  <NavLink
-                    key={item.path}
-                    to={item.path}
-                    end={item.path === '/'}
-                    onClick={() => setMobileMenuOpen(false)}
-                    className={({ isActive }) =>
-                      `flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-medium transition-colors ${
-                        isActive
-                          ? 'bg-white/[0.08] text-white font-semibold'
-                          : 'text-zinc-400 hover:text-white hover:bg-white/[0.03]'
-                      }`
-                    }
-                  >
-                    <Icon className="w-4 h-4 opacity-80" />
-                    <span>{item.name}</span>
-                  </NavLink>
-                );
-              })}
+            <nav className="flex-1 space-y-3.5 overflow-y-auto pr-1" aria-label="Mobile Navigation">
+              {NAV_SECTIONS.map((section) => (
+                <div key={section.title || 'main'}>
+                  {section.title && (
+                    <p className="px-3 pb-1 text-[10px] font-semibold uppercase tracking-wider text-zinc-500 select-none">
+                      {section.title}
+                    </p>
+                  )}
+                  <div className="space-y-0.5">
+                    {section.items.map((item) => {
+                      const Icon = item.icon;
+                      return (
+                        <NavLink
+                          key={item.path}
+                          to={item.path}
+                          end={item.path === '/'}
+                          onClick={() => setMobileMenuOpen(false)}
+                          className={({ isActive }) =>
+                            `flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-medium transition-colors ${
+                              isActive
+                                ? 'bg-white/[0.08] text-white font-semibold'
+                                : 'text-zinc-400 hover:text-white hover:bg-white/[0.03]'
+                            }`
+                          }
+                        >
+                          <Icon className="w-4 h-4 opacity-80" />
+                          <span>{item.name}</span>
+                        </NavLink>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
             </nav>
 
             {/* User Info & Logout */}
@@ -491,16 +614,29 @@ export default function AppLayout() {
 
       {/* Mobile Bottom Navigation with safe-area padding */}
       <nav className="lg:hidden fixed bottom-0 inset-x-0 z-40 bg-[#0B0C12]/95 backdrop-blur-lg border-t border-white/[0.08] px-2 pt-1.5 pb-[max(0.6rem,env(safe-area-inset-bottom))] flex items-center justify-around shadow-2xl">
-        {[NAV_ITEMS[0], NAV_ITEMS[1], null, NAV_ITEMS[3], NAV_ITEMS[6]].map((item, idx) => {
+        {[ALL_NAV_ITEMS[0], ALL_NAV_ITEMS[1], null, ALL_NAV_ITEMS[2], { name: 'More', path: '#more', icon: Menu }].map((item, idx) => {
           if (!item) {
             return (
               <button
                 key="fab-add"
                 onClick={() => openTransactionModal('EXPENSE')}
                 aria-label="Quick Add Transaction"
-                className="w-11 h-11 -mt-4 rounded-full bg-indigo-600 text-white flex items-center justify-center shadow-lg shadow-indigo-600/40 border-2 border-[#090A0F] active:scale-95 transition-transform cursor-pointer"
+                className="w-11 h-11 -mt-4 rounded-full bg-indigo-600 hover:bg-indigo-500 text-white flex items-center justify-center shadow-lg shadow-indigo-600/40 border-2 border-[#090A0F] active:scale-95 transition-transform cursor-pointer"
               >
                 <Plus className="w-5 h-5 stroke-[2.5]" />
+              </button>
+            );
+          }
+          if (item.path === '#more') {
+            return (
+              <button
+                key="more-menu"
+                onClick={() => setMobileMenuOpen(true)}
+                aria-label="Open More Menu"
+                className="flex flex-col items-center justify-center gap-0.5 px-3 py-1 rounded-xl text-[10px] font-medium text-zinc-400 hover:text-zinc-200 transition-colors cursor-pointer"
+              >
+                <Menu className="w-4 h-4" />
+                <span>More</span>
               </button>
             );
           }

@@ -19,6 +19,7 @@ export interface AuthContextType {
   login: (identifier: string, password: string) => Promise<User>;
   register: (payload: any) => Promise<User>;
   logout: () => Promise<void>;
+  deleteAccount: (password: string) => Promise<void>;
   updateProfile: (updates: Partial<User>) => Promise<User>;
   toggleHideBalances: () => Promise<void>;
   addToast: (message: string, type?: 'success' | 'error' | 'info') => void;
@@ -136,6 +137,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     addToast('Signed out safely.', 'info');
   };
 
+  const deleteAccount = async (password: string): Promise<void> => {
+    await api.delete('/auth/account', { data: { password } });
+    localStorage.removeItem('faisaa_token');
+    localStorage.removeItem('finora_token');
+    setUser(null);
+    addToast('Your account and financial data have been permanently deleted.', 'info');
+  };
+
   const updateProfile = async (updates: Partial<User>): Promise<User> => {
     const { data } = await api.put('/auth/profile', updates);
     setUser(data.user);
@@ -183,6 +192,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         login,
         register,
         logout,
+        deleteAccount,
         updateProfile,
         toggleHideBalances,
         addToast,

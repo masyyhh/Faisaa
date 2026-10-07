@@ -1,14 +1,15 @@
 import React, { useState } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
-import { Mail, Lock, User, ArrowRight, ShieldCheck } from 'lucide-react';
+import { Mail, Lock, User, ArrowRight, ShieldCheck, KeyRound, CheckCircle2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { Button } from '../components/ui';
+import api from '../services/api';
+import { Button, Modal } from '../components/ui';
 
 export default function AuthPage() {
   const location = useLocation();
   const isRegister = location.pathname === '/register';
   const navigate = useNavigate();
-  const { login, register } = useAuth();
+  const { login, register, addToast } = useAuth();
 
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
@@ -19,6 +20,19 @@ export default function AuthPage() {
   const [loading, setLoading] = useState(false);
   const [demoLoading, setDemoLoading] = useState(false);
   const [error, setError] = useState('');
+
+  // Forgot Password State
+  const [forgotOpen, setForgotOpen] = useState(false);
+  const [forgotStep, setForgotStep] = useState<'REQUEST' | 'CONFIRM'>('REQUEST');
+  const [forgotIdentifier, setForgotIdentifier] = useState('');
+  const [forgotCode, setForgotCode] = useState('');
+  const [forgotNewPassword, setForgotNewPassword] = useState('');
+  const [forgotConfirmPassword, setForgotConfirmPassword] = useState('');
+  const [forgotLoading, setForgotLoading] = useState(false);
+  const [forgotError, setForgotError] = useState('');
+  const [forgotSuccess, setForgotSuccess] = useState('');
+  const [forgotNotice, setForgotNotice] = useState('');
+  const [forgotDevCode, setForgotDevCode] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -63,6 +77,63 @@ export default function AuthPage() {
       setError('Could not sign in to demo account.');
     } finally {
       setDemoLoading(false);
+    }
+  };
+
+  const handleRequestReset = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setForgotError('');
+    setForgotNotice('');
+    setForgotLoading(true);
+    try {
+      const { data } = await api.post('/auth/forgot-password', {
+        identifier: forgotIdentifier.trim(),
+      });
+      setForgotNotice(data.message || 'Verification code dispatched.');
+      if (data.devCode) {
+        setForgotDevCode(data.devCode);
+      }
+      setForgotStep('CONFIRM');
+    } catch (err: any) {
+      setForgotError(err.response?.data?.message || 'Failed to request password reset code.');
+    } finally {
+      setForgotLoading(false);
+    }
+  };
+
+  const handleConfirmReset = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setForgotError('');
+    setForgotSuccess('');
+    if (forgotNewPassword !== forgotConfirmPassword) {
+      setForgotError('New passwords do not match.');
+      return;
+    }
+    setForgotLoading(true);
+    try {
+      const { data } = await api.post('/auth/reset-password', {
+        identifier: forgotIdentifier.trim(),
+        code: forgotCode.trim(),
+        newPassword: forgotNewPassword,
+      });
+      setForgotSuccess(data.message || 'Password reset successfully!');
+      setEmail(forgotIdentifier);
+      addToast('Password reset successfully! Please sign in with your new password.', 'success');
+      setTimeout(() => {
+        setForgotOpen(false);
+        setForgotStep('REQUEST');
+        setForgotCode('');
+        setForgotNewPassword('');
+        setForgotConfirmPassword('');
+        setForgotSuccess('');
+        setForgotError('');
+        setForgotNotice('');
+        setForgotDevCode('');
+      }, 1500);
+    } catch (err: any) {
+      setForgotError(err.response?.data?.message || 'Failed to reset password. Please check your code.');
+    } finally {
+      setForgotLoading(false);
     }
   };
 
@@ -195,9 +266,28 @@ export default function AuthPage() {
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-zinc-400 mb-1">
-              Password
-            </label>
+            <div className="flex items-center justify-between mb-1">
+              <label className="block text-xs font-medium text-zinc-400">
+                Password
+              </label>
+              {!isRegister && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setForgotOpen(true);
+                    setForgotStep('REQUEST');
+                    setForgotIdentifier(email || '');
+                    setForgotError('');
+                    setForgotSuccess('');
+                    setForgotNotice('');
+                    setForgotDevCode('');
+                  }}
+                  className="text-[11px] text-indigo-400 hover:text-indigo-300 transition-colors font-medium cursor-pointer"
+                >
+                  Forgot password?
+                </button>
+              )}
+            </div>
             <div className="relative">
               <Lock className="w-3.5 h-3.5 text-zinc-500 absolute left-3 top-2.5" />
               <input
@@ -253,6 +343,188 @@ export default function AuthPage() {
           <span>Encrypted session & multi-currency MVR/USD engine</span>
         </div>
       </div>
+
+      {/* Forgot Password Modal */}
+      <Modal
+        isOpen={forgotOpen}
+        onClose={() => {
+          if (!forgotLoading) {
+            setForgotOpen(false);
+            setForgotError('');
+            setForgotSuccess('');
+          }
+        }}
+        title="Reset Password"
+        subtitle="Recover your account using a secure 6-digit verification code."
+        maxWidth="max-w-md"
+      >
+        {forgotStep === 'REQUEST' ? (
+          <form onSubmit={handleRequestReset} className="space-y-4">
+            <p className="text-xs text-zinc-400 leading-relaxed">
+              Enter your registered email address or username. A 6-digit verification code will be generated and dispatched to your linked Telegram account or system notifications.
+            </p>
+
+            {forgotError && (
+              <div className="p-3 rounded-lg bg-rose-500/10 border border-rose-500/20 text-xs text-rose-300">
+                {forgotError}
+              </div>
+            )}
+
+            <div>
+              <label className="block text-xs font-medium text-zinc-400 mb-1">
+                Email or Username
+              </label>
+              <div className="relative">
+                <Mail className="w-3.5 h-3.5 text-zinc-500 absolute left-3 top-2.5" />
+                <input
+                  type="text"
+                  required
+                  value={forgotIdentifier}
+                  onChange={(e) => setForgotIdentifier(e.target.value)}
+                  placeholder="alex@faisaa.online or alex"
+                  className="w-full pl-9 pr-3 py-2 rounded-lg bg-white/[0.03] border border-white/[0.08] text-xs text-white placeholder-zinc-600 focus:outline-none focus:border-indigo-500"
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2.5 pt-2">
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                onClick={() => setForgotOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                size="sm"
+                loading={forgotLoading}
+                className="bg-indigo-600 hover:bg-indigo-500 text-white"
+              >
+                Send Verification Code
+              </Button>
+            </div>
+          </form>
+        ) : (
+          <form onSubmit={handleConfirmReset} className="space-y-3.5">
+            {forgotNotice && (
+              <div className="p-3 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-xs text-indigo-300 space-y-1">
+                <div className="flex items-center gap-1.5 font-semibold text-indigo-200">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
+                  <span>Code Generated</span>
+                </div>
+                <p className="text-[11px] leading-relaxed text-zinc-300">{forgotNotice}</p>
+                {forgotDevCode && (
+                  <p className="text-[11px] font-mono text-emerald-400 font-bold mt-1">
+                    Demo/Dev Verification Code: {forgotDevCode}
+                  </p>
+                )}
+              </div>
+            )}
+
+            {forgotError && (
+              <div className="p-3 rounded-lg bg-rose-500/10 border border-rose-500/20 text-xs text-rose-300">
+                {forgotError}
+              </div>
+            )}
+
+            {forgotSuccess && (
+              <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-300">
+                {forgotSuccess}
+              </div>
+            )}
+
+            <div>
+              <label className="block text-xs font-medium text-zinc-400 mb-1">
+                6-Digit Verification Code
+              </label>
+              <div className="relative">
+                <KeyRound className="w-3.5 h-3.5 text-zinc-500 absolute left-3 top-2.5" />
+                <input
+                  type="text"
+                  required
+                  maxLength={6}
+                  value={forgotCode}
+                  onChange={(e) => setForgotCode(e.target.value.replace(/\D/g, ''))}
+                  placeholder="123456"
+                  className="w-full pl-9 pr-3 py-2 rounded-lg bg-white/[0.03] border border-white/[0.08] text-xs font-mono tracking-widest text-white placeholder-zinc-600 focus:outline-none focus:border-indigo-500"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-zinc-400 mb-1">
+                New Password
+              </label>
+              <div className="relative">
+                <Lock className="w-3.5 h-3.5 text-zinc-500 absolute left-3 top-2.5" />
+                <input
+                  type="password"
+                  required
+                  minLength={10}
+                  value={forgotNewPassword}
+                  onChange={(e) => setForgotNewPassword(e.target.value)}
+                  placeholder="At least 10 characters (e.g. Strong@2026)"
+                  className="w-full pl-9 pr-3 py-2 rounded-lg bg-white/[0.03] border border-white/[0.08] text-xs text-white placeholder-zinc-600 focus:outline-none focus:border-indigo-500"
+                />
+              </div>
+              <p className="text-[10px] text-zinc-500 mt-1">
+                Must include uppercase, lowercase, number, and special character.
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-zinc-400 mb-1">
+                Confirm New Password
+              </label>
+              <div className="relative">
+                <Lock className="w-3.5 h-3.5 text-zinc-500 absolute left-3 top-2.5" />
+                <input
+                  type="password"
+                  required
+                  minLength={10}
+                  value={forgotConfirmPassword}
+                  onChange={(e) => setForgotConfirmPassword(e.target.value)}
+                  placeholder="Repeat new password"
+                  className="w-full pl-9 pr-3 py-2 rounded-lg bg-white/[0.03] border border-white/[0.08] text-xs text-white placeholder-zinc-600 focus:outline-none focus:border-indigo-500"
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between gap-2.5 pt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setForgotStep('REQUEST');
+                  setForgotError('');
+                }}
+                className="text-xs text-zinc-400 hover:text-white transition-colors cursor-pointer"
+              >
+                ← Back
+              </button>
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => setForgotOpen(false)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  size="sm"
+                  loading={forgotLoading}
+                  className="bg-indigo-600 hover:bg-indigo-500 text-white"
+                >
+                  Set New Password
+                </Button>
+              </div>
+            </div>
+          </form>
+        )}
+      </Modal>
     </div>
   );
 }

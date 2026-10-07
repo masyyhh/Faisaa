@@ -192,10 +192,10 @@ export default function BudgetsPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-white font-display">
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-white font-display">
             Monthly Budgets
           </h1>
-          <p className="text-xs sm:text-sm text-slate-400 mt-0.5">
+          <p className="text-xs sm:text-sm text-zinc-400 mt-0.5">
             Dynamic category limits automatically calculated from your monthly expenses.
           </p>
         </div>
@@ -207,10 +207,10 @@ export default function BudgetsPage() {
 
       {/* Overall Budget Health Hero */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6">
-        <Card className="lg:col-span-5 flex flex-col justify-between bg-gradient-to-br from-[#191B30] to-[#121422] p-4 sm:p-5">
+        <Card className="lg:col-span-5 flex flex-col justify-between p-4 sm:p-5">
           <div>
             <div className="flex items-center justify-between">
-              <span className="text-xs uppercase tracking-wider font-semibold text-violet-300">
+              <span className="text-[11px] uppercase tracking-wider font-semibold text-zinc-400">
                 Overall Budget Health
               </span>
               <Badge
@@ -227,13 +227,13 @@ export default function BudgetsPage() {
             </div>
 
             <div className="mt-4">
-              <p className="text-2xl sm:text-3xl font-extrabold text-white font-display truncate">
+              <p className="text-2xl sm:text-3xl font-bold tracking-tight text-white font-display truncate tabular-nums">
                 {formatCurrency(summary.totalSpent, currency, hide)}{' '}
-                <span className="text-sm sm:text-base font-medium text-slate-400">
+                <span className="text-sm sm:text-base font-normal text-zinc-400">
                   / {formatCurrency(summary.totalBudgeted, currency, hide)}
                 </span>
               </p>
-              <p className="text-xs text-slate-400 mt-1">
+              <p className="text-xs text-zinc-400 mt-1 tabular-nums">
                 {formatCurrency(summary.totalRemaining, currency, hide)} remaining across{' '}
                 {budgets.length} budgeted categories
               </p>
@@ -241,23 +241,23 @@ export default function BudgetsPage() {
 
             <ProgressBar
               value={summary.overallPercentage}
-              color={summary.overallPercentage >= 100 ? '#F43F5E' : '#8B5CF6'}
-              height="h-3"
+              color={summary.overallPercentage >= 100 ? '#F43F5E' : '#6366F1'}
+              height="h-2.5"
               className="mt-5"
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-3 mt-6 pt-4 border-t border-white/[0.07]">
+          <div className="grid grid-cols-2 gap-3 mt-6 pt-4 border-t border-white/[0.06]">
             <div className="flex items-center gap-2 text-xs">
               <AlertCircle className="w-4 h-4 text-rose-400" />
-              <span className="text-slate-300">
-                <strong>{summary.overBudgetCount}</strong> Over Budget
+              <span className="text-zinc-300">
+                <strong className="text-white tabular-nums">{summary.overBudgetCount}</strong> Over Budget
               </span>
             </div>
             <div className="flex items-center gap-2 text-xs">
               <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-              <span className="text-slate-300">
-                <strong>{budgets.length - summary.overBudgetCount}</strong> Within Limit
+              <span className="text-zinc-300">
+                <strong className="text-white tabular-nums">{budgets.length - summary.overBudgetCount}</strong> Within Limit
               </span>
             </div>
           </div>
@@ -266,30 +266,31 @@ export default function BudgetsPage() {
         {/* Historical Budget Performance Chart */}
         <Card className="lg:col-span-7 min-w-0 p-4 sm:p-5">
           <div className="mb-4">
-            <h3 className="text-base font-bold text-white">
+            <h3 className="text-sm font-semibold text-white">
               Historical Budget vs Actual Performance
             </h3>
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-zinc-400">
               6-month comparison of planned monthly limits against real spending
             </p>
           </div>
           <div className="h-56 w-full">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={history} barGap={6}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                <XAxis dataKey="month" stroke="#64748B" fontSize={12} />
-                <YAxis stroke="#64748B" fontSize={12} />
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
+                <XAxis dataKey="month" stroke="#71717A" fontSize={11} tickLine={false} axisLine={false} />
+                <YAxis stroke="#71717A" fontSize={11} tickLine={false} axisLine={false} />
                 <Tooltip
                   formatter={(v: any) => formatCurrency(Number(v) || 0, currency, hide)}
                   contentStyle={{
-                    backgroundColor: '#121523',
-                    borderColor: 'rgba(255,255,255,0.1)',
+                    backgroundColor: '#111218',
+                    borderColor: 'rgba(255,255,255,0.08)',
                     borderRadius: '12px',
+                    fontSize: '12px',
                   }}
                 />
-                <Legend wrapperStyle={{ fontSize: '12px' }} />
-                <Bar dataKey="budgeted" name="Budgeted Limit" fill="#6366F1" radius={[6, 6, 0, 0]} />
-                <Bar dataKey="spent" name="Actual Spent" fill="#EC4899" radius={[6, 6, 0, 0]} />
+                <Legend wrapperStyle={{ fontSize: '11px' }} />
+                <Bar dataKey="budgeted" name="Budgeted Limit" fill="#6366F1" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="spent" name="Actual Spent" fill="#EC4899" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -309,7 +310,7 @@ export default function BudgetsPage() {
           }
         />
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5 sm:gap-5">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5 sm:gap-4">
           {budgets.map((b) => {
             const stateMeta = getStateBadge(b.statusState);
             return (
@@ -318,16 +319,16 @@ export default function BudgetsPage() {
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex items-center gap-3">
                       <div
-                        className="w-11 h-11 rounded-2xl flex items-center justify-center"
+                        className="w-10 h-10 rounded-xl flex items-center justify-center"
                         style={{
-                          backgroundColor: `${b.category?.color || '#8B5CF6'}22`,
-                          color: b.category?.color || '#8B5CF6',
+                          backgroundColor: `${b.category?.color || '#6366F1'}20`,
+                          color: b.category?.color || '#6366F1',
                         }}
                       >
-                        <DynamicIcon name={b.category?.icon || 'tag'} className="w-5 h-5" />
+                        <DynamicIcon name={b.category?.icon || 'tag'} className="w-4 h-4" />
                       </div>
                       <div>
-                        <h3 className="text-base font-bold text-white">
+                        <h3 className="text-sm font-semibold text-white">
                           {b.category?.name || b.name}
                         </h3>
                         <Badge variant={stateMeta.variant}>{stateMeta.label}</Badge>
@@ -337,30 +338,30 @@ export default function BudgetsPage() {
                     <div className="flex items-center gap-1">
                       <button
                         onClick={() => openEditModal(b)}
-                        className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/[0.07] cursor-pointer"
+                        className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-white/[0.06] transition-colors cursor-pointer"
                       >
-                        <Edit3 className="w-4 h-4" />
+                        <Edit3 className="w-3.5 h-3.5" />
                       </button>
                       <button
                         onClick={() => setDeleteTarget(b)}
-                        className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 cursor-pointer"
+                        className="p-1.5 rounded-lg text-zinc-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer"
                       >
-                        <Trash2 className="w-4 h-4" />
+                        <Trash2 className="w-3.5 h-3.5" />
                       </button>
                     </div>
                   </div>
 
-                  <div className="mt-5">
+                  <div className="mt-4">
                     <div className="flex items-baseline justify-between">
                       <div>
-                        <span className="text-2xl font-extrabold text-white font-display">
+                        <span className="text-xl font-bold tracking-tight text-white font-display tabular-nums">
                           {formatCurrency(b.spent, currency, hide)}
                         </span>
-                        <span className="text-xs text-slate-400 ml-1.5">
+                        <span className="text-xs text-zinc-400 ml-1.5 tabular-nums">
                           of {formatCurrency(b.amount, currency, hide)}
                         </span>
                       </div>
-                      <span className="text-sm font-bold" style={{ color: stateMeta.color }}>
+                      <span className="text-xs font-semibold tabular-nums" style={{ color: stateMeta.color }}>
                         {b.percentage}%
                       </span>
                     </div>
@@ -368,26 +369,26 @@ export default function BudgetsPage() {
                     <ProgressBar
                       value={b.percentage}
                       color={stateMeta.color}
-                      height="h-2.5"
+                      height="h-2"
                       className="mt-2.5"
                     />
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between text-xs text-slate-400 mt-4 pt-3 border-t border-white/[0.06]">
+                <div className="flex items-center justify-between text-xs text-zinc-400 mt-4 pt-3 border-t border-white/[0.06]">
                   {(b.overAmount || 0) > 0 ? (
-                    <span className="text-rose-400 font-semibold">
+                    <span className="text-rose-400 font-semibold tabular-nums">
                       Over by {formatCurrency(b.overAmount, currency, hide)}
                     </span>
                   ) : (
                     <span>
                       Remaining:{' '}
-                      <strong className="text-white">
+                      <strong className="text-white tabular-nums">
                         {formatCurrency(b.remaining, currency, hide)}
                       </strong>
                     </span>
                   )}
-                  <span>Alert at {b.alertThreshold}%</span>
+                  <span className="text-[11px] text-zinc-500">Alert at {b.alertThreshold}%</span>
                 </div>
               </Card>
             );
@@ -403,15 +404,15 @@ export default function BudgetsPage() {
       >
         <form onSubmit={handleSave} className="space-y-4">
           <div>
-            <label className="block text-xs text-slate-300 mb-1">Expense Category</label>
+            <label className="block text-xs font-medium text-zinc-300 mb-1.5">Expense Category</label>
             <select
               value={form.categoryId}
               onChange={(e) => setForm({ ...form, categoryId: e.target.value })}
               disabled={Boolean(editingBudget)}
-              className="w-full px-3.5 py-2.5 rounded-xl bg-[#181C2C] border border-white/[0.1] text-sm text-white"
+              className="w-full px-3.5 py-2.5 rounded-xl bg-white/[0.03] border border-white/[0.08] text-sm text-white focus:outline-none focus:border-indigo-500/50"
             >
               {categories.map((c) => (
-                <option key={c.id} value={c.id}>
+                <option key={c.id} value={c.id} className="bg-[#111218] text-white">
                   {c.name}
                 </option>
               ))}
@@ -420,7 +421,7 @@ export default function BudgetsPage() {
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs text-slate-300 mb-1">Monthly Budget Limit</label>
+              <label className="block text-xs font-medium text-zinc-300 mb-1.5">Monthly Budget Limit</label>
               <input
                 type="number"
                 step="1"
@@ -428,23 +429,23 @@ export default function BudgetsPage() {
                 value={form.amount}
                 onChange={(e) => setForm({ ...form, amount: e.target.value })}
                 placeholder="500"
-                className="w-full px-3.5 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.1] text-sm text-white"
+                className="w-full px-3.5 py-2.5 rounded-xl bg-white/[0.03] border border-white/[0.08] text-sm text-white focus:outline-none focus:border-indigo-500/50 tabular-nums"
               />
             </div>
             <div>
-              <label className="block text-xs text-slate-300 mb-1">Alert Threshold (%)</label>
+              <label className="block text-xs font-medium text-zinc-300 mb-1.5">Alert Threshold (%)</label>
               <input
                 type="number"
                 min="10"
                 max="100"
                 value={form.alertThreshold}
                 onChange={(e) => setForm({ ...form, alertThreshold: e.target.value })}
-                className="w-full px-3.5 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.1] text-sm text-white"
+                className="w-full px-3.5 py-2.5 rounded-xl bg-white/[0.03] border border-white/[0.08] text-sm text-white focus:outline-none focus:border-indigo-500/50 tabular-nums"
               />
             </div>
           </div>
 
-          <div className="flex justify-end gap-2 pt-2">
+          <div className="flex justify-end gap-2.5 pt-2">
             <Button variant="secondary" onClick={() => setModalOpen(false)}>
               Cancel
             </Button>

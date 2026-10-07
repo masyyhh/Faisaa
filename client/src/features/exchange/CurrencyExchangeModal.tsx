@@ -71,8 +71,10 @@ export default function CurrencyExchangeModal() {
 
       const usdAccs = allAccs.filter((a: Account) => a.currency === 'USD');
       const mvrAccs = allAccs.filter((a: Account) => a.currency !== 'USD');
-      setFromAccountId((prev) => (prev ? prev : (usdAccs[0]?.id || '')));
-      setToAccountId((prev) => (prev ? prev : (mvrAccs[0]?.id || '')));
+      const defUsd = usdAccs.find((a: Account) => a.isDefault) || usdAccs[0];
+      const defMvr = mvrAccs.find((a: Account) => a.isDefault) || mvrAccs[0];
+      setFromAccountId((prev) => (prev ? prev : (defUsd?.id || '')));
+      setToAccountId((prev) => (prev ? prev : (defMvr?.id || '')));
     } catch {
       // Ignore error
     } finally {
@@ -91,13 +93,15 @@ export default function CurrencyExchangeModal() {
     setDirection(nextDir);
     const usdAccs = accounts.filter((a) => a.currency === 'USD');
     const mvrAccs = accounts.filter((a) => a.currency !== 'USD');
+    const defUsd = usdAccs.find((a) => a.isDefault) || usdAccs[0];
+    const defMvr = mvrAccs.find((a) => a.isDefault) || mvrAccs[0];
     if (nextDir === 'USD_TO_MVR') {
-      if (usdAccs[0]) setFromAccountId(usdAccs[0].id);
-      if (mvrAccs[0]) setToAccountId(mvrAccs[0].id);
+      if (defUsd) setFromAccountId(defUsd.id);
+      if (defMvr) setToAccountId(defMvr.id);
       setFromAmount('100');
     } else {
-      if (mvrAccs[0]) setFromAccountId(mvrAccs[0].id);
-      if (usdAccs[0]) setToAccountId(usdAccs[0].id);
+      if (defMvr) setFromAccountId(defMvr.id);
+      if (defUsd) setToAccountId(defUsd.id);
       setFromAmount('1845');
     }
   };
@@ -216,72 +220,74 @@ export default function CurrencyExchangeModal() {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm overflow-y-auto">
-      <div className="faisaa-card finora-card w-full max-w-2xl bg-[#111422] border border-white/[0.1] rounded-3xl shadow-2xl overflow-hidden my-8">
+      <div className="faisaa-card finora-card w-full max-w-2xl bg-[#111218] border border-white/[0.08] rounded-2xl shadow-2xl overflow-hidden my-8">
         {/* Header */}
-        <div className="px-6 py-4 border-b border-white/[0.08] flex items-center justify-between">
+        <div className="px-6 py-4 border-b border-white/[0.06] flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white shadow-lg shadow-emerald-600/20">
-              <ArrowLeftRight className="w-5 h-5" />
+            <div className="w-9 h-9 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 shrink-0">
+              <ArrowLeftRight className="w-4 h-4" />
             </div>
             <div>
-              <h3 className="text-base font-bold text-white font-display">
-                USD ($) ↔ MVR Currency Exchange & Rate Tracker
+              <h3 className="text-base font-semibold text-white font-display tracking-tight">
+                Currency Exchange & Rate Tracker
               </h3>
-              <p className="text-xs text-slate-400">
-                Base: <strong className="text-emerald-400">MVR</strong> • Secondary:{' '}
-                <strong className="text-violet-400">USD ($)</strong> • Live Rate:{' '}
-                <strong className="text-white">$1 = MVR {Number(user?.usdToMvrRate || 18.45).toFixed(2)}</strong>
+              <p className="text-xs text-zinc-400 mt-0.5">
+                Base: <strong className="text-zinc-200 font-medium">MVR</strong> • Secondary:{' '}
+                <strong className="text-zinc-200 font-medium">USD ($)</strong> • Live Rate:{' '}
+                <strong className="text-emerald-400 font-medium tabular-nums">$1 = MVR {Number(user?.usdToMvrRate || 18.45).toFixed(2)}</strong>
               </p>
             </div>
           </div>
           <button
             onClick={closeExchangeModal}
-            className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/[0.06] cursor-pointer"
+            className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-white/[0.06] transition-colors cursor-pointer"
           >
-            <X className="w-5 h-5" />
+            <X className="w-4 h-4" />
           </button>
         </div>
 
-        {/* Tabs */}
-        <div className="px-6 pt-4 flex gap-2 border-b border-white/[0.06]">
-          <button
-            type="button"
-            onClick={() => setActiveTab('convert')}
-            className={`px-4 py-2.5 text-xs font-bold rounded-t-xl border-b-2 transition-all cursor-pointer flex items-center gap-2 ${
-              activeTab === 'convert'
-                ? 'border-emerald-400 text-emerald-400 bg-emerald-500/10'
-                : 'border-transparent text-slate-400 hover:text-white'
-            }`}
-          >
-            <ArrowLeftRight className="w-3.5 h-3.5" />
-            Convert $ ↔ MVR
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab('rate')}
-            className={`px-4 py-2.5 text-xs font-bold rounded-t-xl border-b-2 transition-all cursor-pointer flex items-center gap-2 ${
-              activeTab === 'rate'
-                ? 'border-violet-400 text-violet-400 bg-violet-500/10'
-                : 'border-transparent text-slate-400 hover:text-white'
-            }`}
-          >
-            <TrendingUp className="w-3.5 h-3.5" />
-            Live Rate & History ({exchanges.length})
-          </button>
+        {/* Segmented Mode Tabs */}
+        <div className="px-6 pt-3.5">
+          <div className="inline-flex p-1 rounded-xl bg-white/[0.03] border border-white/[0.06] gap-1">
+            <button
+              type="button"
+              onClick={() => setActiveTab('convert')}
+              className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all cursor-pointer flex items-center gap-1.5 ${
+                activeTab === 'convert'
+                  ? 'bg-indigo-600 text-white shadow-xs'
+                  : 'text-zinc-400 hover:text-white'
+              }`}
+            >
+              <ArrowLeftRight className="w-3.5 h-3.5" />
+              Convert $ ↔ MVR
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('rate')}
+              className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all cursor-pointer flex items-center gap-1.5 ${
+                activeTab === 'rate'
+                  ? 'bg-indigo-600 text-white shadow-xs'
+                  : 'text-zinc-400 hover:text-white'
+              }`}
+            >
+              <TrendingUp className="w-3.5 h-3.5" />
+              Live Rate & History ({exchanges.length})
+            </button>
+          </div>
         </div>
 
-        <div className="p-6 max-h-[78vh] overflow-y-auto space-y-6">
+        <div className="p-6 max-h-[78vh] overflow-y-auto space-y-5">
           {activeTab === 'convert' ? (
             <form onSubmit={handleConvertSubmit} className="space-y-4">
               {/* Direction Selector */}
-              <div className="grid grid-cols-2 gap-2.5 p-1.5 rounded-2xl bg-white/[0.04] border border-white/[0.07]">
+              <div className="grid grid-cols-2 gap-1.5 p-1 rounded-xl bg-white/[0.03] border border-white/[0.06]">
                 <button
                   type="button"
                   onClick={() => handleToggleDirection('USD_TO_MVR')}
-                  className={`py-2.5 px-3 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-2 ${
+                  className={`py-2 px-3 rounded-lg text-xs font-medium transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
                     direction === 'USD_TO_MVR'
-                      ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-md'
-                      : 'text-slate-400 hover:text-white'
+                      ? 'bg-emerald-600 text-white shadow-xs'
+                      : 'text-zinc-400 hover:text-white'
                   }`}
                 >
                   <DollarSign className="w-3.5 h-3.5" />
@@ -290,10 +296,10 @@ export default function CurrencyExchangeModal() {
                 <button
                   type="button"
                   onClick={() => handleToggleDirection('MVR_TO_USD')}
-                  className={`py-2.5 px-3 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-2 ${
+                  className={`py-2 px-3 rounded-lg text-xs font-medium transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
                     direction === 'MVR_TO_USD'
-                      ? 'bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-md'
-                      : 'text-slate-400 hover:text-white'
+                      ? 'bg-indigo-600 text-white shadow-xs'
+                      : 'text-zinc-400 hover:text-white'
                   }`}
                 >
                   <RefreshCw className="w-3.5 h-3.5" />
@@ -302,40 +308,40 @@ export default function CurrencyExchangeModal() {
               </div>
 
               {/* Accounts Selection */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                  <label className="block text-xs font-medium text-zinc-300 mb-1.5">
                     From Account ({fromCurrency})
                   </label>
                   <select
                     value={fromAccountId}
                     onChange={(e) => setFromAccountId(e.target.value)}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.1] text-sm text-white focus:outline-none focus:border-emerald-500"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-[#111218] border border-white/[0.07] text-sm text-zinc-200 focus:outline-none focus:border-indigo-500/50 cursor-pointer"
                     required
                   >
                     <option value="">Select {fromCurrency} Account</option>
                     {(sourceAccounts.length ? sourceAccounts : accounts).map((acc) => (
                       <option key={acc.id} value={acc.id}>
-                        {acc.name} ({formatCurrency(acc.balance, acc.currency)})
+                        {acc.name} ({formatCurrency(acc.balance, acc.currency)}){acc.isDefault ? ' ★ Default' : ''}
                       </option>
                     ))}
                   </select>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                  <label className="block text-xs font-medium text-zinc-300 mb-1.5">
                     To Account ({toCurrency})
                   </label>
                   <select
                     value={toAccountId}
                     onChange={(e) => setToAccountId(e.target.value)}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.1] text-sm text-white focus:outline-none focus:border-emerald-500"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-[#111218] border border-white/[0.07] text-sm text-zinc-200 focus:outline-none focus:border-indigo-500/50 cursor-pointer"
                     required
                   >
                     <option value="">Select {toCurrency} Account</option>
                     {(destinationAccounts.length ? destinationAccounts : accounts).map((acc) => (
                       <option key={acc.id} value={acc.id}>
-                        {acc.name} ({formatCurrency(acc.balance, acc.currency)})
+                        {acc.name} ({formatCurrency(acc.balance, acc.currency)}){acc.isDefault ? ' ★ Default' : ''}
                       </option>
                     ))}
                   </select>
@@ -343,9 +349,9 @@ export default function CurrencyExchangeModal() {
               </div>
 
               {/* Amount & Rate Row */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                  <label className="block text-xs font-medium text-zinc-300 mb-1.5">
                     Amount ({fromCurrency})
                   </label>
                   <input
@@ -354,13 +360,13 @@ export default function CurrencyExchangeModal() {
                     min="0.01"
                     value={fromAmount}
                     onChange={(e) => setFromAmount(e.target.value)}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.1] text-sm text-white font-bold focus:outline-none focus:border-emerald-500"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-white/[0.03] border border-white/[0.07] text-sm text-white font-semibold focus:outline-none focus:border-indigo-500/50 tabular-nums"
                     required
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                  <label className="block text-xs font-medium text-zinc-300 mb-1.5">
                     Exchange Rate ($1 = MVR)
                   </label>
                   <input
@@ -369,13 +375,13 @@ export default function CurrencyExchangeModal() {
                     min="1"
                     value={exchangeRate}
                     onChange={(e) => setExchangeRate(e.target.value)}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.1] text-sm text-emerald-400 font-bold focus:outline-none focus:border-emerald-500"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-white/[0.03] border border-white/[0.07] text-sm text-emerald-400 font-semibold focus:outline-none focus:border-indigo-500/50 tabular-nums"
                     required
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                  <label className="block text-xs font-medium text-zinc-300 mb-1.5">
                     Fee ({toCurrency}, optional)
                   </label>
                   <input
@@ -384,67 +390,67 @@ export default function CurrencyExchangeModal() {
                     min="0"
                     value={fee}
                     onChange={(e) => setFee(e.target.value)}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.1] text-sm text-white focus:outline-none focus:border-emerald-500"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-white/[0.03] border border-white/[0.07] text-sm text-white focus:outline-none focus:border-indigo-500/50 tabular-nums"
                   />
                 </div>
               </div>
 
               {/* Live Conversion Preview Box */}
-              <div className="p-4 rounded-2xl bg-gradient-to-r from-emerald-500/10 via-teal-500/10 to-violet-500/10 border border-emerald-500/25 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+              <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/[0.06] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                 <div>
-                  <span className="text-[11px] uppercase tracking-wider font-bold text-emerald-400 block">
-                    Live Conversion Output
+                  <span className="text-[11px] uppercase tracking-wider font-medium text-emerald-400 block">
+                    Conversion Summary
                   </span>
-                  <p className="text-lg font-extrabold text-white mt-0.5">
+                  <p className="text-base sm:text-lg font-bold text-white mt-0.5 tabular-nums">
                     {formatCurrency(parsedFromAmount, fromCurrency)} →{' '}
                     <span className="text-emerald-400">
                       {formatCurrency(calculatedToAmount, toCurrency)}
                     </span>
                   </p>
-                  <p className="text-xs text-slate-400">
-                    Rate applied: $1.00 USD = MVR {parsedRate.toFixed(2)} (Official BML 15.42 / Parallel Market)
+                  <p className="text-xs text-zinc-400 tabular-nums mt-0.5">
+                    Rate: $1.00 USD = MVR {parsedRate.toFixed(2)}
                   </p>
                 </div>
 
-                <label className="flex items-center gap-2 text-xs text-slate-300 cursor-pointer select-none">
+                <label className="flex items-center gap-2 text-xs text-zinc-300 cursor-pointer select-none">
                   <input
                     type="checkbox"
                     checked={updateGlobalRate}
                     onChange={(e) => setUpdateGlobalRate(e.target.checked)}
-                    className="rounded border-white/20 text-emerald-500 focus:ring-emerald-500"
+                    className="rounded border-white/20 text-emerald-500 focus:ring-emerald-500 cursor-pointer"
                   />
-                  <span>Set as live dashboard rate</span>
+                  <span>Save as live rate</span>
                 </label>
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                <label className="block text-xs font-medium text-zinc-300 mb-1.5">
                   Exchange Note (Optional)
                 </label>
                 <input
                   type="text"
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
-                  placeholder="e.g., Exchanged $250 via BML USD Transfer / Parallel market"
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.1] text-sm text-white focus:outline-none focus:border-emerald-500"
+                  placeholder="e.g. Exchanged via BML USD Transfer / Parallel market"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-white/[0.03] border border-white/[0.07] text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-indigo-500/50"
                 />
               </div>
 
-              <div className="flex justify-end gap-3 pt-2">
+              <div className="flex justify-end gap-2.5 pt-2">
                 <button
                   type="button"
                   onClick={closeExchangeModal}
-                  className="px-4 py-2.5 rounded-xl bg-white/[0.05] hover:bg-white/[0.1] text-xs font-semibold text-slate-300 cursor-pointer"
+                  className="px-4 py-2 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] text-xs font-medium text-zinc-300 transition-colors cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-bold shadow-lg shadow-emerald-600/25 flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                  className="px-4.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-medium shadow-xs shadow-emerald-600/20 flex items-center gap-1.5 cursor-pointer disabled:opacity-50 transition-all active:scale-[0.98]"
                 >
-                  <CheckCircle2 className="w-4 h-4" />
-                  {submitting ? 'Executing Exchange...' : 'Confirm Currency Exchange'}
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  {submitting ? 'Converting...' : 'Confirm Conversion'}
                 </button>
               </div>
             </form>
@@ -453,15 +459,15 @@ export default function CurrencyExchangeModal() {
               {/* Quick Update Global Rate Form */}
               <form
                 onSubmit={handleUpdateRateSubmit}
-                className="p-4 rounded-2xl bg-white/[0.03] border border-white/[0.08] space-y-3"
+                className="p-4 rounded-2xl bg-white/[0.03] border border-white/[0.06] space-y-3"
               >
                 <div className="flex items-center justify-between">
                   <div>
-                    <h4 className="text-sm font-bold text-white flex items-center gap-2">
-                      <Sparkles className="w-4 h-4 text-violet-400" />
+                    <h4 className="text-sm font-semibold text-white flex items-center gap-2">
+                      <Sparkles className="w-4 h-4 text-indigo-400" />
                       Update Live USD → MVR Valuation Rate
                     </h4>
-                    <p className="text-xs text-slate-400">
+                    <p className="text-xs text-zinc-400">
                       Changing this rate immediately recalculates your Dashboard Total Balance, Income, Expenses, and Net Worth in MVR.
                     </p>
                   </div>
@@ -469,7 +475,7 @@ export default function CurrencyExchangeModal() {
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
                   <div>
-                    <label className="block text-[11px] font-semibold text-slate-400 mb-1">
+                    <label className="block text-[11px] font-medium text-zinc-400 mb-1">
                       New Rate ($1 USD = MVR)
                     </label>
                     <input
@@ -478,12 +484,12 @@ export default function CurrencyExchangeModal() {
                       min="1"
                       value={newGlobalRate}
                       onChange={(e) => setNewGlobalRate(e.target.value)}
-                      className="w-full px-3.5 py-2 rounded-xl bg-white/[0.05] border border-white/[0.12] text-sm font-bold text-emerald-400 focus:outline-none"
+                      className="w-full px-3.5 py-2 rounded-xl bg-white/[0.03] border border-white/[0.08] text-sm font-semibold text-emerald-400 focus:outline-none focus:border-indigo-500/50 tabular-nums"
                       required
                     />
                   </div>
                   <div>
-                    <label className="block text-[11px] font-semibold text-slate-400 mb-1">
+                    <label className="block text-[11px] font-medium text-zinc-400 mb-1">
                       Note / Source
                     </label>
                     <input
@@ -491,14 +497,14 @@ export default function CurrencyExchangeModal() {
                       value={rateNote}
                       onChange={(e) => setRateNote(e.target.value)}
                       placeholder="e.g., Parallel market rate today"
-                      className="w-full px-3.5 py-2 rounded-xl bg-white/[0.05] border border-white/[0.12] text-sm text-white focus:outline-none"
+                      className="w-full px-3.5 py-2 rounded-xl bg-white/[0.03] border border-white/[0.08] text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-indigo-500/50"
                     />
                   </div>
                   <div className="flex items-end">
                     <button
                       type="submit"
                       disabled={submitting}
-                      className="w-full py-2 px-4 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white text-xs font-bold shadow-md cursor-pointer"
+                      className="w-full py-2 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium shadow-xs cursor-pointer transition-all active:scale-[0.98] disabled:opacity-50"
                     >
                       {submitting ? 'Updating...' : 'Update Live Rate'}
                     </button>
@@ -507,7 +513,7 @@ export default function CurrencyExchangeModal() {
 
                 {/* Preset Rate Pills */}
                 <div className="flex flex-wrap items-center gap-2 pt-1">
-                  <span className="text-[11px] text-slate-400">Quick Presets:</span>
+                  <span className="text-[11px] text-zinc-400">Quick Presets:</span>
                   {[
                     { label: 'BML Official (15.42)', val: 15.42 },
                     { label: 'Market (18.20)', val: 18.2 },
@@ -519,7 +525,7 @@ export default function CurrencyExchangeModal() {
                       key={preset.label}
                       type="button"
                       onClick={() => setNewGlobalRate(preset.val)}
-                      className="px-2.5 py-1 rounded-lg bg-white/[0.05] hover:bg-white/[0.1] border border-white/[0.08] text-[11px] font-semibold text-slate-300 cursor-pointer"
+                      className="px-2.5 py-1 rounded-lg bg-white/[0.03] hover:bg-white/[0.07] border border-white/[0.06] text-[11px] font-medium text-zinc-300 cursor-pointer transition-colors active:scale-[0.98]"
                     >
                       {preset.label}
                     </button>
@@ -529,8 +535,8 @@ export default function CurrencyExchangeModal() {
 
               {/* Exchange Rate History Chart */}
               {chartData.length > 0 && (
-                <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/[0.08]">
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">
+                <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/[0.06]">
+                  <h4 className="text-xs font-semibold uppercase tracking-wider text-zinc-400 mb-3">
                     USD → MVR Exchange Rate History
                   </h4>
                   <div className="h-44">
@@ -538,17 +544,17 @@ export default function CurrencyExchangeModal() {
                       <AreaChart data={chartData}>
                         <defs>
                           <linearGradient id="rateGrad" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="#10B981" stopOpacity={0.35} />
+                            <stop offset="5%" stopColor="#10B981" stopOpacity={0.25} />
                             <stop offset="95%" stopColor="#10B981" stopOpacity={0} />
                           </linearGradient>
                         </defs>
-                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
-                        <XAxis dataKey="date" stroke="#64748B" fontSize={11} />
-                        <YAxis domain={['auto', 'auto']} stroke="#64748B" fontSize={11} />
+                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
+                        <XAxis dataKey="date" stroke="#71717A" fontSize={11} tickLine={false} axisLine={false} />
+                        <YAxis domain={['auto', 'auto']} stroke="#71717A" fontSize={11} tickLine={false} axisLine={false} />
                         <Tooltip
                           contentStyle={{
-                            backgroundColor: '#121524',
-                            borderColor: 'rgba(255,255,255,0.1)',
+                            backgroundColor: '#111218',
+                            borderColor: 'rgba(255,255,255,0.08)',
                             borderRadius: '12px',
                             fontSize: '12px',
                           }}
@@ -557,7 +563,7 @@ export default function CurrencyExchangeModal() {
                           type="monotone"
                           dataKey="rate"
                           stroke="#10B981"
-                          strokeWidth={2.5}
+                          strokeWidth={2}
                           fill="url(#rateGrad)"
                           name="MVR per $1"
                         />
@@ -569,13 +575,13 @@ export default function CurrencyExchangeModal() {
 
               {/* Past Currency Exchanges Log */}
               <div>
-                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2.5">
+                <h4 className="text-xs font-semibold uppercase tracking-wider text-zinc-400 mb-2.5">
                   Recent Currency Exchanges ({exchanges.length})
                 </h4>
                 {loading ? (
-                  <p className="text-xs text-slate-400 py-4">Loading exchange history...</p>
+                  <p className="text-xs text-zinc-400 py-4">Loading exchange history...</p>
                 ) : exchanges.length === 0 ? (
-                  <p className="text-xs text-slate-400 py-4">
+                  <p className="text-xs text-zinc-500 py-4">
                     No currency exchanges recorded yet.
                   </p>
                 ) : (
@@ -583,21 +589,21 @@ export default function CurrencyExchangeModal() {
                     {exchanges.map((ex) => (
                       <div
                         key={ex.id}
-                        className="p-3.5 rounded-2xl bg-white/[0.03] border border-white/[0.07] flex items-center justify-between gap-3"
+                        className="p-3.5 rounded-2xl bg-white/[0.03] border border-white/[0.06] flex items-center justify-between gap-3"
                       >
                         <div>
                           <div className="flex items-center gap-2">
-                            <span className="text-xs font-bold text-white">
+                            <span className="text-xs font-semibold text-white tabular-nums">
                               {formatCurrency(ex.fromAmount, ex.fromCurrency)} →{' '}
                               <span className="text-emerald-400">
                                 {formatCurrency(ex.toAmount, ex.toCurrency)}
                               </span>
                             </span>
-                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 tabular-nums">
                               @ {Number(ex.exchangeRate).toFixed(2)} MVR/$
                             </span>
                           </div>
-                          <p className="text-[11px] text-slate-400 mt-0.5">
+                          <p className="text-[11px] text-zinc-400 mt-0.5">
                             {ex.fromAccount?.name} → {ex.toAccount?.name} • {formatDate(ex.date)}
                             {ex.notes ? ` • ${ex.notes}` : ''}
                           </p>
@@ -606,7 +612,7 @@ export default function CurrencyExchangeModal() {
                           type="button"
                           onClick={() => handleDeleteExchange(ex.id)}
                           title="Revert exchange"
-                          className="p-2 rounded-xl text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 cursor-pointer"
+                          className="p-2 rounded-xl text-zinc-400 hover:text-rose-400 hover:bg-rose-500/10 cursor-pointer transition-colors"
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>

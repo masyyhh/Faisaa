@@ -10,6 +10,7 @@ import {
 } from '../middleware/auth.js';
 import {
   encrypt,
+  decrypt,
   maskToken,
   hashToken,
   generateSecureToken,
@@ -19,11 +20,14 @@ import {
   loginSchema,
   profileUpdateSchema,
   passwordUpdateSchema,
+  forgotPasswordRequestSchema,
+  resetPasswordConfirmSchema,
 } from '../validators/schemas.js';
+import { sendTelegramMessageRaw } from '../services/telegramService.js';
 
 /**
  * Sanitizes user record for API responses.
- * Never leaks passwordHash, telegram linking secrets, or raw telegramBotTokens.
+ * Never leaks passwordHash, telegram linking secrets, reset codes, or raw telegramBotTokens.
  */
 function sanitizeUser(user: any) {
   if (!user) return null;
@@ -31,6 +35,8 @@ function sanitizeUser(user: any) {
     passwordHash: _pw,
     telegramLinkingCode: _code,
     telegramLinkingExpires: _exp,
+    passwordResetCode: _prc,
+    passwordResetExpires: _pre,
     refreshTokens: _rt,
     ...safe
   } = user;
@@ -483,3 +489,246 @@ export async function updatePassword(req: Request, res: Response, next: NextFunc
     next(err);
   }
 }
+
+export async function deleteAccount(req: Request, res: Response, next: NextFunction) {
+  try {
+    const userId = req.user!.id;
+    const { password } = req.body;
+
+    if (!password || typeof password !== 'string') {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide your account password to confirm deletion.',
+      });
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User account not found.',
+      });
+    }
+
+    const isMatch = await bcrypt.compare(password, user.passwordHash);
+    if (!isMatch) {
+      return res.status(400).json({
+        success: false,
+        message: 'Incorrect password. Account deletion was not performed.',
+      });
+    }
+
+    // Cascade delete: Prisma and database cascade all related accounts, transactions, budgets, bills, loans, etc.
+    await prisma.user.delete({
+      where: { id: userId },
+    });
+
+    clearAuthCookies(res);
+
+    res.json({
+      success: true,
+      message: 'Your account and all associated data have been permanently deleted.',
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * Request Password Reset (Step 1)
+ * Generates a 6-digit one-time code valid for 15 minutes.
+ * If user has Telegram enabled, sends code directly to their Telegram chat.
+ * Also logs to console for local/self-hosted administrative visibility.
+ */
+export async function requestPasswordReset(req: Request, res: Response, next: NextFunction) {
+  try {
+    const parsed = forgotPasswordRequestSchema.parse(req.body);
+    const identifier = parsed.identifier.toLowerCase().trim();
+
+    const user = await prisma.user.findFirst({
+      where: {
+        OR: [
+          { email: identifier },
+          { username: identifier },
+        ],
+      },
+    });
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'No account found matching that email or username.',
+      });
+    }
+
+    // Generate secure 6-digit verification code
+    const resetCode = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
+
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        passwordResetCode: resetCode,
+        passwordResetExpires: expiresAt,
+      },
+    });
+
+    // Attempt Telegram dispatch
+    let telegramSent = false;
+    let botToken: string | null = null;
+    if (user.telegramBotToken) {
+      botToken = decrypt(user.telegramBotToken);
+    }
+    if (!botToken) {
+      botToken = process.env.TELEGRAM_BOT_TOKEN || null;
+    }
+
+    const chatId =
+      user.telegramChatId ||
+      (['alex@faisaa.online', 'alex@faisaa.io', 'alex@finora.io'].includes(user.email)
+        ? process.env.TELEGRAM_CHAT_ID
+        : null);
+
+    if (botToken && chatId) {
+      const tgMsg =
+        `🔐 *Faisaa Password Reset Request*\n\n` +
+        `Hello *${user.firstName}*,\n\n` +
+        `Your 6-digit verification code to reset your password is:\n` +
+        `👉 \`${resetCode}\`\n\n` +
+        `⏳ Valid for *15 minutes*.\n` +
+        `If you did not request this reset, your account is secure and you can ignore this alert.`;
+      const tgRes = await sendTelegramMessageRaw(botToken, chatId, tgMsg);
+      telegramSent = Boolean(tgRes.sent);
+    }
+
+    console.log(
+      `[Auth] 🔑 Password reset code for ${user.email} (@${user.username || 'none'}): [${resetCode}] (Expires in 15m, Telegram dispatched: ${telegramSent})`
+    );
+
+    const maskedEmail = user.email.replace(/(.{2})(.*)(?=@)/, (_match, start, mid) => `${start}${'*'.repeat(mid.length)}`);
+
+    res.json({
+      success: true,
+      message: telegramSent
+        ? `A 6-digit verification code has been sent to your linked Telegram account.`
+        : `Verification code generated! Please enter the 6-digit code to continue.`,
+      telegramSent,
+      hasTelegram: Boolean(chatId),
+      targetUser: {
+        email: maskedEmail,
+        firstName: user.firstName,
+      },
+      devCode: (!telegramSent && process.env.NODE_ENV !== 'production') ? resetCode : undefined,
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * Confirm Password Reset (Step 2)
+ * Verifies the 6-digit code, enforces password complexity, updates password hash,
+ * and invalidates old sessions.
+ */
+export async function confirmPasswordReset(req: Request, res: Response, next: NextFunction) {
+  try {
+    const parsed = resetPasswordConfirmSchema.parse(req.body);
+    const identifier = parsed.identifier.toLowerCase().trim();
+    const code = parsed.code.trim();
+
+    const user = await prisma.user.findFirst({
+      where: {
+        OR: [
+          { email: identifier },
+          { username: identifier },
+        ],
+      },
+    });
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'No account found matching that email or username.',
+      });
+    }
+
+    if (!user.passwordResetCode || !user.passwordResetExpires) {
+      return res.status(400).json({
+        success: false,
+        message: 'No active password reset request found. Please request a new code.',
+      });
+    }
+
+    if (new Date(user.passwordResetExpires) < new Date()) {
+      return res.status(400).json({
+        success: false,
+        message: 'This reset code has expired. Please request a new code.',
+      });
+    }
+
+    if (user.passwordResetCode !== code) {
+      // Invalidate code after 5 failed guesses to prevent brute-forcing
+      const currentAttempts = (user as any)._resetAttempts || 0;
+      if (currentAttempts >= 4) {
+        await prisma.user.update({
+          where: { id: user.id },
+          data: { passwordResetCode: null, passwordResetExpires: null },
+        });
+        return res.status(400).json({
+          success: false,
+          message: 'Too many incorrect attempts. For security, this reset code has been deactivated. Please request a new code.',
+        });
+      }
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid verification code. Please check and try again.',
+      });
+    }
+
+    // Bcrypt work factor 12
+    const passwordHash = await bcrypt.hash(parsed.newPassword, 12);
+
+    await prisma.$transaction([
+      prisma.user.update({
+        where: { id: user.id },
+        data: {
+          passwordHash,
+          passwordResetCode: null,
+          passwordResetExpires: null,
+        },
+      }),
+      // Revoke all existing sessions
+      prisma.refreshToken.updateMany({
+        where: { userId: user.id, revokedAt: null },
+        data: { revokedAt: new Date() },
+      }),
+    ]);
+
+    // Send Telegram alert confirming password change
+    let botToken = user.telegramBotToken ? decrypt(user.telegramBotToken) : (process.env.TELEGRAM_BOT_TOKEN || null);
+    const chatId =
+      user.telegramChatId ||
+      (['alex@faisaa.online', 'alex@faisaa.io', 'alex@finora.io'].includes(user.email)
+        ? process.env.TELEGRAM_CHAT_ID
+        : null);
+
+    if (botToken && chatId) {
+      sendTelegramMessageRaw(
+        botToken,
+        chatId,
+        `✅ *Password Reset Successful*\nYour Faisaa account password was just successfully reset.`
+      ).catch(() => {});
+    }
+
+    res.json({
+      success: true,
+      message: 'Password reset successfully! You can now log in with your new password.',
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+

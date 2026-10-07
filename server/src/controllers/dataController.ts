@@ -140,7 +140,11 @@ export async function importCSVTransactions(req: Request, res: Response, next: N
     ]);
 
     const fallbackAccount =
-      accounts.find((a) => a.id === defaultAccountId) || accounts[0];
+      accounts.find((a) => a.id === defaultAccountId) ||
+      accounts.find((a) => a.isDefault && a.isActive) ||
+      accounts.find((a) => a.isDefault) ||
+      accounts.find((a) => a.isActive) ||
+      accounts[0];
 
     if (!fallbackAccount) {
       return res.status(400).json({

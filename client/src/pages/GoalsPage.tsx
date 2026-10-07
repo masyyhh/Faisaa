@@ -213,40 +213,40 @@ export default function GoalsPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-white/[0.06]">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-white font-display">
+          <h1 className="text-xl sm:text-2xl font-bold text-white font-display tracking-tight">
             Savings Goals & Milestones
           </h1>
-          <p className="text-xs sm:text-sm text-slate-400 mt-0.5">
+          <p className="text-xs text-zinc-400 mt-0.5">
             Track emergency funds, travel plans, and major purchases with automated milestone tracking.
           </p>
         </div>
 
         <Button size="sm" onClick={openAddModal}>
-          <Plus className="w-4 h-4" /> New Savings Goal
+          <Plus className="w-3.5 h-3.5" /> New Savings Goal
         </Button>
       </div>
 
       {/* Summary Banner */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-4">
-        <Card className="p-3.5 sm:p-5">
-          <p className="text-[11px] sm:text-xs uppercase tracking-wider text-slate-400">Total Saved Across Goals</p>
-          <p className="text-xl sm:text-2xl font-extrabold text-emerald-400 mt-1 truncate">
+        <Card className="p-4 flex flex-col justify-between">
+          <span className="text-xs font-medium text-zinc-400">Total Saved Across Goals</span>
+          <p className="text-lg sm:text-xl font-bold text-emerald-400 font-display tabular-nums mt-1 truncate">
             {formatCurrency(summary.totalSaved, currency, hide)}
           </p>
         </Card>
-        <Card className="p-3.5 sm:p-5">
-          <p className="text-[11px] sm:text-xs uppercase tracking-wider text-slate-400">Combined Target</p>
-          <p className="text-xl sm:text-2xl font-extrabold text-white mt-1 truncate">
+        <Card className="p-4 flex flex-col justify-between">
+          <span className="text-xs font-medium text-zinc-400">Combined Target</span>
+          <p className="text-lg sm:text-xl font-bold text-white font-display tabular-nums mt-1 truncate">
             {formatCurrency(summary.totalTarget, currency, hide)}
           </p>
         </Card>
-        <Card className="p-3.5 sm:p-5">
-          <p className="text-[11px] sm:text-xs uppercase tracking-wider text-slate-400">Overall Completion</p>
+        <Card className="p-4 flex flex-col justify-between">
+          <span className="text-xs font-medium text-zinc-400">Overall Completion</span>
           <div className="flex items-center gap-3 mt-1">
-            <p className="text-xl sm:text-2xl font-extrabold text-violet-400">{summary.overallPercentage}%</p>
-            <ProgressBar value={summary.overallPercentage} color="#8B5CF6" height="h-2.5" />
+            <p className="text-lg sm:text-xl font-bold text-indigo-400 font-display tabular-nums">{summary.overallPercentage}%</p>
+            <ProgressBar value={summary.overallPercentage} color="#6366F1" height="h-2" />
           </div>
         </Card>
       </div>
@@ -462,7 +462,7 @@ export default function GoalsPage() {
               <option value="">Goal balance only (do not change bank account)</option>
               {accounts.map((a) => (
                 <option key={a.id} value={a.id}>
-                  {a.name} (${a.balance})
+                  {a.name} ({a.currency} {a.balance}){a.isDefault ? ' ★ Default' : ''}
                 </option>
               ))}
             </select>

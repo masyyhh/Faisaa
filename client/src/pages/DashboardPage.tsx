@@ -303,7 +303,7 @@ export default function DashboardPage() {
                 <option value="ALL">All Accounts ({accounts.length})</option>
                 {accounts.map((acc) => (
                   <option key={acc.id} value={acc.id}>
-                    {acc.name} ({acc.currency})
+                    {acc.name} ({acc.currency}){acc.isDefault ? ' ★' : ''}
                   </option>
                 ))}
               </select>
@@ -435,9 +435,14 @@ export default function DashboardPage() {
           >
             <div className="flex items-center justify-between gap-2">
               <span className="text-xs font-medium text-zinc-300 truncate">{acc.name}</span>
-              <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-white/[0.05] text-zinc-400 shrink-0">
-                {acc.currency}
-              </span>
+              <div className="flex items-center gap-1 shrink-0">
+                {acc.isDefault && (
+                  <span className="text-[11px] text-amber-400 font-bold" title="Default Account">★</span>
+                )}
+                <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-white/[0.05] text-zinc-400">
+                  {acc.currency}
+                </span>
+              </div>
             </div>
             <div>
               <p

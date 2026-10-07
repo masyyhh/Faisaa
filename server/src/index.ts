@@ -97,17 +97,17 @@ app.use(
       return callback(new Error('Blocked by CORS policy'));
     },
     credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
   })
 );
 
 app.use(express.json({ limit: '2mb' }));
 
-// Strict rate limiter for login & registration endpoints
+// Strict rate limiter for authentication endpoints (prevent brute-force and credential stuffing)
 const authBruteForceLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 40,
+  max: 30,
   standardHeaders: true,
   legacyHeaders: false,
   message: {
@@ -117,6 +117,8 @@ const authBruteForceLimiter = rateLimit({
 });
 app.use('/api/auth/login', authBruteForceLimiter);
 app.use('/api/auth/register', authBruteForceLimiter);
+app.use('/api/auth/forgot-password', authBruteForceLimiter);
+app.use('/api/auth/reset-password', authBruteForceLimiter);
 
 // General API rate limiter
 const apiLimiter = rateLimit({

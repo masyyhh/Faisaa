@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   User,
   Lock,
@@ -11,6 +12,7 @@ import {
   Trash2,
   CheckCircle2,
   AlertCircle,
+  AlertTriangle,
   Bot,
   Send,
   Sparkles,
@@ -19,11 +21,12 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import api, { Account, Category, Transaction } from '../services/api';
-import { Card, Button, Badge } from '../components/ui';
+import { Card, Button, Badge, Modal } from '../components/ui';
 import { DynamicIcon } from '../utils/formatters';
 
 export default function SettingsPage() {
-  const { user, updateProfile, addToast, triggerDataRefresh, refreshUser } = useAuth();
+  const navigate = useNavigate();
+  const { user, updateProfile, deleteAccount, addToast, triggerDataRefresh, refreshUser } = useAuth();
   const [activeTab, setActiveTab] = useState('PROFILE');
 
   // Accounts state
@@ -93,6 +96,12 @@ export default function SettingsPage() {
     confirmPassword: '',
   });
   const [savingPw, setSavingPw] = useState(false);
+
+  // Delete Account State
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deletePassword, setDeletePassword] = useState('');
+  const [deletingAccount, setDeletingAccount] = useState(false);
+  const [deleteError, setDeleteError] = useState('');
 
   // Categories State
   const [categories, setCategories] = useState<Category[]>([]);
@@ -285,6 +294,21 @@ export default function SettingsPage() {
     }
   };
 
+  const handleDeleteAccount = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setDeleteError('');
+    setDeletingAccount(true);
+    try {
+      await deleteAccount(deletePassword);
+      setDeleteDialogOpen(false);
+      navigate('/login');
+    } catch (err: any) {
+      setDeleteError(err.response?.data?.message || 'Failed to delete account. Please verify your password.');
+    } finally {
+      setDeletingAccount(false);
+    }
+  };
+
   const handleAddCategory = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!catForm.name.trim()) return;
@@ -441,30 +465,30 @@ export default function SettingsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl sm:text-3xl font-extrabold text-white font-display">
+      <div className="pb-2 border-b border-white/[0.06]">
+        <h1 className="text-xl sm:text-2xl font-bold text-white font-display tracking-tight">
           Workspace Settings
         </h1>
-        <p className="text-xs sm:text-sm text-slate-400 mt-0.5">
+        <p className="text-xs text-zinc-400 mt-0.5">
           Configure your MVR (Base) & USD ($) exchange rate, Telegram Bot alerts, categories, and backups.
         </p>
       </div>
 
       {/* Navigation Tabs */}
-      <div className="flex items-center gap-2 border-b border-white/[0.08] pb-3 overflow-x-auto no-scrollbar">
+      <div className="inline-flex items-center gap-1 bg-white/[0.03] border border-white/[0.06] p-1 rounded-xl overflow-x-auto no-scrollbar max-w-full">
         {TABS.map((t) => {
           const Icon = t.icon;
           return (
             <button
               key={t.id}
               onClick={() => setActiveTab(t.id)}
-              className={`inline-flex items-center gap-2 px-3.5 sm:px-4 py-2 rounded-xl text-xs font-semibold transition-all shrink-0 whitespace-nowrap cursor-pointer ${
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all shrink-0 whitespace-nowrap cursor-pointer ${
                 activeTab === t.id
-                  ? 'bg-violet-600 text-white shadow-lg shadow-violet-600/25'
-                  : 'bg-white/[0.04] text-slate-400 hover:text-white'
+                  ? 'bg-indigo-600 text-white shadow-xs'
+                  : 'text-zinc-400 hover:text-white'
               }`}
             >
-              <Icon className="w-4 h-4" />
+              <Icon className="w-3.5 h-3.5" />
               {t.label}
             </button>
           );
@@ -583,50 +607,82 @@ export default function SettingsPage() {
       )}
 
       {activeTab === 'SECURITY' && (
-        <Card className="max-w-xl">
-          <h3 className="text-base font-bold text-white mb-4">Change Account Password</h3>
-          <form onSubmit={handleSavePassword} className="space-y-4">
-            <div>
-              <label className="block text-xs text-slate-300 mb-1">Current Password</label>
-              <input
-                type="password"
-                required
-                value={pwForm.currentPassword}
-                onChange={(e) => setPwForm({ ...pwForm, currentPassword: e.target.value })}
-                className="w-full px-3.5 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.1] text-sm text-white"
-              />
+        <div className="space-y-6 max-w-xl">
+          <Card>
+            <h3 className="text-base font-bold text-white mb-4">Change Account Password</h3>
+            <form onSubmit={handleSavePassword} className="space-y-4">
+              <div>
+                <label className="block text-xs text-slate-300 mb-1">Current Password</label>
+                <input
+                  type="password"
+                  required
+                  value={pwForm.currentPassword}
+                  onChange={(e) => setPwForm({ ...pwForm, currentPassword: e.target.value })}
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.1] text-sm text-white"
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-slate-300 mb-1">New Password</label>
+                <input
+                  type="password"
+                  required
+                  minLength={10}
+                  value={pwForm.newPassword}
+                  onChange={(e) => setPwForm({ ...pwForm, newPassword: e.target.value })}
+                  placeholder="At least 10 characters (e.g. Strong@2026)"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.1] text-sm text-white placeholder-slate-500 focus:outline-none focus:border-violet-500"
+                />
+                <p className="text-[11px] text-slate-400 mt-1">
+                  Must be at least 10 characters and include uppercase, lowercase, number, and symbol.
+                </p>
+              </div>
+              <div>
+                <label className="block text-xs text-slate-300 mb-1">Confirm New Password</label>
+                <input
+                  type="password"
+                  required
+                  minLength={10}
+                  value={pwForm.confirmPassword}
+                  onChange={(e) => setPwForm({ ...pwForm, confirmPassword: e.target.value })}
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.1] text-sm text-white"
+                />
+              </div>
+              <Button type="submit" loading={savingPw}>
+                Update Password
+              </Button>
+            </form>
+          </Card>
+
+          {/* Danger Zone: Permanently Delete Account */}
+          <Card className="border-rose-500/20 bg-rose-950/10 space-y-4">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-xl bg-rose-500/20 border border-rose-500/30 flex items-center justify-center text-rose-400 shrink-0">
+                <AlertTriangle className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-rose-200">Danger Zone: Delete Account</h3>
+                <p className="text-xs text-rose-300/80 mt-1 leading-relaxed">
+                  Permanently delete your account and all associated financial records. This action cannot be undone. All bank accounts, transactions, categories, budgets, and telegram settings will be wiped immediately.
+                </p>
+              </div>
             </div>
-            <div>
-              <label className="block text-xs text-slate-300 mb-1">New Password</label>
-              <input
-                type="password"
-                required
-                minLength={10}
-                value={pwForm.newPassword}
-                onChange={(e) => setPwForm({ ...pwForm, newPassword: e.target.value })}
-                placeholder="At least 10 characters (e.g. Strong@2026)"
-                className="w-full px-3.5 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.1] text-sm text-white placeholder-slate-500 focus:outline-none focus:border-violet-500"
-              />
-              <p className="text-[11px] text-slate-400 mt-1">
-                Must be at least 10 characters and include uppercase, lowercase, number, and symbol.
-              </p>
+
+            <div className="pt-2">
+              <Button
+                type="button"
+                variant="danger"
+                onClick={() => {
+                  setDeleteError('');
+                  setDeletePassword('');
+                  setDeleteDialogOpen(true);
+                }}
+                className="bg-rose-600 hover:bg-rose-700 text-white"
+              >
+                <Trash2 className="w-4 h-4 mr-1.5" /> Permanently Delete Account
+              </Button>
             </div>
-            <div>
-              <label className="block text-xs text-slate-300 mb-1">Confirm New Password</label>
-              <input
-                type="password"
-                required
-                minLength={10}
-                value={pwForm.confirmPassword}
-                onChange={(e) => setPwForm({ ...pwForm, confirmPassword: e.target.value })}
-                className="w-full px-3.5 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.1] text-sm text-white"
-              />
-            </div>
-            <Button type="submit" loading={savingPw}>
-              Update Password
-            </Button>
-          </form>
-        </Card>
+          </Card>
+        </div>
       )}
 
       {activeTab === 'CATEGORIES' && (
@@ -1077,6 +1133,75 @@ export default function SettingsPage() {
           </Card>
         </div>
       )}
+
+      {/* Delete Account Confirmation Modal */}
+      <Modal
+        isOpen={deleteDialogOpen}
+        onClose={() => {
+          if (!deletingAccount) {
+            setDeleteDialogOpen(false);
+            setDeletePassword('');
+            setDeleteError('');
+          }
+        }}
+        title="Permanently Delete Account"
+        subtitle="This action is irreversible and cannot be recovered."
+        maxWidth="max-w-md"
+      >
+        <form onSubmit={handleDeleteAccount} className="space-y-4">
+          <div className="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-xs text-rose-300 leading-relaxed flex items-start gap-2.5">
+            <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
+            <span>
+              Are you sure you want to permanently delete your account? All accounts, transactions, budgets, bills, loans, and logs will be permanently erased.
+            </span>
+          </div>
+
+          {deleteError && (
+            <div className="p-3 rounded-lg bg-rose-500/15 border border-rose-500/30 text-xs text-rose-200">
+              {deleteError}
+            </div>
+          )}
+
+          <div>
+            <label className="block text-xs font-medium text-slate-300 mb-1">
+              Enter your password to confirm:
+            </label>
+            <input
+              type="password"
+              required
+              value={deletePassword}
+              onChange={(e) => setDeletePassword(e.target.value)}
+              placeholder="••••••••"
+              className="w-full px-3.5 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.1] text-xs text-white placeholder-slate-500 focus:outline-none focus:border-rose-500"
+            />
+          </div>
+
+          <div className="flex items-center justify-end gap-2.5 pt-2">
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              disabled={deletingAccount}
+              onClick={() => {
+                setDeleteDialogOpen(false);
+                setDeletePassword('');
+                setDeleteError('');
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              variant="danger"
+              size="sm"
+              loading={deletingAccount}
+              className="bg-rose-600 hover:bg-rose-700 text-white"
+            >
+              Yes, Permanently Delete
+            </Button>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 }

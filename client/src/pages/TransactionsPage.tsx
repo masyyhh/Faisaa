@@ -245,30 +245,30 @@ export default function TransactionsPage() {
   return (
     <div className="space-y-6">
       {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-white/[0.06]">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-white font-display">
+          <h1 className="text-xl sm:text-2xl font-bold text-white font-display tracking-tight">
             Transactions & Ledger
           </h1>
-          <p className="text-xs sm:text-sm text-slate-400 mt-0.5">
+          <p className="text-xs text-zinc-400 mt-0.5">
             Search, filter, duplicate, and manage all your financial activity and recurring rules.
           </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
           <Button variant="secondary" size="sm" onClick={handleExportCSV}>
-            <Download className="w-4 h-4" /> Export CSV
+            <Download className="w-3.5 h-3.5" /> Export CSV
           </Button>
           {activeTab === 'RECURRING' ? (
             <>
               {dueRecurringCount > 0 && (
                 <Button
                   size="sm"
+                  variant="emerald"
                   loading={processingDue}
                   onClick={handleProcessDueRecurring}
-                  className="bg-emerald-600 hover:bg-emerald-500 text-white shadow-md shadow-emerald-600/25"
                 >
-                  <Play className="w-4 h-4 mr-1" /> Run Due ({dueRecurringCount})
+                  <Play className="w-3.5 h-3.5 mr-1" /> Run Due ({dueRecurringCount})
                 </Button>
               )}
               <Button
@@ -276,41 +276,44 @@ export default function TransactionsPage() {
                 onClick={() => {
                   setRecurringForm((f) => ({
                     ...f,
-                    accountId: accounts[0]?.id || '',
+                    accountId: accounts.find((a) => a.isDefault)?.id || accounts[0]?.id || '',
                     categoryId: categories[0]?.id || '',
                   }));
                   setRecurringModalOpen(true);
                 }}
               >
-                <Plus className="w-4 h-4" /> New Recurring Rule
+                <Plus className="w-3.5 h-3.5" /> New Schedule
               </Button>
             </>
           ) : (
             <Button size="sm" onClick={() => openTransactionModal('EXPENSE')}>
-              <Plus className="w-4 h-4" /> Add Transaction
+              <Plus className="w-3.5 h-3.5" /> Add Transaction
+              <kbd className="hidden sm:inline-block ml-1 px-1.5 py-0.5 text-[10px] font-semibold bg-white/[0.15] rounded text-white/90">
+                N
+              </kbd>
             </Button>
           )}
         </div>
       </div>
 
-      {/* Mode Switch Tabs */}
-      <div className="flex items-center gap-2 border-b border-white/[0.08] pb-3">
+      {/* Segmented Mode Control */}
+      <div className="inline-flex p-1 rounded-xl bg-white/[0.03] border border-white/[0.06] gap-1">
         <button
           onClick={() => setActiveTab('ALL_TX')}
-          className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+          className={`px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer ${
             activeTab === 'ALL_TX'
-              ? 'bg-violet-600 text-white shadow-lg shadow-violet-600/25'
-              : 'bg-white/[0.04] text-slate-400 hover:text-white'
+              ? 'bg-indigo-600 text-white shadow-xs'
+              : 'text-zinc-400 hover:text-white'
           }`}
         >
           All Transactions ({pagination.total})
         </button>
         <button
           onClick={() => setActiveTab('RECURRING')}
-          className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+          className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer ${
             activeTab === 'RECURRING'
-              ? 'bg-violet-600 text-white shadow-lg shadow-violet-600/25'
-              : 'bg-white/[0.04] text-slate-400 hover:text-white'
+              ? 'bg-indigo-600 text-white shadow-xs'
+              : 'text-zinc-400 hover:text-white'
           }`}
         >
           <Repeat className="w-3.5 h-3.5" /> Recurring Schedule ({recurringList.length})
@@ -321,22 +324,22 @@ export default function TransactionsPage() {
         <>
           {/* Summary Bar */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-4">
-            <Card className="p-3 sm:py-4">
-              <p className="text-[11px] sm:text-xs text-slate-400">Filtered Income</p>
-              <p className="text-lg sm:text-xl font-extrabold text-emerald-400 mt-0.5 sm:mt-1 truncate">
+            <Card className="p-4 flex flex-col justify-between">
+              <span className="text-xs font-medium text-zinc-400">Filtered Income</span>
+              <p className="text-lg sm:text-xl font-bold text-emerald-400 font-display tabular-nums mt-1 truncate">
                 +{formatCurrency(summary.totalIncome, currency, hide)}
               </p>
             </Card>
-            <Card className="p-3 sm:py-4">
-              <p className="text-[11px] sm:text-xs text-slate-400">Filtered Expenses</p>
-              <p className="text-lg sm:text-xl font-extrabold text-rose-400 mt-0.5 sm:mt-1 truncate">
+            <Card className="p-4 flex flex-col justify-between">
+              <span className="text-xs font-medium text-zinc-400">Filtered Expenses</span>
+              <p className="text-lg sm:text-xl font-bold text-rose-400 font-display tabular-nums mt-1 truncate">
                 -{formatCurrency(summary.totalExpenses, currency, hide)}
               </p>
             </Card>
-            <Card className="p-3 sm:py-4">
-              <p className="text-[11px] sm:text-xs text-slate-400">Net Period Flow</p>
+            <Card className="p-4 flex flex-col justify-between">
+              <span className="text-xs font-medium text-zinc-400">Net Period Flow</span>
               <p
-                className={`text-lg sm:text-xl font-extrabold mt-0.5 sm:mt-1 truncate ${
+                className={`text-lg sm:text-xl font-bold font-display tabular-nums mt-1 truncate ${
                   summary.netFlow >= 0 ? 'text-white' : 'text-rose-400'
                 }`}
               >
@@ -347,11 +350,11 @@ export default function TransactionsPage() {
           </div>
 
           {/* Filter & Search Toolbar */}
-          <Card className="p-3 sm:p-5 space-y-3 sm:space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-2.5 sm:gap-3">
+          <Card className="p-3.5 sm:p-4 space-y-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-2 sm:gap-2.5">
               {/* Search */}
               <div className="sm:col-span-2 lg:col-span-2 relative">
-                <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
+                <Search className="w-3.5 h-3.5 text-zinc-400 absolute left-3.5 top-3" />
                 <input
                   type="text"
                   value={search}
@@ -360,7 +363,7 @@ export default function TransactionsPage() {
                     setPage(1);
                   }}
                   placeholder="Search payee, notes, tags..."
-                  className="faisaa-input w-full pl-10 pr-3.5 py-2 rounded-xl bg-white/[0.04] border border-white/[0.09] text-xs text-white placeholder-slate-500 focus:outline-none focus:border-violet-500"
+                  className="w-full pl-9 pr-3.5 py-2 rounded-xl bg-white/[0.03] border border-white/[0.07] text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-indigo-500/50"
                 />
               </div>
 
@@ -371,7 +374,7 @@ export default function TransactionsPage() {
                   setType(e.target.value);
                   setPage(1);
                 }}
-                className="faisaa-input px-3 py-2 rounded-xl bg-[#161928] border border-white/[0.09] text-xs text-white"
+                className="px-3 py-2 rounded-xl bg-[#111218] border border-white/[0.07] text-xs text-zinc-200 focus:outline-none cursor-pointer"
               >
                 <option value="ALL">All Types</option>
                 <option value="INCOME">Income Only</option>
@@ -386,12 +389,12 @@ export default function TransactionsPage() {
                   setAccountId(e.target.value);
                   setPage(1);
                 }}
-                className="faisaa-input px-3 py-2 rounded-xl bg-[#161928] border border-white/[0.09] text-xs text-white"
+                className="px-3 py-2 rounded-xl bg-[#111218] border border-white/[0.07] text-xs text-zinc-200 focus:outline-none cursor-pointer"
               >
                 <option value="ALL">All Accounts</option>
                 {accounts.map((acc) => (
                   <option key={acc.id} value={acc.id}>
-                    {acc.name}
+                    {acc.name}{acc.isDefault ? ' ★' : ''}
                   </option>
                 ))}
               </select>
@@ -403,7 +406,7 @@ export default function TransactionsPage() {
                   setCategoryId(e.target.value);
                   setPage(1);
                 }}
-                className="faisaa-input px-3 py-2 rounded-xl bg-[#161928] border border-white/[0.09] text-xs text-white"
+                className="px-3 py-2 rounded-xl bg-[#111218] border border-white/[0.07] text-xs text-zinc-200 focus:outline-none cursor-pointer"
               >
                 <option value="ALL">All Categories</option>
                 {categories.map((cat) => (
@@ -421,7 +424,7 @@ export default function TransactionsPage() {
                   setSortBy(sb);
                   setSortOrder(so);
                 }}
-                className="faisaa-input px-3 py-2 rounded-xl bg-[#161928] border border-white/[0.09] text-xs text-white"
+                className="px-3 py-2 rounded-xl bg-[#111218] border border-white/[0.07] text-xs text-zinc-200 focus:outline-none cursor-pointer"
               >
                 <option value="date:desc">Newest First</option>
                 <option value="date:asc">Oldest First</option>
@@ -430,10 +433,10 @@ export default function TransactionsPage() {
               </select>
             </div>
 
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pt-2 border-t border-white/[0.06]">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pt-2.5 border-t border-white/[0.06]">
               <div className="flex flex-wrap items-center gap-2 text-xs">
-                <span className="text-slate-400 flex items-center gap-1 shrink-0">
-                  <Filter className="w-3.5 h-3.5" /> Date Range:
+                <span className="text-zinc-400 flex items-center gap-1 shrink-0">
+                  <Filter className="w-3.5 h-3.5" /> Date:
                 </span>
                 <input
                   type="date"
@@ -442,9 +445,9 @@ export default function TransactionsPage() {
                     setStartDate(e.target.value);
                     setPage(1);
                   }}
-                  className="faisaa-input px-2.5 py-1 rounded-lg bg-white/[0.04] border border-white/[0.09] text-xs text-white"
+                  className="px-2.5 py-1 rounded-lg bg-white/[0.03] border border-white/[0.07] text-xs text-zinc-200 focus:outline-none"
                 />
-                <span className="text-slate-500">to</span>
+                <span className="text-zinc-500">to</span>
                 <input
                   type="date"
                   value={endDate}
@@ -452,7 +455,7 @@ export default function TransactionsPage() {
                     setEndDate(e.target.value);
                     setPage(1);
                   }}
-                  className="faisaa-input px-2.5 py-1 rounded-lg bg-white/[0.04] border border-white/[0.09] text-xs text-white"
+                  className="px-2.5 py-1 rounded-lg bg-white/[0.03] border border-white/[0.07] text-xs text-zinc-200 focus:outline-none"
                 />
               </div>
 
@@ -467,9 +470,9 @@ export default function TransactionsPage() {
                     setEndDate('');
                     setPage(1);
                   }}
-                  className="text-xs text-violet-400 hover:text-violet-300 font-medium cursor-pointer self-start sm:self-auto"
+                  className="text-xs text-indigo-400 hover:text-indigo-300 font-medium cursor-pointer self-start sm:self-auto transition-colors"
                 >
-                  Clear All Filters
+                  Clear Filters
                 </button>
               )}
             </div>
@@ -494,52 +497,52 @@ export default function TransactionsPage() {
               <div className="hidden md:block overflow-x-auto">
                 <table className="w-full text-left border-collapse">
                   <thead>
-                    <tr className="border-b border-white/[0.07] text-[11px] uppercase tracking-wider text-slate-400 bg-white/[0.02]">
-                      <th className="py-3.5 px-4">Merchant / Payee</th>
-                      <th className="py-3.5 px-4">Category</th>
-                      <th className="py-3.5 px-4">Account</th>
-                      <th className="py-3.5 px-4">Date</th>
-                      <th className="py-3.5 px-4 text-right">Amount</th>
-                      <th className="py-3.5 px-4 text-right">Actions</th>
+                    <tr className="border-b border-white/[0.06] text-[11px] font-medium uppercase tracking-wider text-zinc-500 bg-white/[0.015]">
+                      <th className="py-3 px-4">Merchant / Payee</th>
+                      <th className="py-3 px-4">Category</th>
+                      <th className="py-3 px-4">Account</th>
+                      <th className="py-3 px-4">Date</th>
+                      <th className="py-3 px-4 text-right">Amount</th>
+                      <th className="py-3 px-4 text-right">Actions</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-white/[0.05] text-sm">
+                  <tbody className="divide-y divide-white/[0.04] text-xs">
                     {transactions.map((tx) => (
                       <tr
                         key={tx.id}
-                        className="hover:bg-white/[0.03] transition-colors group"
+                        className="hover:bg-white/[0.02] transition-colors group"
                       >
-                        <td className="py-3.5 px-4">
+                        <td className="py-3 px-4">
                           <div className="flex items-center gap-3">
                             <div
-                              className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
+                              className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 border border-white/[0.06]"
                               style={{
-                                backgroundColor: `${tx.category?.color || '#8B5CF6'}20`,
-                                color: tx.category?.color || '#8B5CF6',
+                                backgroundColor: `${tx.category?.color || '#6366F1'}15`,
+                                color: tx.category?.color || '#818CF8',
                               }}
                             >
-                              <DynamicIcon name={tx.category?.icon || 'tag'} className="w-4 h-4" />
+                              <DynamicIcon name={tx.category?.icon || 'tag'} className="w-3.5 h-3.5" />
                             </div>
-                            <div>
-                              <p className="font-semibold text-white flex items-center gap-1.5">
+                            <div className="min-w-0">
+                              <p className="font-medium text-white truncate flex items-center gap-1.5">
                                 {tx.payee}
                                 {tx.isRecurring && (
                                   <span title="Recurring">
-                                    <Repeat className="w-3 h-3 text-violet-400" />
+                                    <Repeat className="w-3 h-3 text-indigo-400" />
                                   </span>
                                 )}
                               </p>
                               {tx.description && (
-                                <p className="text-xs text-slate-400 truncate max-w-xs">
+                                <p className="text-[11px] text-zinc-500 truncate max-w-xs">
                                   {tx.description}
                                 </p>
                               )}
                               {tx.tags && tx.tags.length > 0 && (
-                                <div className="flex flex-wrap gap-1 mt-1">
+                                <div className="flex flex-wrap gap-1 mt-0.5">
                                   {tx.tags.map((tg) => (
                                     <span
                                       key={tg}
-                                      className="px-1.5 py-0.5 rounded-md bg-violet-500/10 text-violet-300 text-[10px]"
+                                      className="px-1.5 py-0.2 rounded bg-indigo-500/10 text-indigo-400 text-[10px]"
                                     >
                                       #{tg}
                                     </span>
@@ -549,61 +552,61 @@ export default function TransactionsPage() {
                             </div>
                           </div>
                         </td>
-                        <td className="py-3.5 px-4">
+                        <td className="py-3 px-4">
                           <Badge variant="default">
                             {tx.category?.name || tx.type}
                           </Badge>
                         </td>
-                        <td className="py-3.5 px-4 text-xs text-slate-300">
+                        <td className="py-3 px-4 text-zinc-300">
                           {tx.account?.name}
                           {tx.transferToAccount && ` → ${tx.transferToAccount.name}`}
                         </td>
-                        <td className="py-3.5 px-4 text-xs text-slate-400">
+                        <td className="py-3 px-4 text-zinc-400 tabular-nums">
                           {formatDate(tx.date, user?.dateFormat)}
                         </td>
-                        <td className="py-3.5 px-4 text-right font-bold">
+                        <td className="py-3 px-4 text-right font-medium tabular-nums">
                           <span
                             className={
                               tx.type === 'INCOME'
                                 ? 'text-emerald-400'
                                 : tx.type === 'EXPENSE'
                                 ? 'text-white'
-                                : 'text-violet-400'
+                                : 'text-indigo-400'
                             }
                           >
                             {tx.type === 'INCOME' ? '+' : tx.type === 'EXPENSE' ? '-' : ''}
                             {formatCurrency(tx.amount, currency, hide)}
                           </span>
                         </td>
-                        <td className="py-3.5 px-4 text-right">
+                        <td className="py-3 px-4 text-right">
                           <div className="flex items-center justify-end gap-1">
                             <button
                               onClick={() => setDetailTx(tx)}
                               title="View details"
-                              className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/[0.08] cursor-pointer"
+                              className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-white/[0.06] transition-colors cursor-pointer"
                             >
-                              <Eye className="w-4 h-4" />
+                              <Eye className="w-3.5 h-3.5" />
                             </button>
                             <button
                               onClick={() => openTransactionModal(tx.type, tx)}
                               title="Edit"
-                              className="p-1.5 rounded-lg text-slate-400 hover:text-violet-400 hover:bg-white/[0.08] cursor-pointer"
+                              className="p-1.5 rounded-lg text-zinc-400 hover:text-indigo-400 hover:bg-white/[0.06] transition-colors cursor-pointer"
                             >
-                              <Edit3 className="w-4 h-4" />
+                              <Edit3 className="w-3.5 h-3.5" />
                             </button>
                             <button
                               onClick={() => handleDuplicate(tx.id)}
                               title="Duplicate"
-                              className="p-1.5 rounded-lg text-slate-400 hover:text-emerald-400 hover:bg-white/[0.08] cursor-pointer"
+                              className="p-1.5 rounded-lg text-zinc-400 hover:text-emerald-400 hover:bg-white/[0.06] transition-colors cursor-pointer"
                             >
-                              <Copy className="w-4 h-4" />
+                              <Copy className="w-3.5 h-3.5" />
                             </button>
                             <button
                               onClick={() => setDeleteTarget(tx)}
                               title="Delete"
-                              className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 cursor-pointer"
+                              className="p-1.5 rounded-lg text-zinc-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer"
                             >
-                              <Trash2 className="w-4 h-4" />
+                              <Trash2 className="w-3.5 h-3.5" />
                             </button>
                           </div>
                         </td>
@@ -614,30 +617,30 @@ export default function TransactionsPage() {
               </div>
 
               {/* Mobile Card Feed View */}
-              <div className="md:hidden divide-y divide-white/[0.06]">
+              <div className="md:hidden divide-y divide-white/[0.05]">
                 {transactions.map((tx) => (
-                  <div key={tx.id} className="p-3.5 space-y-2.5">
+                  <div key={tx.id} className="p-3.5 space-y-2">
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex items-center gap-2.5 min-w-0">
                         <div
-                          className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
+                          className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 border border-white/[0.06]"
                           style={{
-                            backgroundColor: `${tx.category?.color || '#8B5CF6'}20`,
-                            color: tx.category?.color || '#8B5CF6',
+                            backgroundColor: `${tx.category?.color || '#6366F1'}15`,
+                            color: tx.category?.color || '#818CF8',
                           }}
                         >
-                          <DynamicIcon name={tx.category?.icon || 'tag'} className="w-4 h-4" />
+                          <DynamicIcon name={tx.category?.icon || 'tag'} className="w-3.5 h-3.5" />
                         </div>
                         <div className="min-w-0">
-                          <p className="font-semibold text-white text-sm truncate flex items-center gap-1.5">
+                          <p className="font-medium text-white text-xs truncate flex items-center gap-1.5">
                             {tx.payee}
                             {tx.isRecurring && (
                               <span title="Recurring" className="shrink-0">
-                                <Repeat className="w-3 h-3 text-violet-400" />
+                                <Repeat className="w-3 h-3 text-indigo-400" />
                               </span>
                             )}
                           </p>
-                          <p className="text-[11px] text-slate-400">
+                          <p className="text-[11px] text-zinc-500 tabular-nums">
                             {formatDate(tx.date, user?.dateFormat)}
                           </p>
                         </div>
@@ -645,12 +648,12 @@ export default function TransactionsPage() {
 
                       <div className="text-right shrink-0">
                         <span
-                          className={`font-bold text-sm ${
+                          className={`font-semibold text-xs tabular-nums ${
                             tx.type === 'INCOME'
                               ? 'text-emerald-400'
                               : tx.type === 'EXPENSE'
                               ? 'text-white'
-                              : 'text-violet-400'
+                              : 'text-indigo-400'
                           }`}
                         >
                           {tx.type === 'INCOME' ? '+' : tx.type === 'EXPENSE' ? '-' : ''}
@@ -660,17 +663,17 @@ export default function TransactionsPage() {
                     </div>
 
                     <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
-                      <Badge variant="default" className="text-[10px] py-0.5 px-2">
+                      <Badge variant="default" className="text-[10px] py-0.5 px-1.5">
                         {tx.category?.name || tx.type}
                       </Badge>
-                      <span className="text-slate-400 px-1.5 py-0.5 rounded-md bg-white/[0.03] border border-white/[0.06]">
+                      <span className="text-zinc-400 px-1.5 py-0.5 rounded-md bg-white/[0.03] border border-white/[0.06] text-[10px]">
                         {tx.account?.name}
                         {tx.transferToAccount && ` → ${tx.transferToAccount.name}`}
                       </span>
                       {tx.tags && tx.tags.map((tg) => (
                         <span
                           key={tg}
-                          className="px-1.5 py-0.5 rounded-md bg-violet-500/10 text-violet-300 text-[10px]"
+                          className="px-1.5 py-0.2 rounded-md bg-indigo-500/10 text-indigo-400 text-[10px]"
                         >
                           #{tg}
                         </span>
@@ -678,7 +681,7 @@ export default function TransactionsPage() {
                     </div>
 
                     {tx.description && (
-                      <p className="text-xs text-slate-400 bg-white/[0.02] p-2 rounded-lg border border-white/[0.04]">
+                      <p className="text-xs text-zinc-400 bg-white/[0.02] p-2 rounded-lg border border-white/[0.04]">
                         {tx.description}
                       </p>
                     )}
@@ -687,31 +690,31 @@ export default function TransactionsPage() {
                       <div className="flex items-center gap-1">
                         <button
                           onClick={() => setDetailTx(tx)}
-                          className="px-2.5 py-1 rounded-lg text-slate-400 hover:text-white bg-white/[0.03] text-xs flex items-center gap-1 cursor-pointer active:scale-95 transition-transform"
+                          className="px-2.5 py-1 rounded-lg text-zinc-400 hover:text-white bg-white/[0.03] text-xs flex items-center gap-1 cursor-pointer transition-colors"
                         >
-                          <Eye className="w-3.5 h-3.5" /> Details
+                          <Eye className="w-3 h-3" /> Details
                         </button>
                         <button
                           onClick={() => openTransactionModal(tx.type, tx)}
-                          className="px-2.5 py-1 rounded-lg text-slate-400 hover:text-violet-400 bg-white/[0.03] text-xs flex items-center gap-1 cursor-pointer active:scale-95 transition-transform"
+                          className="px-2.5 py-1 rounded-lg text-zinc-400 hover:text-indigo-400 bg-white/[0.03] text-xs flex items-center gap-1 cursor-pointer transition-colors"
                         >
-                          <Edit3 className="w-3.5 h-3.5" /> Edit
+                          <Edit3 className="w-3 h-3" /> Edit
                         </button>
                       </div>
                       <div className="flex items-center gap-1">
                         <button
                           onClick={() => handleDuplicate(tx.id)}
-                          className="p-1.5 rounded-lg text-slate-400 hover:text-emerald-400 bg-white/[0.03] cursor-pointer"
+                          className="p-1.5 rounded-lg text-zinc-400 hover:text-emerald-400 bg-white/[0.03] cursor-pointer transition-colors"
                           title="Duplicate"
                         >
-                          <Copy className="w-3.5 h-3.5" />
+                          <Copy className="w-3 h-3" />
                         </button>
                         <button
                           onClick={() => setDeleteTarget(tx)}
-                          className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 bg-rose-500/5 cursor-pointer"
+                          className="p-1.5 rounded-lg text-zinc-400 hover:text-rose-400 bg-rose-500/10 cursor-pointer transition-colors"
                           title="Delete"
                         >
-                          <Trash2 className="w-3.5 h-3.5" />
+                          <Trash2 className="w-3 h-3" />
                         </button>
                       </div>
                     </div>
@@ -720,7 +723,7 @@ export default function TransactionsPage() {
               </div>
 
               {/* Pagination Footer */}
-              <div className="flex items-center justify-between px-4 py-3 border-t border-white/[0.07] bg-white/[0.01] text-xs text-slate-400">
+              <div className="flex items-center justify-between px-4 py-3 border-t border-white/[0.06] text-xs text-zinc-400">
                 <span>
                   Page {pagination.page} of {pagination.totalPages} ({pagination.total} total)
                 </span>
@@ -731,7 +734,7 @@ export default function TransactionsPage() {
                     disabled={page <= 1}
                     onClick={() => setPage((p) => Math.max(1, p - 1))}
                   >
-                    <ChevronLeft className="w-4 h-4" /> Prev
+                    <ChevronLeft className="w-3.5 h-3.5" /> Prev
                   </Button>
                   <Button
                     variant="secondary"
@@ -739,7 +742,7 @@ export default function TransactionsPage() {
                     disabled={page >= pagination.totalPages}
                     onClick={() => setPage((p) => p + 1)}
                   >
-                    Next <ChevronRight className="w-4 h-4" />
+                    Next <ChevronRight className="w-3.5 h-3.5" />
                   </Button>
                 </div>
               </div>
@@ -748,7 +751,7 @@ export default function TransactionsPage() {
         </>
       ) : (
         /* Recurring Transactions Schedule Tab */
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5 sm:gap-4">
           {(Array.isArray(recurringList) ? recurringList : []).map((rec) => {
             if (!rec) return null;
             const isDue = Boolean(rec.isActive && rec.nextOccurrence && new Date(rec.nextOccurrence) <= new Date());
@@ -767,40 +770,39 @@ export default function TransactionsPage() {
                         {rec.frequency} • {rec.type}
                       </Badge>
                       {isDue && (
-                        <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 text-[10px] font-bold animate-pulse">
+                        <span className="px-2 py-0.5 rounded-md bg-amber-500/15 text-amber-300 text-[10px] font-semibold animate-pulse">
                           Due Now
                         </span>
                       )}
                     </div>
-                    <span className="text-lg font-extrabold text-white">
+                    <span className="text-base sm:text-lg font-bold text-white tabular-nums">
                       {rec.type === 'INCOME' ? '+' : '-'}
                       {formatCurrency(rec.amount, recCurrency, hide)}
                     </span>
                   </div>
-                  <h3 className="text-base font-bold text-white mt-3">{rec.payee}</h3>
-                  <p className="text-xs text-slate-400 mt-1">
+                  <h3 className="text-sm font-semibold text-white mt-3 truncate">{rec.payee}</h3>
+                  <p className="text-xs text-zinc-400 mt-0.5">
                     Account: {rec.account?.name} • Category: {rec.category?.name || 'General'}
                   </p>
-                  <p className="text-xs text-violet-300 mt-2 flex items-center justify-between">
+                  <p className="text-xs text-indigo-400 mt-2 flex items-center justify-between">
                     <span>Next: {formatDate(rec.nextOccurrence, user?.dateFormat)}</span>
-                    <span className="text-[11px] text-slate-400">{recCurrency}</span>
+                    <span className="text-[11px] text-zinc-500">{recCurrency}</span>
                   </p>
                 </div>
 
-                <div className="flex items-center justify-between gap-2 pt-3 border-t border-white/[0.07]">
+                <div className="flex items-center justify-between gap-2 pt-3 border-t border-white/[0.06]">
                   <Button
-                    variant={isDue ? 'primary' : 'secondary'}
+                    variant={isDue ? 'emerald' : 'secondary'}
                     size="sm"
                     onClick={() => handleProcessRecurring(rec.id)}
-                    className={isDue ? 'bg-emerald-600 hover:bg-emerald-500 text-white' : ''}
                   >
-                    <Play className="w-3.5 h-3.5 mr-1 text-emerald-300" /> Post Now
+                    <Play className="w-3.5 h-3.5 mr-1" /> Post Now
                   </Button>
                   <button
                     onClick={() => handleDeleteRecurring(rec.id)}
-                    className="p-2 rounded-xl text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 cursor-pointer"
+                    className="p-1.5 rounded-lg text-zinc-400 hover:text-rose-400 hover:bg-rose-500/10 cursor-pointer transition-colors"
                   >
-                    <Trash2 className="w-4 h-4" />
+                    <Trash2 className="w-3.5 h-3.5" />
                   </button>
                 </div>
               </Card>
@@ -972,7 +974,7 @@ export default function TransactionsPage() {
               >
                 {accounts.map((a) => (
                   <option key={a.id} value={a.id}>
-                    {a.name}
+                    {a.name}{a.isDefault ? ' ★ Default' : ''}
                   </option>
                 ))}
               </select>

@@ -12,7 +12,7 @@ export async function getAccounts(req: Request, res: Response, next: NextFunctio
 
     const accounts = await prisma.account.findMany({
       where: { userId },
-      orderBy: [{ isActive: 'desc' }, { createdAt: 'asc' }],
+      orderBy: [{ isDefault: 'desc' }, { isActive: 'desc' }, { createdAt: 'asc' }],
       include: {
         transactions: {
           where: { date: { gte: startOfMonth } },
@@ -23,6 +23,16 @@ export async function getAccounts(req: Request, res: Response, next: NextFunctio
         },
       },
     });
+
+    // Auto-heal: If user has accounts but none is marked as default, designate the first active account as default
+    if (accounts.length > 0 && !accounts.some((a) => a.isDefault)) {
+      const defaultCandidate = accounts.find((a) => a.isActive) || accounts[0];
+      await prisma.account.update({
+        where: { id: defaultCandidate.id },
+        data: { isDefault: true },
+      });
+      defaultCandidate.isDefault = true;
+    }
 
     const enriched = accounts.map((acc) => {
       const monthlyIncome = acc.transactions
@@ -164,16 +174,30 @@ export async function getAccountById(req: Request, res: Response, next: NextFunc
 export async function createAccount(req: Request, res: Response, next: NextFunction) {
   try {
     const parsed = accountSchema.parse(req.body);
+    const userId = req.user!.id;
     // PCI-DSS / Financial Data Protection: Strip any raw account number, retaining only sanitized lastFour
     const { accountNumber: _rawNum, ...accountData } = parsed;
 
-    const account = await prisma.account.create({
-      data: {
-        ...accountData,
-        currency: parsed.currency || 'MVR',
-        initialBalance: parsed.balance,
-        userId: req.user!.id,
-      },
+    const existingCount = await prisma.account.count({ where: { userId } });
+    const shouldBeDefault = parsed.isDefault || existingCount === 0;
+
+    const account = await prisma.$transaction(async (tx) => {
+      if (shouldBeDefault) {
+        await tx.account.updateMany({
+          where: { userId },
+          data: { isDefault: false },
+        });
+      }
+
+      return tx.account.create({
+        data: {
+          ...accountData,
+          isDefault: shouldBeDefault,
+          currency: parsed.currency || 'MVR',
+          initialBalance: parsed.balance,
+          userId,
+        },
+      });
     });
 
     res.status(201).json({
@@ -188,8 +212,9 @@ export async function createAccount(req: Request, res: Response, next: NextFunct
 export async function updateAccount(req: Request, res: Response, next: NextFunction) {
   try {
     const id = req.params.id as string;
+    const userId = req.user!.id;
     const existing = await prisma.account.findFirst({
-      where: { id, userId: req.user!.id },
+      where: { id, userId },
     });
 
     if (!existing) {
@@ -202,9 +227,18 @@ export async function updateAccount(req: Request, res: Response, next: NextFunct
     const parsed = accountSchema.partial().parse(req.body);
     const { accountNumber: _rawNum, ...accountData } = parsed;
 
-    const updated = await prisma.account.update({
-      where: { id },
-      data: accountData,
+    const updated = await prisma.$transaction(async (tx) => {
+      if (accountData.isDefault) {
+        await tx.account.updateMany({
+          where: { userId },
+          data: { isDefault: false },
+        });
+      }
+
+      return tx.account.update({
+        where: { id },
+        data: accountData,
+      });
     });
 
     res.json({
@@ -216,11 +250,13 @@ export async function updateAccount(req: Request, res: Response, next: NextFunct
   }
 }
 
-export async function deleteAccount(req: Request, res: Response, next: NextFunction) {
+export async function setDefaultAccount(req: Request, res: Response, next: NextFunction) {
   try {
+    const userId = req.user!.id;
     const id = req.params.id as string;
+
     const existing = await prisma.account.findFirst({
-      where: { id, userId: req.user!.id },
+      where: { id, userId },
     });
 
     if (!existing) {
@@ -230,7 +266,57 @@ export async function deleteAccount(req: Request, res: Response, next: NextFunct
       });
     }
 
-    await prisma.account.delete({ where: { id } });
+    const updated = await prisma.$transaction(async (tx) => {
+      await tx.account.updateMany({
+        where: { userId },
+        data: { isDefault: false },
+      });
+      return tx.account.update({
+        where: { id },
+        data: { isDefault: true, isActive: true },
+      });
+    });
+
+    res.json({
+      success: true,
+      account: updated,
+      message: `${updated.name} set as default account.`,
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function deleteAccount(req: Request, res: Response, next: NextFunction) {
+  try {
+    const id = req.params.id as string;
+    const userId = req.user!.id;
+    const existing = await prisma.account.findFirst({
+      where: { id, userId },
+    });
+
+    if (!existing) {
+      return res.status(404).json({
+        success: false,
+        message: 'Account not found.',
+      });
+    }
+
+    await prisma.$transaction(async (tx) => {
+      await tx.account.delete({ where: { id } });
+      if (existing.isDefault) {
+        const nextDefault = await tx.account.findFirst({
+          where: { userId },
+          orderBy: [{ isActive: 'desc' }, { createdAt: 'asc' }],
+        });
+        if (nextDefault) {
+          await tx.account.update({
+            where: { id: nextDefault.id },
+            data: { isDefault: true },
+          });
+        }
+      }
+    });
 
     res.json({
       success: true,
