@@ -19,9 +19,9 @@ export interface TelegramSendResult {
   simulated?: boolean;
 }
 
-export interface TelegramApiResponse {
+export interface TelegramApiResponse<T = { message_id?: number; [key: string]: unknown }> {
   ok: boolean;
-  result?: any;
+  result?: T;
   description?: string;
 }
 
@@ -144,7 +144,11 @@ export async function setTelegramWebhook(
   secretToken: string | null = null
 ): Promise<TelegramApiResponse> {
   try {
-    const bodyPayload: Record<string, any> = {
+    const bodyPayload: {
+      url: string;
+      allowed_updates: string[];
+      secret_token?: string;
+    } = {
       url: webhookUrl,
       allowed_updates: ['message'],
     };

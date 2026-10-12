@@ -1,12 +1,14 @@
 import type { Request, Response, NextFunction } from 'express';
 import bcrypt from 'bcryptjs';
-import type { Prisma } from '@prisma/client';
+import type { Prisma, User } from '@prisma/client';
 import prisma, { ensureDefaultCategoriesForUser } from '../prisma/client.js';
 import {
   createAccessToken,
   createRefreshToken,
   setAuthCookies,
+  setTrustedDeviceCookie,
   clearAuthCookies,
+  type AuthUser,
 } from '../middleware/auth.js';
 import {
   encrypt,
@@ -24,13 +26,29 @@ import {
   resetPasswordConfirmSchema,
 } from '../validators/schemas.js';
 import { sendTelegramMessageRaw } from '../services/telegramService.js';
+import {
+  checkAccountLockout,
+  recordFailedLogin,
+  resetFailedLogins,
+  getClientIp,
+  getDeviceInfo,
+  generateStepUpToken,
+  verifyStepUpToken,
+  generateOtpForUser,
+  verifyOtpForUser,
+  createTrustedDevice,
+  isDeviceTrusted,
+  logSecurityEvent,
+} from '../services/securityService.js';
+import { invalidateUserProfile } from '../utils/cache.js';
 
 /**
  * Sanitizes user record for API responses.
  * Never leaks passwordHash, telegram linking secrets, reset codes, or raw telegramBotTokens.
  */
-function sanitizeUser(user: any) {
+function sanitizeUser(user: AuthUser | User | Record<string, unknown> | null | undefined) {
   if (!user) return null;
+  const userObj = user as Record<string, unknown>;
   const {
     passwordHash: _pw,
     telegramLinkingCode: _code,
@@ -39,11 +57,11 @@ function sanitizeUser(user: any) {
     passwordResetExpires: _pre,
     refreshTokens: _rt,
     ...safe
-  } = user;
+  } = userObj;
 
   return {
     ...safe,
-    telegramBotToken: maskToken(safe.telegramBotToken),
+    telegramBotToken: maskToken(typeof safe.telegramBotToken === 'string' ? safe.telegramBotToken : null),
   };
 }
 
@@ -151,9 +169,22 @@ export async function register(req: Request, res: Response, next: NextFunction) 
     });
 
     // Dual-token issuance: 15m access token + 7d rotating refresh token
+    const clientIp = getClientIp(req);
+    const userAgent = req.headers['user-agent'] || null;
     const accessToken = createAccessToken(user.id);
-    const refreshToken = await createRefreshToken(user.id);
+    const refreshToken = await createRefreshToken(user.id, {
+      userAgent,
+      ipAddress: clientIp,
+      deviceInfo: getDeviceInfo(userAgent),
+    });
     setAuthCookies(res, accessToken, refreshToken);
+
+    await logSecurityEvent({
+      userId: user.id,
+      action: 'USER_REGISTERED',
+      ipAddress: clientIp,
+      userAgent,
+    });
 
     res.status(201).json({
       success: true,
@@ -169,6 +200,18 @@ export async function login(req: Request, res: Response, next: NextFunction) {
   try {
     const parsed = loginSchema.parse(req.body);
     const identifier = (parsed.identifier || parsed.username || parsed.email || '').trim().toLowerCase();
+    const clientIp = getClientIp(req);
+    const userAgent = req.headers['user-agent'] || null;
+
+    // 1. Account Lockout & Brute-Force Circuit Breaker
+    const lockout = await checkAccountLockout(identifier, clientIp);
+    if (lockout.isLocked) {
+      return res.status(423).json({
+        success: false,
+        code: 'ACCOUNT_LOCKED',
+        message: `Account is temporarily locked due to 10 consecutive failed attempts. Please try again in ${lockout.remainingMinutes || 15} minutes.`,
+      });
+    }
 
     const user = await prisma.user.findFirst({
       where: {
@@ -180,29 +223,368 @@ export async function login(req: Request, res: Response, next: NextFunction) {
     });
 
     if (!user) {
+      const failed = await recordFailedLogin(identifier, clientIp, userAgent || undefined);
       return res.status(401).json({
         success: false,
         message: 'Invalid email/username or password.',
+        attemptsLeft: failed.attemptsLeft,
       });
     }
 
     const valid = await bcrypt.compare(parsed.password, user.passwordHash);
     if (!valid) {
+      const failed = await recordFailedLogin(identifier, clientIp, userAgent || undefined);
       return res.status(401).json({
         success: false,
         message: 'Invalid email/username or password.',
+        attemptsLeft: failed.attemptsLeft,
       });
     }
 
-    // Dual-token issuance
+    // Password valid -> reset lockout counters
+    await resetFailedLogins(user.id, clientIp);
+
+    // 2. Check Device Trust
+    const rawTrustToken = (req.cookies?.faisaa_trusted_device || req.headers['x-device-trust-token']) as string | undefined;
+    const isTrusted = await isDeviceTrusted(user.id, rawTrustToken);
+
+    // If device is NOT trusted, issue Time-Based OTP challenge
+    if (!isTrusted) {
+      const { otp } = await generateOtpForUser(user.id);
+
+      // Dispatch via Telegram if user has active bot configuration
+      let botToken: string | null = null;
+      if (user.telegramBotToken) botToken = decrypt(user.telegramBotToken);
+      if (!botToken) botToken = process.env.TELEGRAM_BOT_TOKEN || null;
+
+      if (botToken && user.telegramChatId) {
+        await sendTelegramMessageRaw(
+          botToken,
+          user.telegramChatId,
+          `🔐 *Faisaa Security: Login Verification Code*\n\n` +
+            `Hello *${user.firstName}*,\n\n` +
+            `Your one-time authentication code is: \`${otp}\`\n\n` +
+            `• *IP Address:* \`${clientIp}\`\n` +
+            `• *Device:* ${getDeviceInfo(userAgent)}\n` +
+            `• *Expires in:* 5 minutes\n\n` +
+            `If you did not initiate this login, please secure your account immediately.`
+        );
+      }
+
+      // Record security notification
+      await prisma.notification.create({
+        data: {
+          userId: user.id,
+          title: '🔐 Login One-Time Code Generated',
+          message: `Sign-in verification code: ${otp}. Valid for 5 minutes.`,
+          type: 'SECURITY',
+          severity: 'INFO',
+        },
+      });
+
+      await logSecurityEvent({
+        userId: user.id,
+        action: 'OTP_CHALLENGE_ISSUED',
+        ipAddress: clientIp,
+        userAgent,
+        metadata: { identifier },
+      });
+
+      return res.json({
+        success: true,
+        requiresOtp: true,
+        userId: user.id,
+        message: 'A 6-digit one-time code was generated. Please enter it to complete sign-in.',
+        simulationOtp: process.env.NODE_ENV !== 'production' ? otp : undefined,
+      });
+    }
+
+    // 3. Trusted device: issue session immediately
     const accessToken = createAccessToken(user.id);
-    const refreshToken = await createRefreshToken(user.id);
+    const refreshToken = await createRefreshToken(user.id, {
+      userAgent,
+      ipAddress: clientIp,
+      deviceInfo: getDeviceInfo(userAgent),
+    });
     setAuthCookies(res, accessToken, refreshToken);
+
+    await logSecurityEvent({
+      userId: user.id,
+      action: 'LOGIN_SUCCESS',
+      ipAddress: clientIp,
+      userAgent,
+      metadata: { deviceTrusted: true },
+    });
 
     res.json({
       success: true,
       token: accessToken,
       user: sanitizeUser(user),
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * Verify One-Time Code & Complete Login
+ * Allows trusting device/browser for N days (default 30 days)
+ */
+export async function verifyLoginOtp(req: Request, res: Response, next: NextFunction) {
+  try {
+    const { userId, otp, trustDevice, trustDays } = req.body;
+    if (!userId || !otp) {
+      return res.status(400).json({
+        success: false,
+        message: 'User ID and 6-digit OTP code are required.',
+      });
+    }
+
+    const clientIp = getClientIp(req);
+    const userAgent = req.headers['user-agent'] || null;
+
+    const isValid = await verifyOtpForUser(userId, String(otp).trim());
+    if (!isValid) {
+      await logSecurityEvent({
+        userId,
+        action: 'OTP_VERIFICATION_FAILED',
+        ipAddress: clientIp,
+        userAgent,
+      });
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid or expired one-time verification code.',
+      });
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found.',
+      });
+    }
+
+    // Trust device if requested
+    let trustedToken: string | null = null;
+    if (trustDevice) {
+      const days = Number(trustDays) > 0 ? Number(trustDays) : 30;
+      trustedToken = await createTrustedDevice(userId, userAgent || undefined, clientIp, days);
+      setTrustedDeviceCookie(res, trustedToken, days);
+    }
+
+    const accessToken = createAccessToken(user.id);
+    const refreshToken = await createRefreshToken(user.id, {
+      userAgent,
+      ipAddress: clientIp,
+      deviceInfo: getDeviceInfo(userAgent),
+    });
+    setAuthCookies(res, accessToken, refreshToken);
+
+    await logSecurityEvent({
+      userId: user.id,
+      action: 'LOGIN_SUCCESS_OTP',
+      ipAddress: clientIp,
+      userAgent,
+      metadata: { trustedDevice: Boolean(trustDevice) },
+    });
+
+    res.json({
+      success: true,
+      token: accessToken,
+      trustedDeviceToken: trustedToken,
+      user: sanitizeUser(user),
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * Step-Up Authentication (Re-enter password for high-risk actions)
+ * Returns a 5-minute cryptographic step-up token
+ */
+export async function stepUpVerify(req: Request, res: Response, next: NextFunction) {
+  try {
+    const userId = req.user!.id;
+    const { password } = req.body;
+
+    if (!password || typeof password !== 'string') {
+      return res.status(400).json({
+        success: false,
+        message: 'Current password is required for step-up verification.',
+      });
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { passwordHash: true },
+    });
+
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found.' });
+    }
+
+    const valid = await bcrypt.compare(password, user.passwordHash);
+    const clientIp = getClientIp(req);
+    const userAgent = req.headers['user-agent'] || null;
+
+    if (!valid) {
+      await logSecurityEvent({
+        userId,
+        action: 'STEP_UP_FAILED',
+        ipAddress: clientIp,
+        userAgent,
+      });
+      return res.status(401).json({
+        success: false,
+        message: 'Incorrect password confirmation.',
+      });
+    }
+
+    const stepUpToken = generateStepUpToken(userId);
+
+    await logSecurityEvent({
+      userId,
+      action: 'STEP_UP_VERIFIED',
+      ipAddress: clientIp,
+      userAgent,
+    });
+
+    res.json({
+      success: true,
+      stepUpToken,
+      expiresInSeconds: 300,
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * List active sessions for the authenticated user
+ */
+export async function getSessions(req: Request, res: Response, next: NextFunction) {
+  try {
+    const userId = req.user!.id;
+    const currentRawRefreshToken = (req.cookies?.faisaa_refresh_token || req.body?.refreshToken) as string | undefined;
+    const currentHash = currentRawRefreshToken ? hashToken(currentRawRefreshToken) : null;
+
+    const sessions = await prisma.refreshToken.findMany({
+      where: {
+        userId,
+        revokedAt: null,
+        expiresAt: { gt: new Date() },
+      },
+      orderBy: { lastActiveAt: 'desc' },
+      select: {
+        id: true,
+        tokenHash: true,
+        deviceInfo: true,
+        userAgent: true,
+        ipAddress: true,
+        lastActiveAt: true,
+        createdAt: true,
+        expiresAt: true,
+      },
+    });
+
+    const formatted = sessions.map((s) => ({
+      id: s.id,
+      deviceInfo: s.deviceInfo || 'Web Browser',
+      userAgent: s.userAgent,
+      ipAddress: s.ipAddress || '127.0.0.1',
+      lastActiveAt: s.lastActiveAt,
+      createdAt: s.createdAt,
+      expiresAt: s.expiresAt,
+      isCurrent: currentHash ? s.tokenHash === currentHash : false,
+    }));
+
+    res.json({
+      success: true,
+      sessions: formatted,
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * Revoke a specific active session
+ */
+export async function revokeSession(req: Request, res: Response, next: NextFunction) {
+  try {
+    const userId = req.user!.id;
+    const id = req.params.id as string;
+
+    const existing = await prisma.refreshToken.findFirst({
+      where: { id, userId },
+    });
+
+    if (!existing) {
+      return res.status(404).json({ success: false, message: 'Session not found.' });
+    }
+
+    await prisma.refreshToken.update({
+      where: { id },
+      data: { revokedAt: new Date() },
+    });
+
+    await logSecurityEvent({
+      userId,
+      action: 'SESSION_REVOKED',
+      ipAddress: getClientIp(req),
+      userAgent: req.headers['user-agent'],
+      metadata: { sessionId: id },
+    });
+
+    res.json({
+      success: true,
+      message: 'Session revoked successfully.',
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * Log out of all other active sessions except the current one
+ */
+export async function revokeOtherSessions(req: Request, res: Response, next: NextFunction) {
+  try {
+    const userId = req.user!.id;
+    const currentRawRefreshToken = (req.cookies?.faisaa_refresh_token || req.body?.refreshToken) as string | undefined;
+    const currentHash = currentRawRefreshToken ? hashToken(currentRawRefreshToken) : null;
+
+    const whereClause: { userId: string; revokedAt: null; tokenHash?: { not: string } } = {
+      userId,
+      revokedAt: null,
+    };
+
+    if (currentHash) {
+      whereClause.tokenHash = { not: currentHash };
+    }
+
+    const { count } = await prisma.refreshToken.updateMany({
+      where: whereClause,
+      data: { revokedAt: new Date() },
+    });
+
+    await logSecurityEvent({
+      userId,
+      action: 'ALL_OTHER_SESSIONS_REVOKED',
+      ipAddress: getClientIp(req),
+      userAgent: req.headers['user-agent'],
+      metadata: { revokedCount: count },
+    });
+
+    res.json({
+      success: true,
+      message: `Successfully logged out of ${count} other active session${count === 1 ? '' : 's'}.`,
+      revokedCount: count,
     });
   } catch (err) {
     next(err);
@@ -264,11 +646,14 @@ export async function refreshSession(req: Request, res: Response, next: NextFunc
       });
     }
 
-    // Rotate: Revoke current token and generate new pair
+    // Rotate: Revoke current token and generate new pair, carrying over device info
     const newRawRefreshToken = generateSecureToken(40);
     const newTokenHash = hashToken(newRawRefreshToken);
     const newAccessToken = createAccessToken(storedToken.userId);
     const newExpiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+
+    const clientIp = getClientIp(req);
+    const userAgent = req.headers['user-agent'] || storedToken.userAgent;
 
     await prisma.$transaction([
       prisma.refreshToken.update({
@@ -283,6 +668,10 @@ export async function refreshSession(req: Request, res: Response, next: NextFunc
           tokenHash: newTokenHash,
           userId: storedToken.userId,
           expiresAt: newExpiresAt,
+          userAgent,
+          ipAddress: clientIp,
+          deviceInfo: storedToken.deviceInfo || getDeviceInfo(userAgent),
+          lastActiveAt: new Date(),
         },
       }),
     ]);
@@ -340,6 +729,15 @@ export async function updateProfile(req: Request, res: Response, next: NextFunct
     const currentUser = req.user!;
 
     if (parsed.email && parsed.email.toLowerCase() !== currentUser.email) {
+      const stepUpToken = req.headers['x-step-up-token'] as string | undefined;
+      if (!stepUpToken || !verifyStepUpToken(stepUpToken, currentUser.id)) {
+        return res.status(403).json({
+          success: false,
+          code: 'STEP_UP_REQUIRED',
+          message: 'Step-up authentication required to alter your registered email address.',
+        });
+      }
+
       const emailTaken = await prisma.user.findUnique({
         where: { email: parsed.email.toLowerCase() },
       });
@@ -397,7 +795,15 @@ export async function updateProfile(req: Request, res: Response, next: NextFunct
         // User submitted back the masked token; preserve existing encrypted token
         delete dataToUpdate.telegramBotToken;
       } else {
-        // New token provided: encrypt prior to database storage
+        // New token provided: enforce step-up authentication
+        const stepUpToken = req.headers['x-step-up-token'] as string | undefined;
+        if (!stepUpToken || !verifyStepUpToken(stepUpToken, currentUser.id)) {
+          return res.status(403).json({
+            success: false,
+            code: 'STEP_UP_REQUIRED',
+            message: 'Step-up authentication required to connect or update Telegram bot credentials.',
+          });
+        }
         dataToUpdate.telegramBotToken = encrypt(rawToken);
       }
     }
@@ -427,6 +833,8 @@ export async function updateProfile(req: Request, res: Response, next: NextFunct
         createdAt: true,
       },
     });
+
+    await invalidateUserProfile(currentUser.id);
 
     res.json({
       success: true,
@@ -494,32 +902,44 @@ export async function deleteAccount(req: Request, res: Response, next: NextFunct
   try {
     const userId = req.user!.id;
     const { password } = req.body;
+    const stepUpToken = req.headers['x-step-up-token'] as string | undefined;
+    const isStepUpValid = Boolean(stepUpToken && verifyStepUpToken(stepUpToken, userId));
 
-    if (!password || typeof password !== 'string') {
-      return res.status(400).json({
-        success: false,
-        message: 'Please provide your account password to confirm deletion.',
+    if (!isStepUpValid) {
+      if (!password || typeof password !== 'string') {
+        return res.status(403).json({
+          success: false,
+          code: 'STEP_UP_REQUIRED',
+          message: 'Please provide your account password or step-up authentication to confirm account deletion.',
+        });
+      }
+
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
       });
+
+      if (!user) {
+        return res.status(404).json({
+          success: false,
+          message: 'User account not found.',
+        });
+      }
+
+      const isMatch = await bcrypt.compare(password, user.passwordHash);
+      if (!isMatch) {
+        return res.status(400).json({
+          success: false,
+          message: 'Incorrect password. Account deletion was not performed.',
+        });
+      }
     }
 
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
+    await logSecurityEvent({
+      userId,
+      action: 'ACCOUNT_DELETED',
+      ipAddress: getClientIp(req),
+      userAgent: req.headers['user-agent'],
     });
-
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: 'User account not found.',
-      });
-    }
-
-    const isMatch = await bcrypt.compare(password, user.passwordHash);
-    if (!isMatch) {
-      return res.status(400).json({
-        success: false,
-        message: 'Incorrect password. Account deletion was not performed.',
-      });
-    }
 
     // Cascade delete: Prisma and database cascade all related accounts, transactions, budgets, bills, loans, etc.
     await prisma.user.delete({
@@ -671,7 +1091,7 @@ export async function confirmPasswordReset(req: Request, res: Response, next: Ne
 
     if (user.passwordResetCode !== code) {
       // Invalidate code after 5 failed guesses to prevent brute-forcing
-      const currentAttempts = (user as any)._resetAttempts || 0;
+      const currentAttempts = (user as unknown as { _resetAttempts?: number })._resetAttempts || 0;
       if (currentAttempts >= 4) {
         await prisma.user.update({
           where: { id: user.id },

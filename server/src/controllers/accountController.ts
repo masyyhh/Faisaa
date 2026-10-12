@@ -2,6 +2,12 @@ import type { Request, Response, NextFunction } from 'express';
 import prisma from '../prisma/client.js';
 import { accountSchema, transferSchema } from '../validators/schemas.js';
 import { toMVR, toUSD } from '../utils/currency.js';
+import { encrypt, decrypt } from '../utils/crypto.js';
+
+function sanitizeAccount<T extends Record<string, unknown>>(account: T): Omit<T, 'encryptedAccountNumber'> {
+  const { encryptedAccountNumber: _enc, ...safe } = account;
+  return safe;
+}
 
 export async function getAccounts(req: Request, res: Response, next: NextFunction) {
   try {
@@ -41,7 +47,7 @@ export async function getAccounts(req: Request, res: Response, next: NextFunctio
       const monthlyExpenses = acc.transactions
         .filter((t) => t.type === 'EXPENSE')
         .reduce((sum, t) => sum + t.amount, 0);
-      const { transactions, ...rest } = acc;
+      const { transactions, encryptedAccountNumber: _enc, ...rest } = acc;
 
       const balanceInMvr = toMVR(acc.balance, acc.currency, rate);
       const balanceInUsd = toUSD(acc.balance, acc.currency, rate);
@@ -79,8 +85,6 @@ export async function getAccounts(req: Request, res: Response, next: NextFunctio
         totalAssetsUsd: toUSD(totalAssetsMvr, 'MVR', rate),
         totalLiabilities: Number(totalLiabilitiesMvr.toFixed(2)),
         totalLiabilitiesUsd: toUSD(totalLiabilitiesMvr, 'MVR', rate),
-        netWorth: Number((totalAssetsMvr - totalLiabilitiesMvr).toFixed(2)),
-        netWorthUsd: toUSD(totalAssetsMvr - totalLiabilitiesMvr, 'MVR', rate),
       },
     });
   } catch (err) {
@@ -151,10 +155,12 @@ export async function getAccountById(req: Request, res: Response, next: NextFunc
       });
     }
 
+    const { encryptedAccountNumber: _enc, ...safeAccount } = account;
+
     res.json({
       success: true,
       account: {
-        ...account,
+        ...safeAccount,
         balanceInMvr: toMVR(account.balance, account.currency, rate),
         balanceInUsd: toUSD(account.balance, account.currency, rate),
         totalIncome,
@@ -175,8 +181,17 @@ export async function createAccount(req: Request, res: Response, next: NextFunct
   try {
     const parsed = accountSchema.parse(req.body);
     const userId = req.user!.id;
-    // PCI-DSS / Financial Data Protection: Strip any raw account number, retaining only sanitized lastFour
-    const { accountNumber: _rawNum, ...accountData } = parsed;
+    const { accountNumber: rawNum, ...accountData } = parsed;
+
+    let lastFour: string | null = accountData.lastFour || null;
+    let encryptedAccountNumber: string | null = null;
+    if (rawNum && typeof rawNum === 'string') {
+      const cleanNum = rawNum.trim();
+      if (cleanNum.length >= 4) {
+        lastFour = cleanNum.slice(-4);
+      }
+      encryptedAccountNumber = encrypt(cleanNum);
+    }
 
     const existingCount = await prisma.account.count({ where: { userId } });
     const shouldBeDefault = parsed.isDefault || existingCount === 0;
@@ -192,6 +207,8 @@ export async function createAccount(req: Request, res: Response, next: NextFunct
       return tx.account.create({
         data: {
           ...accountData,
+          lastFour,
+          encryptedAccountNumber,
           isDefault: shouldBeDefault,
           currency: parsed.currency || 'MVR',
           initialBalance: parsed.balance,
@@ -202,7 +219,7 @@ export async function createAccount(req: Request, res: Response, next: NextFunct
 
     res.status(201).json({
       success: true,
-      account,
+      account: sanitizeAccount(account),
     });
   } catch (err) {
     next(err);
@@ -225,7 +242,17 @@ export async function updateAccount(req: Request, res: Response, next: NextFunct
     }
 
     const parsed = accountSchema.partial().parse(req.body);
-    const { accountNumber: _rawNum, ...accountData } = parsed;
+    const { accountNumber: rawNum, ...accountData } = parsed;
+
+    let lastFour = accountData.lastFour;
+    let encryptedAccountNumber: string | undefined = undefined;
+    if (rawNum && typeof rawNum === 'string') {
+      const cleanNum = rawNum.trim();
+      if (cleanNum.length >= 4) {
+        lastFour = cleanNum.slice(-4);
+      }
+      encryptedAccountNumber = encrypt(cleanNum) || undefined;
+    }
 
     const updated = await prisma.$transaction(async (tx) => {
       if (accountData.isDefault) {
@@ -237,13 +264,48 @@ export async function updateAccount(req: Request, res: Response, next: NextFunct
 
       return tx.account.update({
         where: { id },
-        data: accountData,
+        data: {
+          ...accountData,
+          ...(lastFour !== undefined && { lastFour }),
+          ...(encryptedAccountNumber !== undefined && { encryptedAccountNumber }),
+        },
       });
     });
 
     res.json({
       success: true,
-      account: updated,
+      account: sanitizeAccount(updated),
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * Decrypt and reveal the full account number on-demand.
+ * Enforced with Step-Up re-authentication.
+ */
+export async function revealAccountNumber(req: Request, res: Response, next: NextFunction) {
+  try {
+    const id = req.params.id as string;
+    const userId = req.user!.id;
+    const account = await prisma.account.findFirst({
+      where: { id, userId },
+      select: { id: true, name: true, lastFour: true, encryptedAccountNumber: true },
+    });
+
+    if (!account) {
+      return res.status(404).json({
+        success: false,
+        message: 'Account not found.',
+      });
+    }
+
+    const decrypted = account.encryptedAccountNumber ? decrypt(account.encryptedAccountNumber) : null;
+    res.json({
+      success: true,
+      lastFour: account.lastFour,
+      accountNumber: decrypted || (account.lastFour ? `•••• •••• •••• ${account.lastFour}` : null),
     });
   } catch (err) {
     next(err);

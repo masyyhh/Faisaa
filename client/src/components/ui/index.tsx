@@ -1,4 +1,13 @@
-import React, { type ReactNode, type ButtonHTMLAttributes } from 'react';
+import React, {
+  type ReactNode,
+  type ButtonHTMLAttributes,
+  type InputHTMLAttributes,
+  type SelectHTMLAttributes,
+  type TextareaHTMLAttributes,
+  type TableHTMLAttributes,
+  type ThHTMLAttributes,
+  type TdHTMLAttributes,
+} from 'react';
 import { X, AlertTriangle, Loader2, Inbox, type LucideIcon } from 'lucide-react';
 
 export interface CardProps {
@@ -39,14 +48,15 @@ export function Button({
 }: ButtonProps) {
   const variants = {
     primary:
-      'bg-indigo-600 hover:bg-indigo-500 text-white border border-indigo-500/40 shadow-xs shadow-indigo-600/20',
+      'bg-indigo-600 hover:bg-indigo-500 text-white border border-indigo-500/40 shadow-xs shadow-indigo-600/20 focus-visible:ring-2 focus-visible:ring-indigo-500/50',
     secondary:
-      'bg-white/[0.04] hover:bg-white/[0.08] active:bg-white/[0.1] text-zinc-200 border border-white/[0.08]',
+      'bg-white/[0.04] hover:bg-white/[0.08] active:bg-white/[0.1] text-zinc-200 border border-white/[0.08] focus-visible:ring-2 focus-visible:ring-zinc-400/40',
     emerald:
-      'bg-emerald-600 hover:bg-emerald-500 text-white border border-emerald-500/40 shadow-xs shadow-emerald-600/20',
+      'bg-emerald-600 hover:bg-emerald-500 text-white border border-emerald-500/40 shadow-xs shadow-emerald-600/20 focus-visible:ring-2 focus-visible:ring-emerald-500/50',
     danger:
-      'bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20',
-    ghost: 'hover:bg-white/[0.05] text-zinc-400 hover:text-white',
+      'bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 focus-visible:ring-2 focus-visible:ring-rose-500/50',
+    ghost:
+      'hover:bg-white/[0.05] text-zinc-400 hover:text-white focus-visible:ring-2 focus-visible:ring-zinc-400/30',
   };
 
   const sizes = {
@@ -60,7 +70,7 @@ export function Button({
       type={type}
       disabled={disabled || loading}
       onClick={onClick}
-      className={`inline-flex items-center justify-center font-medium transition-all duration-150 active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none cursor-pointer ${variants[variant] || variants.primary} ${sizes[size] || sizes.md} ${className}`}
+      className={`inline-flex items-center justify-center font-medium transition-all duration-150 active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none cursor-pointer outline-none ${variants[variant] || variants.primary} ${sizes[size] || sizes.md} ${className}`}
       {...props}
     >
       {loading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
@@ -132,12 +142,12 @@ export function Modal({ isOpen, onClose, title, subtitle, children, maxWidth = '
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/75 backdrop-blur-xs"
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/75 backdrop-blur-xs animate-fade-in"
       role="dialog"
       aria-modal="true"
     >
       <div
-        className={`faisaa-card finora-card w-full ${maxWidth} bg-[#111218] border border-white/[0.08] rounded-t-2xl sm:rounded-2xl shadow-2xl overflow-hidden max-h-[92vh] flex flex-col`}
+        className={`faisaa-card finora-card w-full ${maxWidth} bg-[#111218] border border-white/[0.08] rounded-t-2xl sm:rounded-2xl shadow-2xl overflow-hidden max-h-[92vh] flex flex-col animate-scale-in`}
       >
         <div className="w-10 h-1 bg-white/20 rounded-full mx-auto sm:hidden mt-2.5 mb-0.5" />
         <div className="flex items-center justify-between px-5 py-3.5 sm:py-4 border-b border-white/[0.06]">
@@ -229,6 +239,206 @@ export function LoadingState({ label = 'Loading...' }: { label?: string }) {
   );
 }
 
+/* =========================================================================
+   UNIFIED FORM CONTROLS & TABLES (DESIGN SYSTEM)
+   ========================================================================= */
+
+export interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
+  label?: string;
+  error?: string;
+  helperText?: string;
+  leftIcon?: ReactNode;
+  rightIcon?: ReactNode;
+}
+
+export function Input({
+  label,
+  error,
+  helperText,
+  leftIcon,
+  rightIcon,
+  className = '',
+  id,
+  ...props
+}: InputProps) {
+  const inputId = id || props.name || Math.random().toString(36).substring(2, 9);
+
+  return (
+    <div className="w-full space-y-1.5">
+      {label && (
+        <label htmlFor={inputId} className="block text-xs font-medium text-zinc-300">
+          {label}
+        </label>
+      )}
+      <div className="relative flex items-center">
+        {leftIcon && (
+          <div className="absolute left-3 text-zinc-500 pointer-events-none flex items-center justify-center">
+            {leftIcon}
+          </div>
+        )}
+        <input
+          id={inputId}
+          className={`w-full px-3.5 py-2.5 rounded-xl bg-white/[0.04] border text-xs sm:text-sm text-white placeholder-zinc-500 transition-colors outline-none ${
+            leftIcon ? 'pl-9' : ''
+          } ${rightIcon ? 'pr-9' : ''} ${
+            error
+              ? 'border-rose-500/60 focus:border-rose-500 focus:ring-1 focus:ring-rose-500/40'
+              : 'border-white/[0.08] focus:border-indigo-500/70 focus:ring-1 focus:ring-indigo-500/40'
+          } ${className}`}
+          {...props}
+        />
+        {rightIcon && (
+          <div className="absolute right-3 text-zinc-500 pointer-events-none flex items-center justify-center">
+            {rightIcon}
+          </div>
+        )}
+      </div>
+      {error ? (
+        <p className="text-[11px] text-rose-400">{error}</p>
+      ) : helperText ? (
+        <p className="text-[11px] text-zinc-500">{helperText}</p>
+      ) : null}
+    </div>
+  );
+}
+
+export interface SelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
+  label?: string;
+  error?: string;
+  helperText?: string;
+}
+
+export function Select({
+  label,
+  error,
+  helperText,
+  children,
+  className = '',
+  id,
+  ...props
+}: SelectProps) {
+  const selectId = id || props.name || Math.random().toString(36).substring(2, 9);
+
+  return (
+    <div className="w-full space-y-1.5">
+      {label && (
+        <label htmlFor={selectId} className="block text-xs font-medium text-zinc-300">
+          {label}
+        </label>
+      )}
+      <select
+        id={selectId}
+        className={`w-full px-3.5 py-2.5 rounded-xl bg-[#141620] border text-xs sm:text-sm text-white transition-colors outline-none cursor-pointer ${
+          error
+            ? 'border-rose-500/60 focus:border-rose-500 focus:ring-1 focus:ring-rose-500/40'
+            : 'border-white/[0.08] focus:border-indigo-500/70 focus:ring-1 focus:ring-indigo-500/40'
+        } ${className}`}
+        {...props}
+      >
+        {children}
+      </select>
+      {error ? (
+        <p className="text-[11px] text-rose-400">{error}</p>
+      ) : helperText ? (
+        <p className="text-[11px] text-zinc-500">{helperText}</p>
+      ) : null}
+    </div>
+  );
+}
+
+export interface TextareaProps extends TextareaHTMLAttributes<HTMLTextAreaElement> {
+  label?: string;
+  error?: string;
+  helperText?: string;
+}
+
+export function Textarea({
+  label,
+  error,
+  helperText,
+  className = '',
+  id,
+  rows = 3,
+  ...props
+}: TextareaProps) {
+  const textareaId = id || props.name || Math.random().toString(36).substring(2, 9);
+
+  return (
+    <div className="w-full space-y-1.5">
+      {label && (
+        <label htmlFor={textareaId} className="block text-xs font-medium text-zinc-300">
+          {label}
+        </label>
+      )}
+      <textarea
+        id={textareaId}
+        rows={rows}
+        className={`w-full px-3.5 py-2.5 rounded-xl bg-white/[0.04] border text-xs sm:text-sm text-white placeholder-zinc-500 transition-colors outline-none resize-none ${
+          error
+            ? 'border-rose-500/60 focus:border-rose-500 focus:ring-1 focus:ring-rose-500/40'
+            : 'border-white/[0.08] focus:border-indigo-500/70 focus:ring-1 focus:ring-indigo-500/40'
+        } ${className}`}
+        {...props}
+      />
+      {error ? (
+        <p className="text-[11px] text-rose-400">{error}</p>
+      ) : helperText ? (
+        <p className="text-[11px] text-zinc-500">{helperText}</p>
+      ) : null}
+    </div>
+  );
+}
+
+export function Table({ children, className = '', ...props }: TableHTMLAttributes<HTMLTableElement>) {
+  return (
+    <div className="w-full overflow-x-auto no-scrollbar">
+      <table className={`w-full text-left border-collapse text-xs sm:text-sm ${className}`} {...props}>
+        {children}
+      </table>
+    </div>
+  );
+}
+
+export function TableHeader({ children, className = '', ...props }: React.HTMLAttributes<HTMLTableSectionElement>) {
+  return (
+    <thead className={`border-b border-white/[0.06] text-zinc-400 text-xs font-medium ${className}`} {...props}>
+      {children}
+    </thead>
+  );
+}
+
+export function TableBody({ children, className = '', ...props }: React.HTMLAttributes<HTMLTableSectionElement>) {
+  return (
+    <tbody className={`divide-y divide-white/[0.04] ${className}`} {...props}>
+      {children}
+    </tbody>
+  );
+}
+
+export function TableRow({ children, className = '', ...props }: React.HTMLAttributes<HTMLTableRowElement>) {
+  return (
+    <tr className={`hover:bg-white/[0.02] transition-colors ${className}`} {...props}>
+      {children}
+    </tr>
+  );
+}
+
+export function TableHead({ children, className = '', ...props }: ThHTMLAttributes<HTMLTableCellElement>) {
+  return (
+    <th className={`px-4 py-3 font-semibold uppercase tracking-wider text-[11px] text-zinc-400 ${className}`} {...props}>
+      {children}
+    </th>
+  );
+}
+
+export function TableCell({ children, className = '', ...props }: TdHTMLAttributes<HTMLTableCellElement>) {
+  return (
+    <td className={`px-4 py-3 text-zinc-200 tabular-nums ${className}`} {...props}>
+      {children}
+    </td>
+  );
+}
+
 export {
   Skeleton,
   SkeletonCard,
@@ -237,3 +447,4 @@ export {
   SkeletonChart,
   SkeletonList,
 } from './Skeleton';
+

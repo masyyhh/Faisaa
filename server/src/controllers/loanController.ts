@@ -44,12 +44,15 @@ export async function getLoans(req: Request, res: Response, next: NextFunction):
     });
 
     if (legacyAccounts.length > 0) {
+      const existingLoans = await prisma.loan.findMany({
+        where: { accountId: { in: legacyAccounts.map((a) => a.id) }, userId },
+        select: { accountId: true },
+      });
+      const existingAccountIds = new Set(existingLoans.map((l) => l.accountId).filter(Boolean));
+
+      const loansToCreate = [];
       for (const acc of legacyAccounts) {
-        // Prevent concurrent race-condition duplicate creation
-        const existingLoan = await prisma.loan.findFirst({
-          where: { accountId: acc.id, userId },
-        });
-        if (existingLoan) continue;
+        if (existingAccountIds.has(acc.id)) continue;
         const absBal = Math.abs(acc.balance);
         const absInit = Math.abs(acc.initialBalance);
         const originalAmount = Math.max(absInit, absBal, 1);
@@ -67,24 +70,26 @@ export async function getLoans(req: Request, res: Response, next: NextFunction):
           category = 'ISLAMIC_FINANCING';
         }
 
-        await prisma.loan.create({
-          data: {
-            userId,
-            name: acc.name,
-            type: acc.balance <= 0 ? 'OWED_BY_ME' : 'OWED_TO_ME',
-            category,
-            lender: acc.institution || null,
-            originalAmount,
-            remainingBalance,
-            interestRate: 0,
-            minimumPayment: 0,
-            currency: acc.currency || 'MVR',
-            accountId: acc.id,
-            color: acc.color || '#EF4444',
-            notes: acc.notes || null,
-            status: remainingBalance === 0 ? 'PAID_OFF' : 'ACTIVE',
-          },
+        loansToCreate.push({
+          userId,
+          name: acc.name,
+          type: acc.balance <= 0 ? 'OWED_BY_ME' : 'OWED_TO_ME',
+          category,
+          lender: acc.institution || null,
+          originalAmount,
+          remainingBalance,
+          interestRate: 0,
+          minimumPayment: 0,
+          currency: acc.currency || 'MVR',
+          accountId: acc.id,
+          color: acc.color || '#EF4444',
+          notes: acc.notes || null,
+          status: remainingBalance === 0 ? 'PAID_OFF' : 'ACTIVE',
         });
+      }
+
+      if (loansToCreate.length > 0) {
+        await prisma.loan.createMany({ data: loansToCreate });
       }
     }
 

@@ -1,8 +1,14 @@
 import { Router } from 'express';
 import { protect } from '../middleware/auth.js';
+import { requireStepUpAuth } from '../services/securityService.js';
 import {
   register,
   login,
+  verifyLoginOtp,
+  stepUpVerify,
+  getSessions,
+  revokeSession,
+  revokeOtherSessions,
   refreshSession,
   getMe,
   logout,
@@ -20,6 +26,7 @@ import {
   setDefaultAccount,
   deleteAccount,
   transferBetweenAccounts,
+  revealAccountNumber,
 } from '../controllers/accountController.js';
 import {
   getTransactions,
@@ -75,7 +82,6 @@ import {
   getDashboardSummary,
   getCashflowAnalytics,
   getCategoryAnalytics,
-  getNetWorthAnalytics,
   getBudgetAnalytics,
 } from '../controllers/analyticsController.js';
 import {
@@ -139,6 +145,11 @@ router.get('/health', async (_req, res) => {
 // Authentication Routes
 router.post('/auth/register', register);
 router.post('/auth/login', login);
+router.post('/auth/verify-otp', verifyLoginOtp);
+router.post('/auth/step-up', protect, stepUpVerify);
+router.get('/auth/sessions', protect, getSessions);
+router.delete('/auth/sessions/:id', protect, revokeSession);
+router.post('/auth/sessions/revoke-others', protect, revokeOtherSessions);
 router.post('/auth/forgot-password', requestPasswordReset);
 router.post('/auth/reset-password', confirmPasswordReset);
 router.post('/auth/refresh', refreshSession);
@@ -146,16 +157,17 @@ router.get('/auth/me', protect, getMe);
 router.post('/auth/logout', logout);
 router.put('/auth/profile', protect, updateProfile);
 router.put('/auth/password', protect, updatePassword);
-router.delete('/auth/account', protect, deleteUserAccount);
+router.delete('/auth/account', protect, requireStepUpAuth, deleteUserAccount);
 
 // Accounts Routes
 router.get('/accounts', protect, getAccounts);
 router.post('/accounts', protect, createAccount);
 router.post('/accounts/transfer', protect, transferBetweenAccounts);
 router.get('/accounts/:id', protect, getAccountById);
+router.post('/accounts/:id/reveal-number', protect, requireStepUpAuth, revealAccountNumber);
 router.put('/accounts/:id', protect, updateAccount);
 router.patch('/accounts/:id/default', protect, setDefaultAccount);
-router.delete('/accounts/:id', protect, deleteAccount);
+router.delete('/accounts/:id', protect, requireStepUpAuth, deleteAccount);
 
 // Currency Exchange ($ ↔ MVR) & Exchange Rate Tracker Routes
 router.get('/exchange', protect, getExchangeOverview);
@@ -217,12 +229,11 @@ router.post('/loans/:id/pay', protect, payLoanInstallment);
 router.get('/analytics/dashboard', protect, getDashboardSummary);
 router.get('/analytics/cashflow', protect, getCashflowAnalytics);
 router.get('/analytics/categories', protect, getCategoryAnalytics);
-router.get('/analytics/net-worth', protect, getNetWorthAnalytics);
 router.get('/analytics/budgets', protect, getBudgetAnalytics);
 
 // Two-Way Telegram Expense Bot Routes
 router.post('/telegram/webhook', handleWebhook);
-router.post('/telegram/setup-webhook', protect, setupWebhook);
+router.post('/telegram/setup-webhook', protect, requireStepUpAuth, setupWebhook);
 router.post('/telegram/generate-link-code', protect, generateLinkingCode);
 router.get('/telegram/status', protect, getBotStatus);
 router.post('/telegram/simulate', protect, simulateCommand);
@@ -236,8 +247,8 @@ router.put('/notifications/:id/read', protect, markNotificationRead);
 router.delete('/notifications/:id', protect, deleteNotification);
 
 // Data Import / Export Routes
-router.get('/data/export/csv', protect, exportCSV);
-router.get('/data/export/json', protect, exportJSONBackup);
+router.get('/data/export/csv', protect, requireStepUpAuth, exportCSV);
+router.get('/data/export/json', protect, requireStepUpAuth, exportJSONBackup);
 router.post('/data/import/csv', protect, importCSVTransactions);
 router.post('/data/import/json', protect, restoreJSONBackup);
 

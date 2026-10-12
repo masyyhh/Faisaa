@@ -18,10 +18,17 @@ import {
   Sparkles,
   Key,
   ShieldCheck,
+  Smartphone,
+  Laptop,
+  Globe,
+  LogOut,
+  RefreshCw,
+  ShieldAlert,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import api, { Account, Category, Transaction } from '../services/api';
+import api, { Account, Category, Transaction, ActiveSession, getStepUpToken } from '../services/api';
 import { Card, Button, Badge, Modal } from '../components/ui';
+import { StepUpModal } from '../components/StepUpModal';
 import { DynamicIcon } from '../utils/formatters';
 
 export default function SettingsPage() {
@@ -117,6 +124,85 @@ export default function SettingsPage() {
   const [csvErrors, setCsvErrors] = useState<string[]>([]);
   const [importingCsv, setImportingCsv] = useState(false);
 
+  // Step-Up Authentication Modal State
+  const [stepUpModalOpen, setStepUpModalOpen] = useState(false);
+  const [stepUpDescription, setStepUpDescription] = useState('');
+  const [stepUpAction, setStepUpAction] = useState<((token: string) => Promise<void> | void) | null>(null);
+
+  const executeWithStepUp = (description: string, action: (token: string) => Promise<void> | void) => {
+    const existing = getStepUpToken();
+    if (existing) {
+      action(existing);
+    } else {
+      setStepUpDescription(description);
+      setStepUpAction(() => action);
+      setStepUpModalOpen(true);
+    }
+  };
+
+  // Active Sessions State
+  const [sessions, setSessions] = useState<ActiveSession[]>([]);
+  const [sessionsLoading, setSessionsLoading] = useState(false);
+  const [revokingSessionId, setRevokingSessionId] = useState<string | null>(null);
+  const [revokingOthers, setRevokingOthers] = useState(false);
+
+  const loadSessions = useCallback(async () => {
+    setSessionsLoading(true);
+    try {
+      const { data } = await api.get('/auth/sessions');
+      if (data.success) {
+        setSessions(data.sessions || []);
+      }
+    } catch {
+      // Non-fatal
+    } finally {
+      setSessionsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (activeTab === 'SECURITY') {
+      loadSessions();
+    }
+  }, [activeTab, loadSessions]);
+
+  const handleRevokeSession = async (sessionId: string) => {
+    setRevokingSessionId(sessionId);
+    try {
+      const { data } = await api.post(`/auth/sessions/revoke/${sessionId}`);
+      addToast(data.message || 'Session logged out.', 'success');
+      await loadSessions();
+    } catch (err: any) {
+      addToast(err.response?.data?.message || 'Failed to revoke session.', 'error');
+    } finally {
+      setRevokingSessionId(null);
+    }
+  };
+
+  const handleRevokeOtherSessions = async () => {
+    setRevokingOthers(true);
+    try {
+      const { data } = await api.post('/auth/sessions/revoke-others');
+      addToast(data.message || 'All other active sessions have been logged out.', 'success');
+      await loadSessions();
+    } catch (err: any) {
+      addToast(err.response?.data?.message || 'Failed to revoke other sessions.', 'error');
+    } finally {
+      setRevokingOthers(false);
+    }
+  };
+
+  const getDeviceIcon = (info: string) => {
+    const lower = info.toLowerCase();
+    if (lower.includes('iphone') || lower.includes('android') || lower.includes('mobile')) {
+      return <Smartphone className="w-4 h-4" />;
+    }
+    if (lower.includes('mac') || lower.includes('windows') || lower.includes('linux')) {
+      return <Laptop className="w-4 h-4" />;
+    }
+    return <Globe className="w-4 h-4" />;
+  };
+
   const loadData = useCallback(async () => {
     try {
       const [catRes, accRes, txRes] = await Promise.all([
@@ -138,21 +224,43 @@ export default function SettingsPage() {
 
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSavingProfile(true);
-    try {
-      await updateProfile({
-        ...profileForm,
-        username: profileForm.username?.trim() ? profileForm.username.trim().toLowerCase() : null,
-        currency: 'MVR',
-        secondaryCurrency: 'USD',
-        usdToMvrRate: Number(profileForm.usdToMvrRate) || 18.45,
-      });
-      triggerDataRefresh();
-      addToast('Profile, MVR/USD rate & preferences saved!', 'success');
-    } catch (err: any) {
-      addToast(err.response?.data?.message || 'Failed to update profile.', 'error');
-    } finally {
-      setSavingProfile(false);
+    const emailChanged = Boolean(
+      user?.email && profileForm.email.toLowerCase().trim() !== user.email.toLowerCase().trim()
+    );
+
+    const performSave = async () => {
+      setSavingProfile(true);
+      try {
+        await updateProfile({
+          ...profileForm,
+          username: profileForm.username?.trim() ? profileForm.username.trim().toLowerCase() : null,
+          currency: 'MVR',
+          secondaryCurrency: 'USD',
+          usdToMvrRate: Number(profileForm.usdToMvrRate) || 18.45,
+        });
+        triggerDataRefresh();
+        addToast('Profile, MVR/USD rate & preferences saved!', 'success');
+      } catch (err: any) {
+        if (err.response?.data?.code === 'STEP_UP_REQUIRED') {
+          executeWithStepUp(
+            'Confirm your password to authorize changing your account email address.',
+            performSave
+          );
+          return;
+        }
+        addToast(err.response?.data?.message || 'Failed to update profile.', 'error');
+      } finally {
+        setSavingProfile(false);
+      }
+    };
+
+    if (emailChanged) {
+      executeWithStepUp(
+        'Confirm your password to authorize changing your account email address.',
+        performSave
+      );
+    } else {
+      performSave();
     }
   };
 
@@ -199,18 +307,20 @@ export default function SettingsPage() {
     );
     if (!promptUrl) return;
 
-    setSettingUpWebhook(true);
-    try {
-      const { data } = await api.post('/telegram/setup-webhook', {
-        webhookUrl: promptUrl,
-        botToken: profileForm.telegramBotToken,
-      });
-      addToast(data.message || 'Telegram Webhook registered successfully!', 'success');
-    } catch (err: any) {
-      addToast(err.response?.data?.message || 'Failed to configure Telegram webhook.', 'error');
-    } finally {
-      setSettingUpWebhook(false);
-    }
+    executeWithStepUp('Confirm your password to configure Telegram Webhook integration.', async () => {
+      setSettingUpWebhook(true);
+      try {
+        const { data } = await api.post('/telegram/setup-webhook', {
+          webhookUrl: promptUrl,
+          botToken: profileForm.telegramBotToken,
+        });
+        addToast(data.message || 'Telegram Webhook registered successfully!', 'success');
+      } catch (err: any) {
+        addToast(err.response?.data?.message || 'Failed to configure Telegram webhook.', 'error');
+      } finally {
+        setSettingUpWebhook(false);
+      }
+    });
   };
 
   const handleSimulateCommand = async (e: React.FormEvent) => {
@@ -335,38 +445,45 @@ export default function SettingsPage() {
   };
 
   const handleExportCSV = async () => {
-    try {
-      const res = await api.get('/data/export/csv', { responseType: 'blob' });
-      const url = window.URL.createObjectURL(new Blob([res.data]));
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', 'faisaa-transactions.csv');
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      addToast('CSV exported successfully!', 'success');
-    } catch {
-      addToast('CSV export failed.', 'error');
-    }
+    executeWithStepUp('Confirm your password to export your complete financial transaction ledger.', async () => {
+      try {
+        const res = await api.get('/data/export/csv', { responseType: 'blob' });
+        const url = window.URL.createObjectURL(new Blob([res.data]));
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', 'faisaa-transactions.csv');
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        addToast('CSV exported successfully!', 'success');
+      } catch {
+        addToast('CSV export failed.', 'error');
+      }
+    });
   };
 
   const handleExportJSON = async () => {
-    try {
-      const { data } = await api.get('/data/export/json');
-      const blob = new Blob([JSON.stringify(data.backup, null, 2)], {
-        type: 'application/json',
-      });
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', 'faisaa-backup.json');
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      addToast('Full JSON backup downloaded!', 'success');
-    } catch {
-      addToast('JSON export failed.', 'error');
-    }
+    executeWithStepUp(
+      'Confirm your password to download a complete JSON backup of all your financial data.',
+      async () => {
+        try {
+          const { data } = await api.get('/data/export/json');
+          const blob = new Blob([JSON.stringify(data.backup, null, 2)], {
+            type: 'application/json',
+          });
+          const url = window.URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.href = url;
+          link.setAttribute('download', 'faisaa-backup.json');
+          document.body.appendChild(link);
+          link.click();
+          link.remove();
+          addToast('Full JSON backup downloaded!', 'success');
+        } catch {
+          addToast('JSON export failed.', 'error');
+        }
+      }
+    );
   };
 
   const handleCSVFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -465,17 +582,17 @@ export default function SettingsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="pb-2 border-b border-white/[0.06]">
-        <h1 className="text-xl sm:text-2xl font-bold text-white font-display tracking-tight">
+      <div className="pb-2 border-b border-black/5 dark:border-white/[0.06]">
+        <h1 className="text-xl sm:text-2xl font-bold text-zinc-900 dark:text-white font-display tracking-tight">
           Workspace Settings
         </h1>
-        <p className="text-xs text-zinc-400 mt-0.5">
+        <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
           Configure your MVR (Base) & USD ($) exchange rate, Telegram Bot alerts, categories, and backups.
         </p>
       </div>
 
       {/* Navigation Tabs */}
-      <div className="inline-flex items-center gap-1 bg-white/[0.03] border border-white/[0.06] p-1 rounded-xl overflow-x-auto no-scrollbar max-w-full">
+      <div className="inline-flex items-center gap-1 bg-black/5 dark:bg-white/[0.03] border border-black/10 dark:border-white/[0.06] p-1 rounded-xl overflow-x-auto no-scrollbar max-w-full">
         {TABS.map((t) => {
           const Icon = t.icon;
           return (
@@ -485,7 +602,7 @@ export default function SettingsPage() {
               className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all shrink-0 whitespace-nowrap cursor-pointer ${
                 activeTab === t.id
                   ? 'bg-indigo-600 text-white shadow-xs'
-                  : 'text-zinc-400 hover:text-white'
+                  : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white'
               }`}
             >
               <Icon className="w-3.5 h-3.5" />
@@ -497,48 +614,48 @@ export default function SettingsPage() {
 
       {activeTab === 'PROFILE' && (
         <Card className="max-w-2xl">
-          <h3 className="text-base font-bold text-white mb-4">
+          <h3 className="text-base font-bold text-zinc-900 dark:text-white mb-4">
             Profile, MVR/USD Currency & Display Preferences
           </h3>
           <form onSubmit={handleSaveProfile} className="space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs text-slate-300 mb-1">First Name</label>
+                <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">First Name</label>
                 <input
                   type="text"
                   required
                   value={profileForm.firstName}
                   onChange={(e) => setProfileForm({ ...profileForm, firstName: e.target.value })}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.1] text-sm text-white"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-black/[0.03] dark:bg-white/[0.03] border border-black/10 dark:border-white/[0.08] text-sm text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none focus:border-indigo-500/50 transition-colors"
                 />
               </div>
               <div>
-                <label className="block text-xs text-slate-300 mb-1">Last Name</label>
+                <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">Last Name</label>
                 <input
                   type="text"
                   required
                   value={profileForm.lastName}
                   onChange={(e) => setProfileForm({ ...profileForm, lastName: e.target.value })}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.1] text-sm text-white"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-black/[0.03] dark:bg-white/[0.03] border border-black/10 dark:border-white/[0.08] text-sm text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none focus:border-indigo-500/50 transition-colors"
                 />
               </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs text-slate-300 mb-1">Email Address</label>
+                <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">Email Address</label>
                 <input
                   type="email"
                   required
                   value={profileForm.email}
                   onChange={(e) => setProfileForm({ ...profileForm, email: e.target.value })}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.1] text-sm text-white"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-black/[0.03] dark:bg-white/[0.03] border border-black/10 dark:border-white/[0.08] text-sm text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none focus:border-indigo-500/50 transition-colors"
                 />
               </div>
               <div>
-                <label className="block text-xs text-slate-300 mb-1">Username (@handle)</label>
+                <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">Username (@handle)</label>
                 <div className="relative">
-                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 font-semibold text-sm">@</span>
+                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400 font-semibold text-sm">@</span>
                   <input
                     type="text"
                     value={profileForm.username}
@@ -547,28 +664,28 @@ export default function SettingsPage() {
                     maxLength={30}
                     autoCapitalize="none"
                     autoCorrect="off"
-                    className="w-full pl-8 pr-3.5 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.1] text-sm text-white placeholder-slate-500 focus:outline-none focus:border-violet-500"
+                    className="w-full pl-8 pr-3.5 py-2.5 rounded-xl bg-black/[0.03] dark:bg-white/[0.03] border border-black/10 dark:border-white/[0.08] text-sm text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none focus:border-indigo-500/50 transition-colors"
                   />
                 </div>
-                <p className="text-[10px] text-slate-400 mt-1">Sign in using this @username or your email</p>
+                <p className="text-[10px] text-zinc-500 dark:text-zinc-400 mt-1">Sign in using this @username or your email</p>
               </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
-                <label className="block text-xs text-slate-300 mb-1">
+                <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">
                   Base & Secondary Currency
                 </label>
                 <input
                   type="text"
                   disabled
                   value="Base: MVR • Secondary: USD ($)"
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.1] text-xs font-bold text-emerald-400"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-black/[0.03] dark:bg-white/[0.03] border border-black/10 dark:border-white/[0.08] text-xs font-bold text-emerald-500 dark:text-emerald-400"
                 />
               </div>
 
               <div>
-                <label className="block text-xs text-slate-300 mb-1">
+                <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">
                   Live Exchange Rate ($1 = MVR)
                 </label>
                 <input
@@ -580,16 +697,16 @@ export default function SettingsPage() {
                   onChange={(e) =>
                     setProfileForm({ ...profileForm, usdToMvrRate: e.target.value })
                   }
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.1] text-sm font-bold text-white"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-black/[0.03] dark:bg-white/[0.03] border border-black/10 dark:border-white/[0.08] text-sm font-bold text-zinc-900 dark:text-white tabular-nums focus:outline-none focus:border-indigo-500/50 transition-colors"
                 />
               </div>
 
               <div>
-                <label className="block text-xs text-slate-300 mb-1">Interface Theme</label>
+                <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">Interface Theme</label>
                 <select
                   value={profileForm.theme}
                   onChange={(e) => setProfileForm({ ...profileForm, theme: e.target.value })}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-[#181C2C] border border-white/[0.1] text-sm text-white"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-white dark:bg-[#111218] border border-black/10 dark:border-white/[0.08] text-sm text-zinc-900 dark:text-white focus:outline-none focus:border-indigo-500/50 transition-colors cursor-pointer"
                 >
                   <option value="dark">Dark Fintech (Default)</option>
                   <option value="light">Clean White / Light Mode</option>
@@ -607,22 +724,157 @@ export default function SettingsPage() {
       )}
 
       {activeTab === 'SECURITY' && (
-        <div className="space-y-6 max-w-xl">
+        <div className="space-y-6 max-w-2xl">
+          {/* Two-Factor Authentication & Device Trust */}
           <Card>
-            <h3 className="text-base font-bold text-white mb-4">Change Account Password</h3>
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shrink-0">
+                  <ShieldCheck className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-base font-bold text-zinc-900 dark:text-white">
+                      Two-Factor Authentication (OTP)
+                    </h3>
+                    <Badge variant="success">Active</Badge>
+                  </div>
+                  <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1 leading-relaxed">
+                    RFC 6238 Time-Based One-Time Passcodes protect your financial account against unauthorized access. Unrecognized devices or browsers are prompted for an OTP upon login.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-4 pt-3.5 border-t border-black/5 dark:border-white/[0.06] flex items-center justify-between text-xs text-zinc-500 dark:text-zinc-400 flex-wrap gap-2">
+              <span className="flex items-center gap-1.5">
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
+                Device Trust Window: <strong className="text-zinc-800 dark:text-zinc-200 font-medium">30 Days</strong>
+              </span>
+              <span className="text-[11px] text-zinc-400">Brute-Force Circuit Breaker: 10 attempts / 15m</span>
+            </div>
+          </Card>
+
+          {/* Active Sessions & Connected Devices */}
+          <Card className="space-y-4">
+            <div className="flex items-center justify-between gap-2 flex-wrap">
+              <div>
+                <h3 className="text-base font-bold text-zinc-900 dark:text-white">
+                  Active Sessions & Devices ({sessions.length})
+                </h3>
+                <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
+                  Web sessions and authorized devices currently accessing your account.
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={loadSessions}
+                  loading={sessionsLoading}
+                  className="text-xs h-8 px-2.5"
+                >
+                  <RefreshCw className="w-3.5 h-3.5 mr-1" /> Refresh
+                </Button>
+                {sessions.length > 1 && (
+                  <Button
+                    size="sm"
+                    variant="danger"
+                    onClick={handleRevokeOtherSessions}
+                    loading={revokingOthers}
+                    className="text-xs h-8 px-2.5"
+                  >
+                    <LogOut className="w-3.5 h-3.5 mr-1" /> Log Out Others
+                  </Button>
+                )}
+              </div>
+            </div>
+
+            <div className="space-y-2.5 pt-1">
+              {sessionsLoading && sessions.length === 0 ? (
+                <div className="py-8 text-center text-xs text-zinc-500">Loading active sessions...</div>
+              ) : sessions.length === 0 ? (
+                <div className="py-6 text-center text-xs text-zinc-500">No active remote sessions found.</div>
+              ) : (
+                sessions.map((sess) => {
+                  const isCurrent = sess.isCurrent;
+                  const isRevoking = revokingSessionId === sess.id;
+
+                  return (
+                    <div
+                      key={sess.id}
+                      className={`flex items-center justify-between p-3.5 rounded-xl border transition-colors ${
+                        isCurrent
+                          ? 'bg-indigo-500/5 dark:bg-indigo-950/20 border-indigo-500/30'
+                          : 'bg-black/[0.02] dark:bg-white/[0.02] border-black/5 dark:border-white/[0.06]'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div
+                          className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 border ${
+                            isCurrent
+                              ? 'bg-indigo-600/10 border-indigo-500/30 text-indigo-500 dark:text-indigo-400'
+                              : 'bg-black/5 dark:bg-white/5 border-black/10 dark:border-white/10 text-zinc-500 dark:text-zinc-400'
+                          }`}
+                        >
+                          {getDeviceIcon(sess.deviceInfo || sess.userAgent || '')}
+                        </div>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-semibold text-zinc-900 dark:text-white truncate">
+                              {sess.deviceInfo || 'Web Browser'}
+                            </span>
+                            {isCurrent && (
+                              <Badge variant="success" className="text-[10px]">
+                                Current Session
+                              </Badge>
+                            )}
+                          </div>
+                          <p className="text-[11px] text-zinc-500 dark:text-zinc-400 truncate mt-0.5">
+                            IP: {sess.ipAddress} • Last active:{' '}
+                            {new Date(sess.lastActiveAt).toLocaleDateString(undefined, {
+                              month: 'short',
+                              day: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit',
+                            })}
+                          </p>
+                        </div>
+                      </div>
+
+                      {!isCurrent && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          loading={isRevoking}
+                          onClick={() => handleRevokeSession(sess.id)}
+                          className="text-xs text-rose-500 hover:text-rose-400 hover:bg-rose-500/10 shrink-0 h-7 px-2"
+                        >
+                          Revoke
+                        </Button>
+                      )}
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </Card>
+
+          <Card>
+            <h3 className="text-base font-bold text-zinc-900 dark:text-white mb-4">Change Account Password</h3>
             <form onSubmit={handleSavePassword} className="space-y-4">
               <div>
-                <label className="block text-xs text-slate-300 mb-1">Current Password</label>
+                <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">Current Password</label>
                 <input
                   type="password"
                   required
                   value={pwForm.currentPassword}
                   onChange={(e) => setPwForm({ ...pwForm, currentPassword: e.target.value })}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.1] text-sm text-white"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-black/[0.03] dark:bg-white/[0.03] border border-black/10 dark:border-white/[0.08] text-sm text-zinc-900 dark:text-white focus:outline-none focus:border-indigo-500/50 transition-colors"
                 />
               </div>
               <div>
-                <label className="block text-xs text-slate-300 mb-1">New Password</label>
+                <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">New Password</label>
                 <input
                   type="password"
                   required
@@ -630,21 +882,21 @@ export default function SettingsPage() {
                   value={pwForm.newPassword}
                   onChange={(e) => setPwForm({ ...pwForm, newPassword: e.target.value })}
                   placeholder="At least 10 characters (e.g. Strong@2026)"
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.1] text-sm text-white placeholder-slate-500 focus:outline-none focus:border-violet-500"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-black/[0.03] dark:bg-white/[0.03] border border-black/10 dark:border-white/[0.08] text-sm text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none focus:border-indigo-500/50 transition-colors"
                 />
-                <p className="text-[11px] text-slate-400 mt-1">
+                <p className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-1">
                   Must be at least 10 characters and include uppercase, lowercase, number, and symbol.
                 </p>
               </div>
               <div>
-                <label className="block text-xs text-slate-300 mb-1">Confirm New Password</label>
+                <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">Confirm New Password</label>
                 <input
                   type="password"
                   required
                   minLength={10}
                   value={pwForm.confirmPassword}
                   onChange={(e) => setPwForm({ ...pwForm, confirmPassword: e.target.value })}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.1] text-sm text-white"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-black/[0.03] dark:bg-white/[0.03] border border-black/10 dark:border-white/[0.08] text-sm text-zinc-900 dark:text-white focus:outline-none focus:border-indigo-500/50 transition-colors"
                 />
               </div>
               <Button type="submit" loading={savingPw}>
@@ -654,14 +906,14 @@ export default function SettingsPage() {
           </Card>
 
           {/* Danger Zone: Permanently Delete Account */}
-          <Card className="border-rose-500/20 bg-rose-950/10 space-y-4">
+          <Card className="border-rose-500/20 bg-rose-500/5 dark:bg-rose-950/10 space-y-4">
             <div className="flex items-start gap-3">
-              <div className="w-10 h-10 rounded-xl bg-rose-500/20 border border-rose-500/30 flex items-center justify-center text-rose-400 shrink-0">
+              <div className="w-10 h-10 rounded-xl bg-rose-500/10 dark:bg-rose-500/20 border border-rose-500/20 dark:border-rose-500/30 flex items-center justify-center text-rose-500 dark:text-rose-400 shrink-0">
                 <AlertTriangle className="w-5 h-5" />
               </div>
               <div>
-                <h3 className="text-base font-bold text-rose-200">Danger Zone: Delete Account</h3>
-                <p className="text-xs text-rose-300/80 mt-1 leading-relaxed">
+                <h3 className="text-base font-bold text-rose-600 dark:text-rose-200">Danger Zone: Delete Account</h3>
+                <p className="text-xs text-rose-600/80 dark:text-rose-300/80 mt-1 leading-relaxed">
                   Permanently delete your account and all associated financial records. This action cannot be undone. All bank accounts, transactions, categories, budgets, and telegram settings will be wiped immediately.
                 </p>
               </div>
@@ -688,32 +940,32 @@ export default function SettingsPage() {
       {activeTab === 'CATEGORIES' && (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           <Card className="lg:col-span-4 h-fit">
-            <h3 className="text-base font-bold text-white mb-4">Create Custom Category</h3>
+            <h3 className="text-base font-bold text-zinc-900 dark:text-white mb-4">Create Custom Category</h3>
             <form onSubmit={handleAddCategory} className="space-y-3">
               <div>
-                <label className="block text-xs text-slate-300 mb-1">Category Name</label>
+                <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">Category Name</label>
                 <input
                   type="text"
                   required
                   value={catForm.name}
                   onChange={(e) => setCatForm({ ...catForm, name: e.target.value })}
                   placeholder="e.g. Side Hustle, Pet Care"
-                  className="w-full px-3.5 py-2 rounded-xl bg-white/[0.04] border border-white/[0.1] text-xs text-white"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-black/[0.03] dark:bg-white/[0.03] border border-black/10 dark:border-white/[0.08] text-sm text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none focus:border-indigo-500/50 transition-colors"
                 />
               </div>
               <div>
-                <label className="block text-xs text-slate-300 mb-1">Type</label>
+                <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">Type</label>
                 <select
                   value={catForm.type}
                   onChange={(e) => setCatForm({ ...catForm, type: e.target.value })}
-                  className="w-full px-3.5 py-2 rounded-xl bg-[#181C2C] border border-white/[0.1] text-xs text-white"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-white dark:bg-[#111218] border border-black/10 dark:border-white/[0.08] text-sm text-zinc-900 dark:text-white focus:outline-none focus:border-indigo-500/50 transition-colors cursor-pointer"
                 >
                   <option value="EXPENSE">Expense</option>
                   <option value="INCOME">Income</option>
                 </select>
               </div>
               <div>
-                <label className="block text-xs text-slate-300 mb-1">Color</label>
+                <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">Color</label>
                 <input
                   type="color"
                   value={catForm.color}
@@ -728,14 +980,14 @@ export default function SettingsPage() {
           </Card>
 
           <Card className="lg:col-span-8">
-            <h3 className="text-base font-bold text-white mb-4">
+            <h3 className="text-base font-bold text-zinc-900 dark:text-white mb-4">
               Your Income & Expense Categories ({categories.length})
             </h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-h-96 overflow-y-auto pr-1">
               {categories.map((cat) => (
                 <div
                   key={cat.id}
-                  className="flex items-center justify-between p-2.5 rounded-xl bg-white/[0.03] border border-white/[0.06]"
+                  className="flex items-center justify-between p-2.5 rounded-xl bg-black/[0.02] dark:bg-white/[0.03] border border-black/5 dark:border-white/[0.06]"
                 >
                   <div className="flex items-center gap-2.5">
                     <div
@@ -745,7 +997,7 @@ export default function SettingsPage() {
                       <DynamicIcon name={cat.icon} className="w-4 h-4" />
                     </div>
                     <div>
-                      <p className="text-xs font-bold text-white">{cat.name}</p>
+                      <p className="text-xs font-bold text-zinc-900 dark:text-white">{cat.name}</p>
                       <Badge variant={cat.type === 'INCOME' ? 'success' : 'default'}>
                         {cat.type}
                       </Badge>
@@ -753,7 +1005,7 @@ export default function SettingsPage() {
                   </div>
                   <button
                     onClick={() => handleDeleteCategory(cat.id)}
-                    className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 cursor-pointer"
+                    className="p-1.5 rounded-lg text-zinc-400 hover:text-rose-500 cursor-pointer"
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
@@ -769,8 +1021,8 @@ export default function SettingsPage() {
           <Card className="space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-base font-bold text-white">Telegram Bot Notifications</h3>
-                <p className="text-xs text-slate-400">
+                <h3 className="text-base font-bold text-zinc-900 dark:text-white">Telegram Bot Notifications</h3>
+                <p className="text-xs text-zinc-500 dark:text-zinc-400">
                   Receive instant Telegram alerts whenever transactions, currency exchanges, exchange rate changes, or budget warnings occur.
                 </p>
               </div>
@@ -780,10 +1032,10 @@ export default function SettingsPage() {
             </div>
 
             <form onSubmit={handleSaveProfile} className="space-y-3">
-              <label className="flex items-center justify-between p-3.5 rounded-2xl bg-white/[0.03] border border-white/[0.07] cursor-pointer">
+              <label className="flex items-center justify-between p-3.5 rounded-2xl bg-black/[0.02] dark:bg-white/[0.03] border border-black/5 dark:border-white/[0.07] cursor-pointer">
                 <div>
-                  <p className="text-sm font-semibold text-white">Enable Telegram Bot Alerts</p>
-                  <p className="text-xs text-slate-400">
+                  <p className="text-sm font-semibold text-zinc-900 dark:text-white">Enable Telegram Bot Alerts</p>
+                  <p className="text-xs text-zinc-500 dark:text-zinc-400">
                     Push notifications to your configured Telegram Chat ID
                   </p>
                 </div>
@@ -793,12 +1045,12 @@ export default function SettingsPage() {
                   onChange={(e) =>
                     setProfileForm({ ...profileForm, telegramEnabled: e.target.checked })
                   }
-                  className="w-4 h-4 accent-emerald-500 rounded"
+                  className="w-4 h-4 accent-indigo-600 rounded cursor-pointer"
                 />
               </label>
 
               <div>
-                <label className="block text-xs text-slate-300 mb-1">Telegram Bot Token</label>
+                <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">Telegram Bot Token</label>
                 <input
                   type="text"
                   value={profileForm.telegramBotToken}
@@ -806,16 +1058,16 @@ export default function SettingsPage() {
                     setProfileForm({ ...profileForm, telegramBotToken: e.target.value })
                   }
                   placeholder="8854737122:AAExL-MBGhKfPvRE33RKsQ8H9pYB3_2dWY4"
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.1] text-xs font-mono text-white"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-black/[0.03] dark:bg-white/[0.03] border border-black/10 dark:border-white/[0.08] text-xs font-mono text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none focus:border-indigo-500/50 transition-colors"
                 />
               </div>
 
               <div>
-                <div className="flex items-center justify-between mb-1">
-                  <label className="block text-xs text-slate-300">Telegram Chat ID</label>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300">Telegram Chat ID</label>
                   {profileForm.telegramChatId ? (
-                    <span className="inline-flex items-center gap-1 text-[11px] text-emerald-400 font-medium">
-                      <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                    <span className="inline-flex items-center gap-1 text-[11px] text-emerald-600 dark:text-emerald-400 font-medium">
+                      <CheckCircle2 className="w-3 h-3 text-emerald-500" />
                       Linked &amp; Verified
                     </span>
                   ) : null}
@@ -827,7 +1079,7 @@ export default function SettingsPage() {
                     setProfileForm({ ...profileForm, telegramChatId: e.target.value })
                   }
                   placeholder="e.g. 6744792618 or link via bot below"
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.1] text-xs font-mono text-white"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-black/[0.03] dark:bg-white/[0.03] border border-black/10 dark:border-white/[0.08] text-xs font-mono text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none focus:border-indigo-500/50 transition-colors"
                 />
               </div>
 
@@ -848,16 +1100,16 @@ export default function SettingsPage() {
                   variant="secondary"
                   loading={sendingBriefing}
                   onClick={handleSendDailyBriefing}
-                  className="bg-amber-500/10 text-amber-300 hover:bg-amber-500/20 border-amber-500/30"
+                  className="bg-amber-500/10 text-amber-600 dark:text-amber-300 hover:bg-amber-500/20 border-amber-500/30"
                 >
-                  <Sparkles className="w-3.5 h-3.5 mr-1 text-amber-400" /> Push Morning Briefing Now
+                  <Sparkles className="w-3.5 h-3.5 mr-1 text-amber-500 dark:text-amber-400" /> Push Morning Briefing Now
                 </Button>
               </div>
             </form>
           </Card>
 
           <Card className="space-y-4">
-            <h3 className="text-base font-bold text-white">Automated Alert Rules</h3>
+            <h3 className="text-base font-bold text-zinc-900 dark:text-white">Automated Alert Rules</h3>
             {[
               {
                 key: 'notifyBudgetAlerts',
@@ -877,32 +1129,32 @@ export default function SettingsPage() {
             ].map((item) => (
               <label
                 key={item.key}
-                className="flex items-center justify-between p-3.5 rounded-2xl bg-white/[0.03] border border-white/[0.07] cursor-pointer"
+                className="flex items-center justify-between p-3.5 rounded-2xl bg-black/[0.02] dark:bg-white/[0.03] border border-black/5 dark:border-white/[0.07] cursor-pointer"
               >
                 <div>
-                  <p className="text-sm font-semibold text-white">{item.title}</p>
-                  <p className="text-xs text-slate-400">{item.desc}</p>
+                  <p className="text-sm font-semibold text-zinc-900 dark:text-white">{item.title}</p>
+                  <p className="text-xs text-zinc-500 dark:text-zinc-400">{item.desc}</p>
                 </div>
                 <input
                   type="checkbox"
                   checked={Boolean((user as any)?.[item.key])}
                   onChange={(e) => updateProfile({ [item.key]: e.target.checked } as any)}
-                  className="w-4 h-4 accent-violet-600 rounded"
+                  className="w-4 h-4 accent-indigo-600 rounded cursor-pointer"
                 />
               </label>
             ))}
           </Card>
 
           {/* Two-Way Telegram Bot & Simulator Card */}
-          <Card className="lg:col-span-2 space-y-4 bg-gradient-to-br from-violet-950/20 to-[#101322] border-violet-500/20">
+          <Card className="lg:col-span-2 space-y-4 bg-gradient-to-br from-indigo-500/5 dark:from-indigo-950/20 to-black/5 dark:to-[#101322] border-indigo-500/20">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-violet-600/20 border border-violet-500/30 flex items-center justify-center text-violet-400">
+                <div className="w-10 h-10 rounded-2xl bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center text-indigo-500 dark:text-indigo-400">
                   <Bot className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="text-base font-bold text-white">Two-Way Telegram Expense Assistant</h3>
-                  <p className="text-xs text-slate-400">
+                  <h3 className="text-base font-bold text-zinc-900 dark:text-white">Two-Way Telegram Expense Assistant</h3>
+                  <p className="text-xs text-zinc-500 dark:text-zinc-400">
                     Log expenses and check balances straight from your Telegram chat without opening a browser.
                   </p>
                 </div>
@@ -922,15 +1174,15 @@ export default function SettingsPage() {
               className={`p-4 rounded-xl border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 transition-all ${
                 profileForm.telegramChatId
                   ? 'bg-emerald-500/10 border-emerald-500/20'
-                  : 'bg-violet-500/10 border-violet-500/20'
+                  : 'bg-indigo-500/10 border-indigo-500/20'
               }`}
             >
               <div className="flex items-start gap-3">
                 <div
                   className={`p-2 rounded-lg shrink-0 mt-0.5 sm:mt-0 ${
                     profileForm.telegramChatId
-                      ? 'bg-emerald-500/20 text-emerald-400'
-                      : 'bg-violet-500/20 text-violet-300'
+                      ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400'
+                      : 'bg-indigo-500/20 text-indigo-600 dark:text-indigo-300'
                   }`}
                 >
                   {profileForm.telegramChatId ? (
@@ -941,15 +1193,15 @@ export default function SettingsPage() {
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <p className="text-xs font-bold text-white">Secure Bot Account Linking</p>
+                    <p className="text-xs font-bold text-zinc-900 dark:text-white">Secure Bot Account Linking</p>
                     {profileForm.telegramChatId && (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/20 text-emerald-600 dark:text-emerald-300 border border-emerald-500/30">
                         <CheckCircle2 className="w-2.5 h-2.5" />
                         Verified &amp; Connected
                       </span>
                     )}
                   </div>
-                  <p className="text-[11px] text-slate-400 mt-0.5">
+                  <p className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-0.5">
                     {profileForm.telegramChatId
                       ? `Linked to Telegram Chat ID ${profileForm.telegramChatId}. Send /balance or log expenses directly to your bot.`
                       : 'Generate a one-time 6-digit verification code and send /link <code> to your Telegram bot.'}
@@ -957,21 +1209,21 @@ export default function SettingsPage() {
                   {linkingCode && (
                     <div className="mt-2.5 space-y-1.5">
                       <div className="flex flex-wrap items-center gap-2">
-                        <span className="text-xs text-slate-300">Your linking code:</span>
-                        <span className="px-2.5 py-1 rounded bg-violet-600/30 border border-violet-400/40 text-violet-200 font-mono font-bold tracking-widest text-sm select-all">
+                        <span className="text-xs text-zinc-600 dark:text-zinc-300">Your linking code:</span>
+                        <span className="px-2.5 py-1 rounded bg-indigo-600/30 border border-indigo-400/40 text-indigo-600 dark:text-indigo-200 font-mono font-bold tracking-widest text-sm select-all">
                           {linkingCode}
                         </span>
-                        <span className="text-[10px] text-amber-300/90 font-medium">
+                        <span className="text-[10px] text-amber-500 dark:text-amber-300/90 font-medium">
                           Expires in 15 minutes (single-use)
                         </span>
                       </div>
-                      <div className="flex items-center gap-2 text-[11px] text-amber-300 font-medium">
+                      <div className="flex items-center gap-2 text-[11px] text-amber-500 dark:text-amber-300 font-medium">
                         <span className="relative flex h-2 w-2">
                           <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
                           <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
                         </span>
                         <span>
-                          Waiting for <code className="bg-white/10 px-1 py-0.5 rounded font-mono text-[11px]">/link {linkingCode}</code> in Telegram (auto-detecting)...
+                          Waiting for <code className="bg-black/10 dark:bg-white/10 px-1 py-0.5 rounded font-mono text-[11px]">/link {linkingCode}</code> in Telegram (auto-detecting)...
                         </span>
                       </div>
                     </div>
@@ -997,23 +1249,23 @@ export default function SettingsPage() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
-              <div className="p-3.5 rounded-xl bg-white/[0.02] border border-white/[0.06] space-y-2 text-xs">
-                <p className="font-bold text-violet-300">Supported Natural Message Examples:</p>
-                <ul className="space-y-1 text-slate-300">
-                  <li>• <code className="text-emerald-400 bg-white/[0.05] px-1 rounded">50 coffee</code> → Logs MVR 50.00 Food & Dining</li>
-                  <li>• <code className="text-emerald-400 bg-white/[0.05] px-1 rounded">120 lunch bml</code> → Logs from your BML account</li>
+              <div className="p-3.5 rounded-xl bg-black/[0.02] dark:bg-white/[0.02] border border-black/5 dark:border-white/[0.06] space-y-2 text-xs">
+                <p className="font-bold text-indigo-600 dark:text-indigo-300">Supported Natural Message Examples:</p>
+                <ul className="space-y-1 text-zinc-600 dark:text-zinc-300">
+                  <li>• <code className="text-emerald-500 dark:text-emerald-400 bg-black/5 dark:bg-white/[0.05] px-1 rounded">50 coffee</code> → Logs MVR 50.00 Food & Dining</li>
+                  <li>• <code className="text-emerald-500 dark:text-emerald-400 bg-black/5 dark:bg-white/[0.05] px-1 rounded">120 lunch bml</code> → Logs from your BML account</li>
                   <li>• <code className="text-emerald-400 bg-white/[0.05] px-1 rounded">25 dinner usd</code> → Logs USD transaction</li>
-                  <li>• <code className="text-emerald-400 bg-white/[0.05] px-1 rounded">+5000 salary</code> → Logs MVR 5,000 Income</li>
-                  <li>• <code className="text-violet-400 bg-white/[0.05] px-1 rounded">/balance</code> → Instant check of all liquid balances</li>
-                  <li>• <code className="text-violet-400 bg-white/[0.05] px-1 rounded">/today</code> → Today's transactions and total spend</li>
-                  <li>• <code className="text-violet-400 bg-white/[0.05] px-1 rounded">/briefing</code> → Full morning financial summary</li>
+                  <li>• <code className="text-emerald-500 dark:text-emerald-400 bg-black/5 dark:bg-white/[0.05] px-1 rounded">+5000 salary</code> → Logs MVR 5,000 Income</li>
+                  <li>• <code className="text-indigo-600 dark:text-indigo-400 bg-black/5 dark:bg-white/[0.05] px-1 rounded">/balance</code> → Instant check of all liquid balances</li>
+                  <li>• <code className="text-indigo-600 dark:text-indigo-400 bg-black/5 dark:bg-white/[0.05] px-1 rounded">/today</code> → Today's transactions and total spend</li>
+                  <li>• <code className="text-indigo-600 dark:text-indigo-400 bg-black/5 dark:bg-white/[0.05] px-1 rounded">/briefing</code> → Full morning financial summary</li>
                 </ul>
               </div>
 
-              <div className="p-3.5 rounded-xl bg-white/[0.02] border border-white/[0.06] space-y-3">
+              <div className="p-3.5 rounded-xl bg-black/[0.02] dark:bg-white/[0.02] border border-black/5 dark:border-white/[0.06] space-y-3">
                 <div>
-                  <p className="text-xs font-bold text-white">Bot Command Simulator Sandbox</p>
-                  <p className="text-[11px] text-slate-400">
+                  <p className="text-xs font-bold text-zinc-900 dark:text-white">Bot Command Simulator Sandbox</p>
+                  <p className="text-[11px] text-zinc-500 dark:text-zinc-400">
                     Test how the bot parses your input right here:
                   </p>
                 </div>
@@ -1024,7 +1276,7 @@ export default function SettingsPage() {
                     value={simText}
                     onChange={(e) => setSimText(e.target.value)}
                     placeholder="e.g. 50 coffee or /balance"
-                    className="flex-1 px-3 py-2 rounded-xl bg-white/[0.04] border border-white/[0.1] text-xs text-white placeholder-slate-500 focus:outline-none focus:border-violet-500"
+                    className="flex-1 px-3 py-2 rounded-xl bg-black/[0.03] dark:bg-white/[0.04] border border-black/10 dark:border-white/[0.1] text-xs text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none focus:border-indigo-500/50"
                   />
                   <Button type="submit" size="sm" loading={simulating} disabled={!simText.trim()}>
                     <Send className="w-3.5 h-3.5 mr-1" /> Test
@@ -1040,8 +1292,8 @@ export default function SettingsPage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Export & Backup Card */}
           <Card className="space-y-4">
-            <h3 className="text-base font-bold text-white">Export & Full JSON Backup</h3>
-            <p className="text-xs text-slate-400">
+            <h3 className="text-base font-bold text-zinc-900 dark:text-white">Export & Full JSON Backup</h3>
+            <p className="text-xs text-zinc-500 dark:text-zinc-400">
               Download your complete transaction ledger in CSV format or export a portable JSON snapshot.
             </p>
             <div className="flex flex-wrap gap-3">
@@ -1053,37 +1305,37 @@ export default function SettingsPage() {
               </Button>
             </div>
 
-            <div className="pt-4 border-t border-white/[0.07]">
-              <label className="block text-xs font-semibold text-white mb-2">
+            <div className="pt-4 border-t border-black/5 dark:border-white/[0.07]">
+              <label className="block text-xs font-semibold text-zinc-900 dark:text-white mb-2">
                 Restore from JSON Backup
               </label>
               <input
                 type="file"
                 accept=".json"
                 onChange={handleJSONRestoreFile}
-                className="text-xs text-slate-400 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-violet-600/20 file:text-violet-300 hover:file:bg-violet-600/30 cursor-pointer"
+                className="text-xs text-zinc-500 dark:text-zinc-400 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-indigo-600/10 dark:file:bg-indigo-600/20 file:text-indigo-600 dark:file:text-indigo-300 hover:file:bg-indigo-600/20 dark:hover:file:bg-indigo-600/30 cursor-pointer"
               />
             </div>
           </Card>
 
           {/* CSV Import Wizard */}
           <Card className="space-y-4">
-            <h3 className="text-base font-bold text-white">
+            <h3 className="text-base font-bold text-zinc-900 dark:text-white">
               CSV Transaction Import (With Validation & Preview)
             </h3>
-            <p className="text-xs text-slate-400">
-              Upload a CSV containing columns: <code>Date, Type, Payee, Amount, Category</code>.
+            <p className="text-xs text-zinc-500 dark:text-zinc-400">
+              Upload a CSV containing columns: <code className="bg-black/5 dark:bg-white/10 px-1 py-0.5 rounded">Date, Type, Payee, Amount, Category</code>.
             </p>
 
             <input
               type="file"
               accept=".csv"
               onChange={handleCSVFileSelect}
-              className="text-xs text-slate-400 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-emerald-600/20 file:text-emerald-300 hover:file:bg-emerald-600/30 cursor-pointer"
+              className="text-xs text-zinc-500 dark:text-zinc-400 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-emerald-600/10 dark:file:bg-emerald-600/20 file:text-emerald-600 dark:file:text-emerald-300 hover:file:bg-emerald-600/20 dark:hover:file:bg-emerald-600/30 cursor-pointer"
             />
 
             {csvErrors.length > 0 && (
-              <div className="p-3 rounded-xl bg-rose-500/15 border border-rose-500/30 text-xs text-rose-200 space-y-1">
+              <div className="p-3 rounded-xl bg-rose-500/10 dark:bg-rose-500/15 border border-rose-500/20 dark:border-rose-500/30 text-xs text-rose-600 dark:text-rose-200 space-y-1">
                 <p className="font-bold flex items-center gap-1">
                   <AlertCircle className="w-4 h-4" /> Validation Warnings:
                 </p>
@@ -1096,7 +1348,7 @@ export default function SettingsPage() {
             {csvPreviewRows.length > 0 && (
               <div className="space-y-3">
                 <div className="flex items-center justify-between text-xs">
-                  <span className="text-emerald-400 font-semibold flex items-center gap-1">
+                  <span className="text-emerald-500 dark:text-emerald-400 font-semibold flex items-center gap-1">
                     <CheckCircle2 className="w-4 h-4" /> {csvPreviewRows.length} rows ready to import
                   </span>
                   <Button
@@ -1108,21 +1360,21 @@ export default function SettingsPage() {
                     <Upload className="w-3.5 h-3.5" /> Confirm & Import Now
                   </Button>
                 </div>
-                <div className="max-h-48 overflow-y-auto rounded-xl border border-white/[0.08]">
+                <div className="max-h-48 overflow-y-auto rounded-xl border border-black/10 dark:border-white/[0.08]">
                   <table className="w-full text-left text-xs">
-                    <thead className="bg-white/[0.04] text-slate-400">
+                    <thead className="bg-black/[0.03] dark:bg-white/[0.04] text-zinc-500 dark:text-zinc-400">
                       <tr>
                         <th className="p-2">Date</th>
                         <th className="p-2">Payee</th>
                         <th className="p-2">Amount</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-white/[0.05]">
+                    <tbody className="divide-y divide-black/5 dark:divide-white/[0.05]">
                       {csvPreviewRows.slice(0, 8).map((r, idx) => (
                         <tr key={idx}>
-                          <td className="p-2 text-slate-300">{r.Date || r.date}</td>
-                          <td className="p-2 text-white font-medium">{r.Payee || r.payee}</td>
-                          <td className="p-2 text-emerald-400">{r.Amount || r.amount}</td>
+                          <td className="p-2 text-zinc-600 dark:text-zinc-300">{r.Date || r.date}</td>
+                          <td className="p-2 text-zinc-900 dark:text-white font-medium">{r.Payee || r.payee}</td>
+                          <td className="p-2 text-emerald-500 dark:text-emerald-400 tabular-nums">{r.Amount || r.amount}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -1149,21 +1401,21 @@ export default function SettingsPage() {
         maxWidth="max-w-md"
       >
         <form onSubmit={handleDeleteAccount} className="space-y-4">
-          <div className="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-xs text-rose-300 leading-relaxed flex items-start gap-2.5">
-            <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
+          <div className="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-xs text-rose-600 dark:text-rose-300 leading-relaxed flex items-start gap-2.5">
+            <AlertTriangle className="w-4 h-4 text-rose-500 shrink-0 mt-0.5" />
             <span>
               Are you sure you want to permanently delete your account? All accounts, transactions, budgets, bills, loans, and logs will be permanently erased.
             </span>
           </div>
 
           {deleteError && (
-            <div className="p-3 rounded-lg bg-rose-500/15 border border-rose-500/30 text-xs text-rose-200">
+            <div className="p-3 rounded-lg bg-rose-500/15 border border-rose-500/30 text-xs text-rose-600 dark:text-rose-200">
               {deleteError}
             </div>
           )}
 
           <div>
-            <label className="block text-xs font-medium text-slate-300 mb-1">
+            <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">
               Enter your password to confirm:
             </label>
             <input
@@ -1172,7 +1424,7 @@ export default function SettingsPage() {
               value={deletePassword}
               onChange={(e) => setDeletePassword(e.target.value)}
               placeholder="••••••••"
-              className="w-full px-3.5 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.1] text-xs text-white placeholder-slate-500 focus:outline-none focus:border-rose-500"
+              className="w-full px-3.5 py-2.5 rounded-xl bg-black/[0.03] dark:bg-white/[0.04] border border-black/10 dark:border-white/[0.1] text-xs text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none focus:border-rose-500 transition-colors"
             />
           </div>
 
@@ -1202,6 +1454,20 @@ export default function SettingsPage() {
           </div>
         </form>
       </Modal>
+
+      <StepUpModal
+        isOpen={stepUpModalOpen}
+        onClose={() => {
+          setStepUpModalOpen(false);
+          setStepUpAction(null);
+        }}
+        description={stepUpDescription}
+        onSuccess={async (token) => {
+          if (stepUpAction) {
+            await stepUpAction(token);
+          }
+        }}
+      />
     </div>
   );
 }

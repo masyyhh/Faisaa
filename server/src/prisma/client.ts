@@ -10,19 +10,30 @@ export interface DefaultCategoryTemplate {
 
 const globalForPrisma = globalThis as unknown as {
   __faisaaPrisma?: PrismaClient;
-  __finoraPrisma?: PrismaClient;
+  __faisaaReadPrisma?: PrismaClient;
 };
 
-const prisma =
+// Primary DB client (writes, mutations & transactional workloads)
+// When deploying behind PgBouncer in transaction pooling mode, append ?pgbouncer=true&connection_limit=1 to DATABASE_URL
+export const prisma =
   globalForPrisma.__faisaaPrisma ||
-  globalForPrisma.__finoraPrisma ||
   new PrismaClient({
     log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
   });
 
-if (process.env.NODE_ENV !== 'production') {
-  globalForPrisma.__faisaaPrisma = prisma;
-}
+// Read Replica client (CQRS-lite for heavy analytics queries)
+// If DATABASE_READ_URL is set, queries route to the read replica; otherwise seamlessly uses primary
+export const readPrisma =
+  globalForPrisma.__faisaaReadPrisma ||
+  (process.env.DATABASE_READ_URL
+    ? new PrismaClient({
+        datasources: { db: { url: process.env.DATABASE_READ_URL } },
+        log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
+      })
+    : prisma);
+
+globalForPrisma.__faisaaPrisma = prisma;
+globalForPrisma.__faisaaReadPrisma = readPrisma;
 
 // Enable SQLite WAL mode & memory-mapped cache for high-concurrency read/write performance
 export async function initDatabasePragmas(): Promise<void> {

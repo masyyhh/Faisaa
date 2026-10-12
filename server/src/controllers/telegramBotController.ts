@@ -186,7 +186,7 @@ export async function simulateCommand(req: Request, res: Response, next: NextFun
     };
 
     const rawBotToken = decrypt(user.telegramBotToken);
-    const result = await handleTelegramWebhookUpdate(fakeUpdate, rawBotToken, user as any);
+    const result = await handleTelegramWebhookUpdate(fakeUpdate, rawBotToken, user);
 
     res.json({
       success: true,

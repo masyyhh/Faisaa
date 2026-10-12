@@ -286,11 +286,42 @@ const api = axios.create({
   },
 });
 
-// Attach Authorization header as secondary fallback for non-cookie environments
+export interface ActiveSession {
+  id: string;
+  deviceInfo: string;
+  userAgent?: string;
+  ipAddress: string;
+  lastActiveAt: string;
+  createdAt: string;
+  expiresAt: string;
+  isCurrent: boolean;
+}
+
+let inMemoryStepUpToken: string | null = null;
+let stepUpExpiresAt: number = 0;
+
+export function setStepUpToken(token: string, expiresInSeconds: number = 300): void {
+  inMemoryStepUpToken = token;
+  stepUpExpiresAt = Date.now() + expiresInSeconds * 1000;
+}
+
+export function getStepUpToken(): string | null {
+  if (inMemoryStepUpToken && Date.now() < stepUpExpiresAt) {
+    return inMemoryStepUpToken;
+  }
+  inMemoryStepUpToken = null;
+  return null;
+}
+
+// Attach Authorization and Step-Up headers as secondary fallback
 api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
   const token = localStorage.getItem('faisaa_token') || localStorage.getItem('finora_token');
   if (token && !config.headers.Authorization) {
     config.headers.Authorization = `Bearer ${token}`;
+  }
+  const stepUp = getStepUpToken();
+  if (stepUp && !config.headers['x-step-up-token']) {
+    config.headers['x-step-up-token'] = stepUp;
   }
   return config;
 });

@@ -74,7 +74,10 @@ export function signToken(userId: string): string {
   return createAccessToken(userId);
 }
 
-export async function createRefreshToken(userId: string): Promise<string> {
+export async function createRefreshToken(
+  userId: string,
+  sessionInfo?: { userAgent?: string | null; ipAddress?: string | null; deviceInfo?: string | null }
+): Promise<string> {
   const rawToken = generateSecureToken(40);
   const tokenHash = hashToken(rawToken);
   if (!tokenHash) throw new Error('Failed to generate refresh token hash');
@@ -85,6 +88,10 @@ export async function createRefreshToken(userId: string): Promise<string> {
       tokenHash,
       userId,
       expiresAt,
+      userAgent: sessionInfo?.userAgent || null,
+      ipAddress: sessionInfo?.ipAddress || null,
+      deviceInfo: sessionInfo?.deviceInfo || null,
+      lastActiveAt: new Date(),
     },
   });
 
@@ -100,7 +107,7 @@ export function setAuthCookies(
   const baseOptions = {
     httpOnly: true,
     secure: isProd,
-    sameSite: (isProd ? 'strict' : 'lax') as 'strict' | 'lax',
+    sameSite: 'strict' as const,
     path: '/',
   };
 
@@ -119,16 +126,28 @@ export function setAuthCookies(
   }
 }
 
+export function setTrustedDeviceCookie(res: Response, rawToken: string, days: number = 30): void {
+  const isProd = process.env.NODE_ENV === 'production';
+  res.cookie('faisaa_trusted_device', rawToken, {
+    httpOnly: true,
+    secure: isProd,
+    sameSite: 'strict' as const,
+    path: '/',
+    maxAge: days * 24 * 60 * 60 * 1000,
+  });
+}
+
 export function clearAuthCookies(res: Response): void {
   const isProd = process.env.NODE_ENV === 'production';
   const baseOptions = {
     httpOnly: true,
     secure: isProd,
-    sameSite: (isProd ? 'strict' : 'lax') as 'strict' | 'lax',
+    sameSite: 'strict' as const,
     path: '/',
   };
   res.clearCookie('faisaa_access_token', baseOptions);
   res.clearCookie('faisaa_refresh_token', baseOptions);
+  res.clearCookie('faisaa_trusted_device', baseOptions);
 }
 
 export async function protect(
@@ -219,46 +238,77 @@ export async function protect(
 }
 
 export function errorHandler(
-  err: any,
+  err: unknown,
   req: Request,
   res: Response,
   _next: NextFunction
 ): void | Response {
-  if (err instanceof SyntaxError && (err as any).status === 400 && 'body' in err) {
+  const isProd = process.env.NODE_ENV === 'production';
+
+  if (err instanceof SyntaxError && 'status' in err && (err as { status?: number }).status === 400 && 'body' in err) {
     return res.status(400).json({
       success: false,
       message: 'Malformed JSON payload.',
     });
   }
 
-  if (err.name === 'ZodError') {
+  if (err && typeof err === 'object' && 'name' in err && (err as { name: string }).name === 'ZodError') {
+    const zodErr = err as { errors?: Array<{ path: Array<string | number>; message: string }> };
     return res.status(400).json({
       success: false,
       message: 'Validation error',
-      errors: (err.errors || []).map((e: any) => ({
+      errors: (zodErr.errors || []).map((e) => ({
         field: e.path.join('.'),
         message: e.message,
       })),
     });
   }
 
-  if (err.name?.startsWith('PrismaClient')) {
+  const errObj = (err && typeof err === 'object') ? (err as Record<string, unknown>) : {};
+  const errName = typeof errObj.name === 'string' ? errObj.name : '';
+  const errCode = typeof errObj.code === 'string' ? errObj.code : '';
+
+  if (errName.startsWith('PrismaClient') || errCode.startsWith('P')) {
+    if (errCode === 'P2002') {
+      return res.status(409).json({
+        success: false,
+        message: 'A resource with this identifier or unique attribute already exists.',
+      });
+    }
+    if (errCode === 'P2025') {
+      return res.status(404).json({
+        success: false,
+        message: 'The requested resource was not found.',
+      });
+    }
     return res.status(400).json({
       success: false,
-      message: 'Database operation rejected due to invalid reference or constraint.',
+      message: 'Database operation could not be completed due to invalid constraint.',
     });
   }
 
-  const statusCode = err.statusCode || err.status || 500;
+  const statusCode =
+    typeof errObj.statusCode === 'number'
+      ? errObj.statusCode
+      : typeof errObj.status === 'number'
+      ? errObj.status
+      : 500;
+
+  const errMsg = err instanceof Error ? err.message : String(err);
+  const errStack = err instanceof Error ? err.stack : undefined;
+
   if (statusCode >= 500) {
     console.error(
-      `[${new Date().toISOString()}] ERROR ${req.method} ${req.originalUrl}:`,
-      err.stack || err.message
+      `[${new Date().toISOString()}] 💥 INTERNAL ERROR [${req.method} ${req.originalUrl}]:`,
+      errStack || errMsg
     );
   }
 
   res.status(statusCode).json({
     success: false,
-    message: statusCode === 500 ? 'Internal server error' : err.message,
+    message: statusCode === 500
+      ? (isProd ? 'An unexpected internal server error occurred.' : errMsg)
+      : errMsg,
+    ...(isProd ? {} : { stack: errStack }),
   });
 }

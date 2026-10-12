@@ -52,7 +52,11 @@ async function checkBudgetThresholdAndNotify(
       type: 'EXPENSE',
       date: { gte: startOfMonth, lte: endOfMonth },
     },
-    include: { account: { select: { currency: true } } },
+    select: {
+      amount: true,
+      currency: true,
+      account: { select: { currency: true } },
+    },
   });
 
   const spent = monthExpenses.reduce((sum, t) => {
@@ -178,7 +182,7 @@ export async function getTransactions(req: Request, res: Response, next: NextFun
 
     const rate = Number(req.user!.usdToMvrRate || 15.42);
 
-    const [totalCount, transactions, allMatching] = await Promise.all([
+    const [totalCount, transactions, aggregates] = await Promise.all([
       prisma.transaction.count({ where }),
       prisma.transaction.findMany({
         where,
@@ -198,34 +202,27 @@ export async function getTransactions(req: Request, res: Response, next: NextFun
           },
         },
       }),
-      prisma.transaction.findMany({
+      prisma.transaction.groupBy({
+        by: ['type', 'currency'],
         where,
-        select: {
-          type: true,
+        _sum: {
           amount: true,
-          currency: true,
-          account: { select: { currency: true } },
         },
       }),
     ]);
 
-    const toMvrVal = (t: { amount: number; currency?: string | null; account?: { currency: string } | null }) => {
-      const c = t.currency || t.account?.currency || 'MVR';
-      return c === 'USD' ? t.amount * rate : t.amount;
-    };
+    let totalIncome = 0;
+    let totalExpenses = 0;
 
-    const totalIncome = Number(
-      allMatching
-        .filter((t) => t.type === 'INCOME')
-        .reduce((s, t) => s + toMvrVal(t), 0)
-        .toFixed(2)
-    );
-    const totalExpenses = Number(
-      allMatching
-        .filter((t) => t.type === 'EXPENSE')
-        .reduce((s, t) => s + toMvrVal(t), 0)
-        .toFixed(2)
-    );
+    for (const group of aggregates) {
+      const sumAmount = Number(group._sum.amount || 0);
+      const inMvr = group.currency === 'USD' ? sumAmount * rate : sumAmount;
+      if (group.type === 'INCOME') totalIncome += inMvr;
+      if (group.type === 'EXPENSE') totalExpenses += inMvr;
+    }
+
+    totalIncome = Number(totalIncome.toFixed(2));
+    totalExpenses = Number(totalExpenses.toFixed(2));
 
     const formatted = transactions.map((t) => ({
       ...t,

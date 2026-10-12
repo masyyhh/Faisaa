@@ -1,5 +1,5 @@
 import type { Request, Response, NextFunction } from 'express';
-import prisma from '../prisma/client.js';
+import { readPrisma } from '../prisma/client.js';
 import { toMVR, toUSD } from '../utils/currency.js';
 
 function resolveDateRange(range?: string, customStart?: string, customEnd?: string) {
@@ -67,11 +67,11 @@ export async function getDashboardSummary(req: Request, res: Response, next: Nex
       recentExchanges,
       rateHistory,
     ] = await Promise.all([
-      prisma.account.findMany({
+      readPrisma.account.findMany({
         where: { userId, isActive: true },
         orderBy: { createdAt: 'asc' },
       }),
-      prisma.transaction.findMany({
+      readPrisma.transaction.findMany({
         where: { userId },
         orderBy: { date: 'desc' },
         take: 8,
@@ -81,7 +81,7 @@ export async function getDashboardSummary(req: Request, res: Response, next: Nex
           transactionTags: { include: { tag: true } },
         },
       }),
-      prisma.transaction.findMany({
+      readPrisma.transaction.findMany({
         where: {
           userId,
           date: { gte: sixMonthsStart },
@@ -97,32 +97,32 @@ export async function getDashboardSummary(req: Request, res: Response, next: Nex
           account: { select: { currency: true } },
         },
       }),
-      prisma.budget.findMany({
+      readPrisma.budget.findMany({
         where: { userId, month: now.getMonth() + 1, year: now.getFullYear() },
         include: { category: true },
       }),
-      prisma.savingsGoal.findMany({
+      readPrisma.savingsGoal.findMany({
         where: { userId },
         orderBy: { createdAt: 'asc' },
       }),
-      prisma.bill.findMany({
+      readPrisma.bill.findMany({
         where: { userId, status: { in: ['UPCOMING', 'OVERDUE'] } },
         orderBy: { dueDate: 'asc' },
         take: 5,
         include: { category: true, account: true },
       }),
-      prisma.recurringTransaction.findMany({
+      readPrisma.recurringTransaction.findMany({
         where: { userId, isActive: true },
         orderBy: { nextOccurrence: 'asc' },
         take: 5,
         include: { category: true, account: true },
       }),
-      prisma.currencyExchange.findMany({
+      readPrisma.currencyExchange.findMany({
         where: { userId },
         orderBy: { date: 'desc' },
         take: 5,
       }),
-      prisma.exchangeRateHistory.findMany({
+      readPrisma.exchangeRateHistory.findMany({
         where: { userId },
         orderBy: { createdAt: 'asc' },
         take: 15,
@@ -285,8 +285,6 @@ export async function getDashboardSummary(req: Request, res: Response, next: Nex
         netCashflowUsd: toUSD(netCashflow, 'MVR', rate),
         incomeChangePct,
         expenseChangePct,
-        netWorth: totalBalance,
-        netWorthUsd: totalBalanceUsd,
         savingsRate:
           totalIncome > 0
             ? Number((((totalIncome - totalExpenses) / totalIncome) * 100).toFixed(1))
@@ -332,12 +330,18 @@ export async function getCashflowAnalytics(req: Request, res: Response, next: Ne
     const endDate = req.query.endDate as string | undefined;
     const { start, end } = resolveDateRange(range, startDate, endDate);
 
-    const transactions = await prisma.transaction.findMany({
+    const transactions = await readPrisma.transaction.findMany({
       where: {
         userId,
         date: { gte: start, lte: end },
       },
-      include: { account: { select: { currency: true } } },
+      select: {
+        type: true,
+        amount: true,
+        currency: true,
+        date: true,
+        account: { select: { currency: true } },
+      },
       orderBy: { date: 'asc' },
     });
 
@@ -411,12 +415,26 @@ export async function getCategoryAnalytics(req: Request, res: Response, next: Ne
     const endDate = req.query.endDate as string | undefined;
     const { start, end } = resolveDateRange(range, startDate, endDate);
 
-    const transactions = await prisma.transaction.findMany({
+    const transactions = await readPrisma.transaction.findMany({
       where: {
         userId,
         date: { gte: start, lte: end },
       },
-      include: { category: true, account: { select: { currency: true } } },
+      select: {
+        type: true,
+        amount: true,
+        currency: true,
+        payee: true,
+        category: {
+          select: {
+            id: true,
+            name: true,
+            color: true,
+            icon: true,
+          },
+        },
+        account: { select: { currency: true } },
+      },
     });
 
     const txToMvr = (tx: { amount: number; currency?: string | null; account?: { currency: string } | null }) =>
@@ -522,126 +540,6 @@ export async function getCategoryAnalytics(req: Request, res: Response, next: Ne
   }
 }
 
-export async function getNetWorthAnalytics(req: Request, res: Response, next: NextFunction) {
-  try {
-    const userId = req.user!.id;
-    const rate = Number(req.user!.usdToMvrRate || 15.42);
-    const accounts = await prisma.account.findMany({
-      where: { userId, isActive: true },
-      orderBy: { balance: 'desc' },
-    });
-
-    const assetTypes = ['CASH', 'CHECKING', 'SAVINGS', 'INVESTMENT', 'OTHER'];
-    const liabilityTypes = ['CREDIT_CARD', 'LOAN'];
-
-    const assets = accounts
-      .filter((a) => assetTypes.includes(a.type) && a.balance >= 0)
-      .map((a) => {
-        const mvrVal = toMVR(a.balance, a.currency, rate);
-        return {
-          id: a.id,
-          name: a.name,
-          type: a.type,
-          currency: a.currency,
-          nativeBalance: Number(a.balance.toFixed(2)),
-          institution: a.institution,
-          balance: mvrVal,
-          balanceUsd: toUSD(mvrVal, 'MVR', rate),
-          color: a.color,
-          icon: a.icon,
-        };
-      });
-
-    const liabilities = accounts
-      .filter((a) => liabilityTypes.includes(a.type) || a.balance < 0)
-      .map((a) => {
-        const mvrVal = toMVR(Math.abs(a.balance), a.currency, rate);
-        return {
-          id: a.id,
-          name: a.name,
-          type: a.type,
-          currency: a.currency,
-          nativeBalance: Number(Math.abs(a.balance).toFixed(2)),
-          institution: a.institution,
-          balance: mvrVal,
-          balanceUsd: toUSD(mvrVal, 'MVR', rate),
-          color: a.color,
-          icon: a.icon,
-        };
-      });
-
-    const totalAssets = Number(assets.reduce((s, a) => s + a.balance, 0).toFixed(2));
-    const totalLiabilities = Number(liabilities.reduce((s, l) => s + l.balance, 0).toFixed(2));
-    const netWorth = Number((totalAssets - totalLiabilities).toFixed(2));
-
-    const now = new Date();
-    const sixMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 5, 1);
-    const txs = await prisma.transaction.findMany({
-      where: { userId, date: { gte: sixMonthsAgo } },
-      include: { account: { select: { currency: true } } },
-      orderBy: { date: 'asc' },
-    });
-
-    const txToMvr = (tx: { amount: number; currency?: string | null; account?: { currency: string } | null }) =>
-      toMVR(tx.amount, tx.currency || tx.account?.currency || 'MVR', rate);
-
-    const history: Array<{ month: string; assets: number; liabilities: number; netWorth: number }> = [];
-    for (let i = 5; i >= 0; i--) {
-      const mStart = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      const nextMStart = new Date(now.getFullYear(), now.getMonth() - i + 1, 1);
-      const monthName = mStart.toLocaleString('en-US', { month: 'short', year: '2-digit' });
-
-      const futureTxs = txs.filter((t) => new Date(t.date) >= nextMStart);
-      let netFutureChange = 0;
-      for (const tx of futureTxs) {
-        if (tx.type === 'INCOME') netFutureChange += txToMvr(tx);
-        if (tx.type === 'EXPENSE') netFutureChange -= txToMvr(tx);
-      }
-
-      const histAssets = Number(Math.max(0, totalAssets - netFutureChange * 0.85).toFixed(2));
-      const histLiabilities = Number(
-        Math.max(0, totalLiabilities + netFutureChange * 0.15).toFixed(2)
-      );
-      const histNetWorth = Number((histAssets - histLiabilities).toFixed(2));
-
-      history.push({
-        month: monthName,
-        assets: histAssets,
-        liabilities: histLiabilities,
-        netWorth: histNetWorth,
-      });
-    }
-
-    const prevMonthNetWorth =
-      history.length >= 2 ? history[history.length - 2].netWorth : netWorth * 0.95;
-    const monthlyChange = Number((netWorth - prevMonthNetWorth).toFixed(2));
-    const monthlyChangePct =
-      prevMonthNetWorth !== 0
-        ? Number(((monthlyChange / Math.abs(prevMonthNetWorth)) * 100).toFixed(2))
-        : 0;
-
-    res.json({
-      success: true,
-      usdToMvrRate: rate,
-      netWorth,
-      netWorthUsd: toUSD(netWorth, 'MVR', rate),
-      totalAssets,
-      totalAssetsUsd: toUSD(totalAssets, 'MVR', rate),
-      totalLiabilities,
-      totalLiabilitiesUsd: toUSD(totalLiabilities, 'MVR', rate),
-      debtToAssetRatio:
-        totalAssets > 0 ? Number(((totalLiabilities / totalAssets) * 100).toFixed(1)) : 0,
-      monthlyChange,
-      monthlyChangePct,
-      assets,
-      liabilities,
-      history,
-    });
-  } catch (err) {
-    next(err);
-  }
-}
-
 export async function getBudgetAnalytics(req: Request, res: Response, next: NextFunction) {
   try {
     const userId = req.user!.id;
@@ -653,17 +551,22 @@ export async function getBudgetAnalytics(req: Request, res: Response, next: Next
     const endOfMonth = new Date(year, month, 0, 23, 59, 59, 999);
 
     const [budgets, expenses] = await Promise.all([
-      prisma.budget.findMany({
+      readPrisma.budget.findMany({
         where: { userId, month, year },
         include: { category: true },
       }),
-      prisma.transaction.findMany({
+      readPrisma.transaction.findMany({
         where: {
           userId,
           type: 'EXPENSE',
           date: { gte: startOfMonth, lte: endOfMonth },
         },
-        include: { account: { select: { currency: true } } },
+        select: {
+          categoryId: true,
+          amount: true,
+          currency: true,
+          account: { select: { currency: true } },
+        },
       }),
     ]);
 

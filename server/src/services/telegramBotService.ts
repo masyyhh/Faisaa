@@ -1,4 +1,5 @@
 import type { Account, Category, User, Transaction } from '@prisma/client';
+import type { AuthUser } from '../middleware/auth.js';
 import prisma from '../prisma/client.js';
 import { sendTelegramMessageRaw } from './telegramService.js';
 import { getBriefingData, formatBriefingMarkdown } from './briefingService.js';
@@ -171,6 +172,36 @@ export function parseExpenseText(
   };
 }
 
+export interface TelegramMessagePayload {
+  message_id?: number;
+  chat?: {
+    id?: number | string;
+    type?: string;
+    first_name?: string;
+    last_name?: string;
+    username?: string;
+  };
+  from?: {
+    id?: number | string;
+    first_name?: string;
+    last_name?: string;
+    username?: string;
+  };
+  text?: string;
+  date?: number;
+}
+
+export interface TelegramUpdate {
+  update_id?: number;
+  message?: TelegramMessagePayload;
+  edited_message?: TelegramMessagePayload;
+}
+
+export type UserWithAccountsAndCategories = User & {
+  accounts: Account[];
+  categories: Category[];
+};
+
 export interface WebhookUpdateResult {
   handled: boolean;
   reason?: string;
@@ -182,9 +213,9 @@ export interface WebhookUpdateResult {
  * Handle incoming Telegram webhook updates.
  */
 export async function handleTelegramWebhookUpdate(
-  update: any,
+  update: TelegramUpdate,
   defaultBotToken: string | null = null,
-  userOverride: any = null
+  userOverride: UserWithAccountsAndCategories | User | AuthUser | null = null
 ): Promise<WebhookUpdateResult> {
   const message = update?.message || update?.edited_message;
   if (!message || !message.text) return { handled: false, reason: 'No message text' };
@@ -194,7 +225,7 @@ export async function handleTelegramWebhookUpdate(
   console.log(`[TelegramBot] Incoming message from chatId=${chatId}: "${text}"`);
 
   // Helper to resolve an active decrypted bot token
-  const resolveBotToken = async (potentialUser?: any): Promise<string | null> => {
+  const resolveBotToken = async (potentialUser?: Partial<User> | Partial<AuthUser> | null): Promise<string | null> => {
     const raw =
       potentialUser?.telegramBotToken ||
       defaultBotToken ||
@@ -324,8 +355,18 @@ export async function handleTelegramWebhookUpdate(
   }
 
   // 2. Find authenticated user by Telegram Chat ID or use userOverride
-  let user: any = userOverride;
-  if (!user) {
+  let user: UserWithAccountsAndCategories | null = null;
+  if (userOverride && 'accounts' in userOverride && Array.isArray((userOverride as UserWithAccountsAndCategories).accounts) && 'categories' in userOverride && Array.isArray((userOverride as UserWithAccountsAndCategories).categories)) {
+    user = userOverride as UserWithAccountsAndCategories;
+  } else if (userOverride) {
+    user = await prisma.user.findUnique({
+      where: { id: userOverride.id },
+      include: {
+        accounts: { where: { isActive: true } },
+        categories: true,
+      },
+    });
+  } else {
     user = await prisma.user.findFirst({
       where: { telegramChatId: chatId },
       include: {
@@ -334,15 +375,6 @@ export async function handleTelegramWebhookUpdate(
       },
       orderBy: { updatedAt: 'desc' },
     });
-  } else if (!user.accounts || !user.categories) {
-    const fresh = await prisma.user.findUnique({
-      where: { id: user.id },
-      include: {
-        accounts: { where: { isActive: true } },
-        categories: true,
-      },
-    });
-    if (fresh) user = fresh;
   }
 
   const botToken = await resolveBotToken(user);

@@ -1,4 +1,4 @@
-import type { User, Account, Transaction, Bill, RecurringTransaction, Budget } from '@prisma/client';
+import type { User, Account, Transaction, Bill, RecurringTransaction, Budget, Category } from '@prisma/client';
 import prisma from '../prisma/client.js';
 import { sendTelegramNotification, type TelegramSendResult } from './telegramService.js';
 
@@ -18,8 +18,8 @@ export interface BriefingData {
   netLiquidityMvr: number;
   yesterdaySpendMvr: number;
   yesterdayTxCount: number;
-  upcomingBills: (Bill & { category?: any })[];
-  dueRecurring: (RecurringTransaction & { account?: any })[];
+  upcomingBills: (Bill & { category?: Category | null })[];
+  dueRecurring: (RecurringTransaction & { account?: Account | null })[];
   warningBudgets: WarningBudget[];
 }
 
@@ -134,30 +134,41 @@ export async function getBriefingData(userId: string): Promise<BriefingData | nu
 
   const startOfMonth = new Date(currentYear, currentMonth - 1, 1);
   const warningBudgets: WarningBudget[] = [];
+  const categoryIds = budgets.map((b) => b.categoryId).filter(Boolean);
 
-  for (const b of budgets) {
-    const catExpenses = await prisma.transaction.findMany({
+  if (categoryIds.length > 0) {
+    const allCatExpenses = await prisma.transaction.findMany({
       where: {
         userId,
-        categoryId: b.categoryId,
+        categoryId: { in: categoryIds },
         type: 'EXPENSE',
         date: { gte: startOfMonth, lte: now },
       },
+      select: {
+        categoryId: true,
+        amount: true,
+        currency: true,
+      },
     });
 
-    const totalSpent = catExpenses.reduce((sum: number, tx: Transaction) => {
+    const spentMap = new Map<string, number>();
+    for (const tx of allCatExpenses) {
+      if (!tx.categoryId) continue;
       const amt = tx.currency === 'USD' ? tx.amount * rate : tx.amount;
-      return sum + amt;
-    }, 0);
+      spentMap.set(tx.categoryId, (spentMap.get(tx.categoryId) || 0) + amt);
+    }
 
-    const percentage = b.amount > 0 ? (totalSpent / b.amount) * 100 : 0;
-    if (percentage >= (b.alertThreshold || 80)) {
-      warningBudgets.push({
-        name: b.name || b.category?.name || 'Budget',
-        spent: totalSpent,
-        budget: b.amount,
-        percentage: Math.round(percentage),
-      });
+    for (const b of budgets) {
+      const totalSpent = spentMap.get(b.categoryId) || 0;
+      const percentage = b.amount > 0 ? (totalSpent / b.amount) * 100 : 0;
+      if (percentage >= (b.alertThreshold || 80)) {
+        warningBudgets.push({
+          name: b.name || b.category?.name || 'Budget',
+          spent: totalSpent,
+          budget: b.amount,
+          percentage: Math.round(percentage),
+        });
+      }
     }
   }
 
@@ -318,23 +329,23 @@ export async function checkAndSendBillReminders(userId: string): Promise<string[
   });
 
   const remindersSent: string[] = [];
+  const dayStart = new Date(now);
+  dayStart.setHours(0, 0, 0, 0);
+
+  const todayNotifications = await prisma.notification.findMany({
+    where: {
+      userId,
+      type: 'BILL_DUE',
+      createdAt: {
+        gte: dayStart,
+      },
+    },
+    select: { message: true },
+  });
 
   for (const bill of bills) {
     // Avoid spamming multiple reminders on the same day
-    const dayStart = new Date(now);
-    dayStart.setHours(0, 0, 0, 0);
-
-    const alreadyNotified = await prisma.notification.findFirst({
-      where: {
-        userId,
-        type: 'BILL_DUE',
-        message: { contains: bill.name },
-        createdAt: {
-          gte: dayStart,
-        },
-      },
-    });
-
+    const alreadyNotified = todayNotifications.some((n) => n.message.includes(bill.name));
     if (alreadyNotified) continue;
 
     const diffHours = Math.round((new Date(bill.dueDate).getTime() - new Date().getTime()) / (1000 * 60 * 60));

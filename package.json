@@ -9,6 +9,8 @@
     "dev:client": "npm --prefix client run dev",
     "build": "npm --prefix server run prisma:generate && npm --prefix server run build && npm --prefix client run build",
     "typecheck": "npm --prefix server run typecheck && npm --prefix client run typecheck",
+    "lint": "npm run typecheck",
+    "test": "npm run typecheck && npm run build",
     "start": "NODE_ENV=production npm --prefix server start",
     "db:sqlite": "node scripts/use-db.mjs sqlite",
     "db:postgres": "node scripts/use-db.mjs postgres",

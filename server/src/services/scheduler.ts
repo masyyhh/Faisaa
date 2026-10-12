@@ -63,21 +63,22 @@ export async function runScheduledTasks(): Promise<void> {
         select: { id: true },
       });
 
-      for (const { id: userId } of telegramUsers) {
-        try {
-          // Check if briefing was already delivered today
-          const alreadySent = await prisma.notification.findFirst({
-            where: {
-              userId,
-              title: '🌅 Your Daily Financial Briefing',
-              createdAt: { gte: todayStart },
-            },
-          });
+      const userIds = telegramUsers.map((u) => u.id);
+      const alreadySent = await prisma.notification.findMany({
+        where: {
+          userId: { in: userIds },
+          title: '🌅 Your Daily Financial Briefing',
+          createdAt: { gte: todayStart },
+        },
+        select: { userId: true },
+      });
+      const alreadySentSet = new Set(alreadySent.map((n) => n.userId));
 
-          if (!alreadySent) {
-            await sendDailyBriefing(userId);
-            console.log(`[Scheduler] 🌅 Sent daily briefing to user ${userId}`);
-          }
+      for (const userId of userIds) {
+        if (alreadySentSet.has(userId)) continue;
+        try {
+          await sendDailyBriefing(userId);
+          console.log(`[Scheduler] 🌅 Sent daily briefing to user ${userId}`);
         } catch (briefingErr: unknown) {
           const msg = briefingErr instanceof Error ? briefingErr.message : String(briefingErr);
           console.error(`[Scheduler] Error sending briefing to user ${userId}:`, msg);

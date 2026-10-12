@@ -6,7 +6,7 @@ Faisaa is a full-stack, dark-first fintech personal finance web application buil
 
 ## 1. Project Overview
 
-Faisaa empowers users to track multi-institution financial accounts, log income/expenses/transfers with real-time balance synchronization, manage monthly category budgets with threshold alerts, monitor savings goals with milestones, track bills & recurring subscriptions, and analyze their net worth and cashflow trends across interactive charts.
+Faisaa empowers users to track multi-institution financial accounts, log income/expenses/transfers with real-time balance synchronization, manage monthly category budgets with threshold alerts, monitor savings goals with milestones, track bills & recurring subscriptions, and analyze their cashflow trends across interactive charts.
 
 ---
 
@@ -39,7 +39,7 @@ Faisaa empowers users to track multi-institution financial accounts, log income/
 6. **Savings Goals**: Circular SVG and linear progress indicators, target dates, milestones, and `+ Add Money` / `Withdraw` flows with optional bank account balance sync.
 7. **Bills & Subscriptions**: Monthly & yearly normalized recurring cost metrics, overdue warnings, and 1-click **Mark as Paid** that logs the expense transaction and advances the due date.
 8. **8-Chart Analytics Suite**: Income vs Expenses, Cashflow Over Time, Spending by Category, Top Merchants, Account Balances, Monthly Comparison, Budget Performance, and Cumulative Savings Growth with 7 date range presets.
-9. **Net Worth Dashboard**: `Net Worth = Total Assets - Total Liabilities` with debt-to-asset ratio, monthly delta, 6-month historical net worth curve, and asset/liability breakdowns.
+9. **Loans & Debt**: Debt Cockpit, Snowball vs. Avalanche strategy comparator, and installment payment tracking.
 10. **CSV & JSON Import/Export**: Validated CSV transaction import with column checking & preview table, CSV ledger export, and full JSON workspace backup/restore.
 
 ---
@@ -59,7 +59,7 @@ faisaa/
 │       ├── context/              # AuthContext (JWT session, theme, privacy mask, toasts)
 │       ├── features/transactions/# Global fast TransactionModal
 │       ├── layouts/              # AppLayout (Sidebar, Mobile Bottom Nav, Global Cmd+K Search, Notifications)
-│       ├── pages/                # Dashboard, Transactions, Accounts, Budgets, Goals, Bills, Analytics, NetWorth, Settings, Auth
+│       ├── pages/                # Dashboard, Transactions, Accounts, Budgets, Goals, Bills, Analytics, Settings, Auth
 │       ├── services/             # Axios API client
 │       └── utils/                # Multi-currency (USD, EUR, GBP, MVR, INR, AUD, CAD, JPY) & date formatters
 └── server/                       # Node.js + Express + Prisma Backend
@@ -197,6 +197,5 @@ docker compose up -d --build
 | `GET` | `/api/analytics/dashboard` | Unified executive dashboard metrics |
 | `GET` | `/api/analytics/cashflow` | Cashflow timeline, income vs expenses & savings growth |
 | `GET` | `/api/analytics/categories` | Category & top merchant spending breakdown |
-| `GET` | `/api/analytics/net-worth` | Assets, liabilities & 6-month historical net worth |
 | `GET/POST` | `/api/data/export/csv` & `/api/data/import/csv` | CSV import/export |
 | `GET/POST` | `/api/data/export/json` & `/api/data/import/json` | JSON backup/restore |

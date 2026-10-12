@@ -7,18 +7,23 @@ import express, { type Request, type Response, type NextFunction } from 'express
 import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
+import { validateEnv } from './config/env.js';
 import apiRoutes from './routes/api.js';
 import { errorHandler } from './middleware/auth.js';
 import { seedDatabase } from './prisma/seed.js';
 import prisma, { initDatabasePragmas } from './prisma/client.js';
 import { startScheduler, stopScheduler } from './services/scheduler.js';
+import { DistributedRateLimitStore } from './utils/rateLimitStore.js';
+
+// Validate and enforce environment configuration on boot
+const env = validateEnv();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-const PORT = Number(process.env.PORT) || 5001;
-const isProduction = process.env.NODE_ENV === 'production';
+const PORT = env.PORT;
+const isProduction = env.NODE_ENV === 'production';
 
 // Trust reverse proxy (Nginx, Cloudflare, Render, Railway, Fly.io, AWS ALB)
 app.set('trust proxy', 1);
@@ -49,19 +54,21 @@ app.use(
   helmet({
     frameguard: { action: 'deny' },
     crossOriginResourcePolicy: false,
-    hsts: {
-      maxAge: 31536000,
-      includeSubDomains: true,
-      preload: true,
-    },
+    hsts: isProduction
+      ? {
+          maxAge: 63072000,
+          includeSubDomains: true,
+          preload: true,
+        }
+      : false,
     contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'self'"],
-        scriptSrc: ["'self'", "'unsafe-inline'"],
-        styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
-        fontSrc: ["'self'", 'https://fonts.gstatic.com', 'data:'],
-        imgSrc: ["'self'", 'data:', 'blob:', 'https:'],
+        scriptSrc: ["'self'"],
+        styleSrc: ["'self'", "'unsafe-inline'"],
+        imgSrc: ["'self'", 'data:', 'https:'],
         connectSrc: ["'self'", 'https://api.telegram.org'],
+        frameAncestors: ["'none'"],
         objectSrc: ["'none'"],
         upgradeInsecureRequests: isProduction ? [] : null,
       },
@@ -98,11 +105,15 @@ app.use(
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'x-step-up-token', 'x-device-trust-token'],
   })
 );
 
 app.use(express.json({ limit: '2mb' }));
+
+// Distributed rate limiting backed by Redis/Valkey with memory fallback
+const authStore = new DistributedRateLimitStore({ prefix: 'rl:auth:' });
+const apiStore = new DistributedRateLimitStore({ prefix: 'rl:api:' });
 
 // Strict rate limiter for authentication endpoints (prevent brute-force and credential stuffing)
 const authBruteForceLimiter = rateLimit({
@@ -110,12 +121,14 @@ const authBruteForceLimiter = rateLimit({
   max: 30,
   standardHeaders: true,
   legacyHeaders: false,
+  store: authStore,
   message: {
     success: false,
     message: 'Too many authentication attempts. Please try again in 15 minutes.',
   },
 });
 app.use('/api/auth/login', authBruteForceLimiter);
+app.use('/api/auth/verify-otp', authBruteForceLimiter);
 app.use('/api/auth/register', authBruteForceLimiter);
 app.use('/api/auth/forgot-password', authBruteForceLimiter);
 app.use('/api/auth/reset-password', authBruteForceLimiter);
@@ -126,6 +139,7 @@ const apiLimiter = rateLimit({
   max: 600,
   standardHeaders: true,
   legacyHeaders: false,
+  store: apiStore,
 });
 app.use('/api', apiLimiter);
 
@@ -224,5 +238,14 @@ async function gracefulShutdown(signal: string) {
 
 process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
 process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+
+process.on('unhandledRejection', (reason: unknown) => {
+  console.error('[Process] ⚠️ Unhandled Promise Rejection:', reason);
+});
+
+process.on('uncaughtException', (err: Error) => {
+  console.error('[Process] 💥 Uncaught Exception:', err);
+  gracefulShutdown('uncaughtException');
+});
 
 startServer();

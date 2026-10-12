@@ -26,11 +26,12 @@ import {
   ProgressBar,
   Modal,
   ConfirmDialog,
-  LoadingState,
   EmptyState,
   Skeleton,
   SkeletonCard,
   SkeletonMetric,
+  Input,
+  Select,
 } from '../components/ui';
 import { formatCurrency, DynamicIcon } from '../utils/formatters';
 
@@ -77,7 +78,14 @@ export default function BudgetsPage() {
       ]);
       if (bRes.data.success) {
         setBudgets(bRes.data.budgets || []);
-        setSummary(bRes.data.summary || {});
+        setSummary(bRes.data.summary || {
+          totalBudgeted: 0,
+          totalSpent: 0,
+          totalRemaining: 0,
+          overallPercentage: 0,
+          overBudgetCount: 0,
+          warningCount: 0,
+        });
         setHistory(bRes.data.history || []);
       }
       if (cRes.data.success) {
@@ -148,16 +156,16 @@ export default function BudgetsPage() {
     }
   };
 
-  const getStateBadge = (state?: string): { label: string; variant: 'danger' | 'warning' | 'success' | 'default'; color: string } => {
+  const getStateBadge = (state?: string): { label: string; variant: 'danger' | 'warning' | 'success' | 'default' } => {
     switch (state) {
       case 'over_budget':
-        return { label: 'Over Budget', variant: 'danger', color: '#F43F5E' };
+        return { label: 'Over Budget', variant: 'danger' };
       case 'near_limit':
-        return { label: 'Near Limit', variant: 'warning', color: '#F97316' };
+        return { label: 'Near Limit (90%)', variant: 'warning' };
       case 'warning':
-        return { label: 'Warning', variant: 'warning', color: '#F59E0B' };
+        return { label: 'Warning Threshold', variant: 'warning' };
       default:
-        return { label: 'Normal', variant: 'success', color: '#10B981' };
+        return { label: 'Within Limit', variant: 'success' };
     }
   };
 
@@ -188,29 +196,31 @@ export default function BudgetsPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-fade-in pb-12">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-3 border-b border-white/[0.06]">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-white font-display">
-            Monthly Budgets
+          <h1 className="text-xl sm:text-2xl font-bold text-white font-display tracking-tight flex items-center gap-2">
+            <PieIcon className="w-5 h-5 text-indigo-400" />
+            Monthly Category Budgets
           </h1>
-          <p className="text-xs sm:text-sm text-zinc-400 mt-0.5">
-            Dynamic category limits automatically calculated from your monthly expenses.
+          <p className="text-xs text-zinc-400 mt-0.5">
+            Dynamic spending caps calculated in real-time against your monthly expense ledger.
           </p>
         </div>
 
-        <Button size="sm" onClick={openAddModal}>
-          <Plus className="w-4 h-4" /> Set Monthly Budget
+        <Button size="sm" onClick={openAddModal} className="w-full sm:w-auto">
+          <Plus className="w-3.5 h-3.5" /> Set Category Budget
         </Button>
       </div>
 
       {/* Overall Budget Health Hero */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6">
-        <Card className="lg:col-span-5 flex flex-col justify-between p-4 sm:p-5">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-3.5 sm:gap-4">
+        {/* Overall Health Card */}
+        <Card className="lg:col-span-5 flex flex-col justify-between p-5 relative overflow-hidden bg-gradient-to-br from-[#121422] to-[#0f1019] border-indigo-500/30">
           <div>
             <div className="flex items-center justify-between">
-              <span className="text-[11px] uppercase tracking-wider font-semibold text-zinc-400">
+              <span className="text-xs font-semibold uppercase tracking-wider text-indigo-300/90">
                 Overall Budget Health
               </span>
               <Badge
@@ -227,35 +237,35 @@ export default function BudgetsPage() {
             </div>
 
             <div className="mt-4">
-              <p className="text-2xl sm:text-3xl font-bold tracking-tight text-white font-display truncate tabular-nums">
+              <p className="text-2xl sm:text-3xl font-bold text-white font-display tabular-nums tracking-tight truncate">
                 {formatCurrency(summary.totalSpent, currency, hide)}{' '}
-                <span className="text-sm sm:text-base font-normal text-zinc-400">
+                <span className="text-sm font-normal text-zinc-400">
                   / {formatCurrency(summary.totalBudgeted, currency, hide)}
                 </span>
               </p>
               <p className="text-xs text-zinc-400 mt-1 tabular-nums">
                 {formatCurrency(summary.totalRemaining, currency, hide)} remaining across{' '}
-                {budgets.length} budgeted categories
+                {budgets.length} active categories
               </p>
             </div>
 
             <ProgressBar
               value={summary.overallPercentage}
               color={summary.overallPercentage >= 100 ? '#F43F5E' : '#6366F1'}
-              height="h-2.5"
-              className="mt-5"
+              height="h-2"
+              className="mt-4"
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-3 mt-6 pt-4 border-t border-white/[0.06]">
+          <div className="grid grid-cols-2 gap-3 mt-5 pt-3 border-t border-white/[0.04]">
             <div className="flex items-center gap-2 text-xs">
-              <AlertCircle className="w-4 h-4 text-rose-400" />
+              <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
               <span className="text-zinc-300">
                 <strong className="text-white tabular-nums">{summary.overBudgetCount}</strong> Over Budget
               </span>
             </div>
             <div className="flex items-center gap-2 text-xs">
-              <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+              <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
               <span className="text-zinc-300">
                 <strong className="text-white tabular-nums">{budgets.length - summary.overBudgetCount}</strong> Within Limit
               </span>
@@ -264,20 +274,20 @@ export default function BudgetsPage() {
         </Card>
 
         {/* Historical Budget Performance Chart */}
-        <Card className="lg:col-span-7 min-w-0 p-4 sm:p-5">
+        <Card className="lg:col-span-7 min-w-0 p-5">
           <div className="mb-4">
-            <h3 className="text-sm font-semibold text-white">
-              Historical Budget vs Actual Performance
+            <h3 className="text-sm sm:text-base font-semibold text-white">
+              Historical Budget vs. Actual Performance
             </h3>
-            <p className="text-xs text-zinc-400">
-              6-month comparison of planned monthly limits against real spending
+            <p className="text-xs text-zinc-400 mt-0.5">
+              6-month trend comparing planned limits against actual spending
             </p>
           </div>
           <div className="h-56 w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={history} barGap={6}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
-                <XAxis dataKey="month" stroke="#71717A" fontSize={11} tickLine={false} axisLine={false} />
+              <BarChart data={history} barGap={6} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.03)" vertical={false} />
+                <XAxis dataKey="month" stroke="#71717A" fontSize={11} tickLine={false} axisLine={false} dy={4} />
                 <YAxis stroke="#71717A" fontSize={11} tickLine={false} axisLine={false} />
                 <Tooltip
                   formatter={(v: any) => formatCurrency(Number(v) || 0, currency, hide)}
@@ -286,11 +296,12 @@ export default function BudgetsPage() {
                     borderColor: 'rgba(255,255,255,0.08)',
                     borderRadius: '12px',
                     fontSize: '12px',
+                    boxShadow: '0 4px 20px rgba(0,0,0,0.5)',
                   }}
                 />
-                <Legend wrapperStyle={{ fontSize: '11px' }} />
+                <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '8px' }} />
                 <Bar dataKey="budgeted" name="Budgeted Limit" fill="#6366F1" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="spent" name="Actual Spent" fill="#EC4899" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="spent" name="Actual Spent" fill="#10B981" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -302,10 +313,10 @@ export default function BudgetsPage() {
         <EmptyState
           icon={PieIcon}
           title="No budgets configured for this month"
-          description="Set monthly spending limits for categories like Food, Shopping, Transport, and Entertainment."
+          description="Set monthly spending limits for categories like Food, Shopping, Utilities, and Transport."
           action={
-            <Button onClick={openAddModal}>
-              <Plus className="w-4 h-4" /> Create First Budget
+            <Button onClick={openAddModal} size="sm">
+              <Plus className="w-3.5 h-3.5" /> Create First Budget
             </Button>
           }
         />
@@ -313,82 +324,89 @@ export default function BudgetsPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5 sm:gap-4">
           {budgets.map((b) => {
             const stateMeta = getStateBadge(b.statusState);
+            const isOver = (b.percentage || 0) >= 100;
+
             return (
-              <Card key={b.id} className="flex flex-col justify-between">
+              <Card
+                key={b.id}
+                className={`flex flex-col justify-between border transition-all ${
+                  isOver
+                    ? 'border-rose-500/30 bg-rose-950/10'
+                    : 'border-white/[0.06] hover:border-white/[0.14]'
+                }`}
+              >
                 <div>
                   <div className="flex items-start justify-between gap-2">
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-3 min-w-0">
                       <div
-                        className="w-10 h-10 rounded-xl flex items-center justify-center"
+                        className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border border-white/[0.06]"
                         style={{
-                          backgroundColor: `${b.category?.color || '#6366F1'}20`,
-                          color: b.category?.color || '#6366F1',
+                          backgroundColor: `${b.category?.color || '#6366F1'}15`,
+                          color: b.category?.color || '#818CF8',
                         }}
                       >
                         <DynamicIcon name={b.category?.icon || 'tag'} className="w-4 h-4" />
                       </div>
-                      <div>
-                        <h3 className="text-sm font-semibold text-white">
+                      <div className="min-w-0">
+                        <h3 className="text-sm sm:text-base font-semibold text-white truncate">
                           {b.category?.name || b.name}
                         </h3>
-                        <Badge variant={stateMeta.variant}>{stateMeta.label}</Badge>
+                        <Badge variant={stateMeta.variant} className="mt-0.5">
+                          {stateMeta.label}
+                        </Badge>
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-1 shrink-0">
                       <button
                         onClick={() => openEditModal(b)}
-                        className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-white/[0.06] transition-colors cursor-pointer"
+                        title="Edit budget"
+                        className="p-1.5 sm:p-2 rounded-lg text-zinc-400 hover:text-white hover:bg-white/[0.06] transition-colors cursor-pointer"
                       >
                         <Edit3 className="w-3.5 h-3.5" />
                       </button>
                       <button
                         onClick={() => setDeleteTarget(b)}
-                        className="p-1.5 rounded-lg text-zinc-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer"
+                        title="Delete budget"
+                        className="p-1.5 sm:p-2 rounded-lg text-zinc-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
                     </div>
                   </div>
 
-                  <div className="mt-4">
-                    <div className="flex items-baseline justify-between">
-                      <div>
-                        <span className="text-xl font-bold tracking-tight text-white font-display tabular-nums">
-                          {formatCurrency(b.spent, currency, hide)}
+                  {/* Dominant Budget Metrics */}
+                  <div className="mt-4 pt-3 border-t border-white/[0.04] space-y-2">
+                    <div className="flex items-baseline justify-between gap-2">
+                      <span className="text-xs text-zinc-400">Spent vs Target:</span>
+                      <p className="text-xl sm:text-2xl font-bold text-white font-display tabular-nums tracking-tight truncate">
+                        {formatCurrency(b.spent, currency, hide)}{' '}
+                        <span className="text-xs font-normal text-zinc-400">
+                          / {formatCurrency(b.amount, currency, hide)}
                         </span>
-                        <span className="text-xs text-zinc-400 ml-1.5 tabular-nums">
-                          of {formatCurrency(b.amount, currency, hide)}
-                        </span>
-                      </div>
-                      <span className="text-xs font-semibold tabular-nums" style={{ color: stateMeta.color }}>
-                        {b.percentage}%
-                      </span>
+                      </p>
                     </div>
 
                     <ProgressBar
-                      value={b.percentage}
-                      color={stateMeta.color}
+                      value={b.percentage || 0}
+                      color={isOver ? '#F43F5E' : b.category?.color || '#6366F1'}
                       height="h-2"
-                      className="mt-2.5"
                     />
+
+                    <div className="flex items-center justify-between text-[11px] text-zinc-400 pt-0.5 tabular-nums">
+                      <span className="font-medium text-white">{b.percentage}% consumed</span>
+                      <span>
+                        {isOver
+                          ? `Over by ${formatCurrency(b.overAmount || 0, currency, hide)}`
+                          : `${formatCurrency(b.remaining, currency, hide)} left`}
+                      </span>
+                    </div>
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between text-xs text-zinc-400 mt-4 pt-3 border-t border-white/[0.06]">
-                  {(b.overAmount || 0) > 0 ? (
-                    <span className="text-rose-400 font-semibold tabular-nums">
-                      Over by {formatCurrency(b.overAmount, currency, hide)}
-                    </span>
-                  ) : (
-                    <span>
-                      Remaining:{' '}
-                      <strong className="text-white tabular-nums">
-                        {formatCurrency(b.remaining, currency, hide)}
-                      </strong>
-                    </span>
-                  )}
-                  <span className="text-[11px] text-zinc-500">Alert at {b.alertThreshold}%</span>
+                <div className="pt-3 mt-3 border-t border-white/[0.04] text-[11px] text-zinc-500 flex items-center justify-between">
+                  <span>Alert threshold: {b.alertThreshold || 80}%</span>
+                  <span>Monthly recurring cap</span>
                 </div>
               </Card>
             );
@@ -396,71 +414,65 @@ export default function BudgetsPage() {
         </div>
       )}
 
-      {/* Create / Edit Budget Modal */}
+      {/* Add / Edit Budget Modal */}
       <Modal
         isOpen={modalOpen}
         onClose={() => setModalOpen(false)}
-        title={editingBudget ? 'Edit Monthly Budget' : 'Set Monthly Budget'}
+        title={editingBudget ? 'Edit Monthly Budget' : 'Set Category Budget'}
+        subtitle="Define spending limits and proactive threshold warnings"
       >
         <form onSubmit={handleSave} className="space-y-4">
-          <div>
-            <label className="block text-xs font-medium text-zinc-300 mb-1.5">Expense Category</label>
-            <select
-              value={form.categoryId}
-              onChange={(e) => setForm({ ...form, categoryId: e.target.value })}
-              disabled={Boolean(editingBudget)}
-              className="w-full px-3.5 py-2.5 rounded-xl bg-white/[0.03] border border-white/[0.08] text-sm text-white focus:outline-none focus:border-indigo-500/50"
-            >
-              {categories.map((c) => (
-                <option key={c.id} value={c.id} className="bg-[#111218] text-white">
-                  {c.name}
-                </option>
-              ))}
-            </select>
-          </div>
+          <Select
+            label="Expense Category"
+            value={form.categoryId}
+            onChange={(e) => setForm({ ...form, categoryId: e.target.value })}
+            required
+          >
+            {categories.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
+          </Select>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-medium text-zinc-300 mb-1.5">Monthly Budget Limit</label>
-              <input
-                type="number"
-                step="1"
-                required
-                value={form.amount}
-                onChange={(e) => setForm({ ...form, amount: e.target.value })}
-                placeholder="500"
-                className="w-full px-3.5 py-2.5 rounded-xl bg-white/[0.03] border border-white/[0.08] text-sm text-white focus:outline-none focus:border-indigo-500/50 tabular-nums"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-zinc-300 mb-1.5">Alert Threshold (%)</label>
-              <input
-                type="number"
-                min="10"
-                max="100"
-                value={form.alertThreshold}
-                onChange={(e) => setForm({ ...form, alertThreshold: e.target.value })}
-                className="w-full px-3.5 py-2.5 rounded-xl bg-white/[0.03] border border-white/[0.08] text-sm text-white focus:outline-none focus:border-indigo-500/50 tabular-nums"
-              />
-            </div>
-          </div>
+          <Input
+            label={`Budget Cap (${currency})`}
+            type="number"
+            step="0.01"
+            min="0.01"
+            required
+            value={form.amount}
+            onChange={(e) => setForm({ ...form, amount: e.target.value })}
+            placeholder="5000.00"
+          />
 
-          <div className="flex justify-end gap-2.5 pt-2">
+          <Select
+            label="Alert Warning Threshold"
+            value={form.alertThreshold}
+            onChange={(e) => setForm({ ...form, alertThreshold: e.target.value })}
+          >
+            <option value="50">50% of budget reached</option>
+            <option value="75">75% of budget reached</option>
+            <option value="80">80% of budget reached (Recommended)</option>
+            <option value="90">90% of budget reached</option>
+          </Select>
+
+          <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-white/[0.06]">
             <Button variant="secondary" onClick={() => setModalOpen(false)}>
               Cancel
             </Button>
-            <Button type="submit">Save Budget</Button>
+            <Button type="submit">{editingBudget ? 'Update Budget' : 'Save Budget'}</Button>
           </div>
         </form>
       </Modal>
 
-      {/* Confirm Delete */}
+      {/* Delete Confirmation */}
       <ConfirmDialog
         isOpen={Boolean(deleteTarget)}
         onClose={() => setDeleteTarget(null)}
         onConfirm={handleConfirmDelete}
         title="Delete Budget"
-        message={`Remove the monthly budget for "${deleteTarget?.category?.name || 'this category'}"?`}
+        message={`Delete monthly budget for "${deleteTarget?.category?.name || 'this category'}"? Your past transaction history will not be affected.`}
       />
     </div>
   );

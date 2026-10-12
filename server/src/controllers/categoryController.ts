@@ -1,10 +1,23 @@
 import type { Request, Response, NextFunction } from 'express';
 import prisma from '../prisma/client.js';
 import { categorySchema } from '../validators/schemas.js';
+import { cacheGet, cacheSet, invalidateUserCategories } from '../utils/cache.js';
 
 export async function getCategories(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     const userId = req.user!.id;
+    const cacheKey = `user:${userId}:categories`;
+
+    const cached = await cacheGet<unknown[]>(cacheKey);
+    if (cached) {
+      res.json({
+        success: true,
+        categories: cached,
+        cached: true,
+      });
+      return;
+    }
+
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
@@ -32,6 +45,8 @@ export async function getCategories(req: Request, res: Response, next: NextFunct
       };
     });
 
+    await cacheSet(cacheKey, formatted, 3600); // 1-hour TTL
+
     res.json({
       success: true,
       categories: formatted,
@@ -51,6 +66,8 @@ export async function createCategory(req: Request, res: Response, next: NextFunc
         isDefault: false,
       },
     });
+
+    await invalidateUserCategories(req.user!.id);
 
     res.status(201).json({
       success: true,
@@ -82,6 +99,8 @@ export async function updateCategory(req: Request, res: Response, next: NextFunc
       data: parsed,
     });
 
+    await invalidateUserCategories(req.user!.id);
+
     res.json({
       success: true,
       category: updated,
@@ -107,6 +126,7 @@ export async function deleteCategory(req: Request, res: Response, next: NextFunc
     }
 
     await prisma.category.delete({ where: { id } });
+    await invalidateUserCategories(req.user!.id);
 
     res.json({
       success: true,

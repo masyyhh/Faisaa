@@ -53,6 +53,19 @@
   height: 5px;
 }
 
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(161, 161, 170, 0.2);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(161, 161, 170, 0.35);
+}
+
 /* Shimmer Skeleton Animation */
 @keyframes shimmer-sweep {
   0% {
@@ -101,31 +114,68 @@ html.light .skeleton-shimmer::after {
   );
 }
 
-::-webkit-scrollbar-track {
-  background: transparent;
+/* =========================================================================
+   TASTEFUL & PERFORMANT UI ANIMATIONS
+   ========================================================================= */
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
-::-webkit-scrollbar-thumb {
-  background: rgba(161, 161, 170, 0.2);
-  border-radius: 9999px;
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(161, 161, 170, 0.35);
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-scale-in {
+  animation: scaleIn 0.18s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-slide-up {
+  animation: slideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 /* =========================================================================
    MINIMALIST LIGHT ("WHITE") THEME OVERRIDES
-   Clean Zinc/Slate 1px border aesthetic inspired by Mercury & Linear
+   Clean Zinc/Slate 1px border aesthetic inspired by Stripe, Mercury & Linear
    ========================================================================= */
 
 html.light body,
 html.light [class*="bg-[#07"],
 html.light [class*="bg-[#08"],
 html.light [class*="bg-[#09"],
-html.light [class*="bg-[#0B"],
-html.light [class*="bg-[#0D"],
-html.light [class*="bg-[#0E"] {
+html.light [class*="bg-[#0a"],
+html.light [class*="bg-[#0b"],
+html.light [class*="bg-[#0d"],
+html.light [class*="bg-[#0e"] {
   background-color: #fafafa !important;
   color: #09090b !important;
 }
@@ -134,11 +184,11 @@ html.light aside.faisaa-sidebar,
 html.light aside.finora-sidebar,
 html.light header[class*="bg-[#08"],
 html.light header[class*="bg-[#09"] {
-  background-color: rgba(255, 255, 255, 0.92) !important;
+  background-color: rgba(255, 255, 255, 0.95) !important;
   border-color: #e4e4e7 !important;
 }
 
-html.light nav[class*="bg-[#0D"],
+html.light nav[class*="bg-[#0d"],
 html.light nav[class*="bg-[#09"] {
   background-color: rgba(255, 255, 255, 0.96) !important;
   border-color: #e4e4e7 !important;
@@ -147,24 +197,29 @@ html.light nav[class*="bg-[#09"] {
 /* Cards, Modals, Dropdowns, Select Boxes, and Elevated Containers */
 html.light .faisaa-card,
 html.light .finora-card,
+html.light [class*="bg-[#0f"],
+html.light [class*="bg-[#10"],
 html.light [class*="bg-[#11"],
 html.light [class*="bg-[#12"],
 html.light [class*="bg-[#13"],
+html.light [class*="bg-[#14"],
+html.light [class*="bg-[#15"],
 html.light [class*="bg-[#16"],
 html.light [class*="bg-[#17"],
 html.light [class*="bg-[#18"],
-html.light [class*="bg-[#19"] {
+html.light [class*="bg-[#19"],
+html.light [class*="bg-[#1a"] {
   background-color: #ffffff !important;
   background-image: none !important;
   border-color: #e4e4e7 !important;
   color: #09090b !important;
-  box-shadow: 0 1px 2px 0 rgba(9, 9, 11, 0.03) !important;
+  box-shadow: 0 1px 3px 0 rgba(9, 9, 11, 0.04) !important;
 }
 
-/* Subtle surface fills (bg-white/[0.02], bg-white/[0.04], etc.) */
-html.light :not(.hero-card-preserve) > [class*="bg-white/"],
-html.light .faisaa-card [class*="bg-white/"],
-html.light .finora-card [class*="bg-white/"] {
+/* Subtle surface fills (bg-white/[0.01], bg-white/[0.02], bg-white/[0.04], etc.) */
+html.light :not(.hero-card-preserve) > [class*="bg-white/"]:not(button):not(input),
+html.light .faisaa-card [class*="bg-white/"]:not(button):not(input),
+html.light .finora-card [class*="bg-white/"]:not(button):not(input) {
   background-color: #f4f4f5 !important;
   border-color: #e4e4e7 !important;
 }
@@ -172,6 +227,22 @@ html.light .finora-card [class*="bg-white/"] {
 html.light .faisaa-card [class*="hover:bg-white/"]:hover,
 html.light .finora-card [class*="hover:bg-white/"]:hover {
   background-color: #e4e4e7 !important;
+}
+
+/* Secondary Button in Light Mode */
+html.light button.bg-white\/\[0\.04\],
+html.light [class*="bg-white/[0.04]"]:is(button),
+html.light [class*="bg-white/[0.05]"]:is(button) {
+  background-color: #ffffff !important;
+  border-color: #d4d4d8 !important;
+  color: #18181b !important;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.04) !important;
+}
+
+html.light button.bg-white\/\[0\.04\]:hover,
+html.light [class*="bg-white/[0.04]"]:is(button):hover {
+  background-color: #f4f4f5 !important;
+  border-color: #a1a1aa !important;
 }
 
 /* Form Inputs, Selects & Textareas in Light Mode */
@@ -183,6 +254,18 @@ html.light .finora-input {
   background-color: #ffffff !important;
   border-color: #d4d4d8 !important;
   color: #09090b !important;
+}
+
+html.light input:not([type="checkbox"]):not([type="color"]):focus,
+html.light select:focus,
+html.light textarea:focus {
+  border-color: #6366f1 !important;
+  box-shadow: 0 0 0 1px #6366f1 !important;
+}
+
+html.light input::placeholder,
+html.light textarea::placeholder {
+  color: #a1a1aa !important;
 }
 
 html.light select option {
@@ -199,6 +282,60 @@ html.light [class*="divide-white/"] > :not([hidden]) ~ :not([hidden]) {
   border-color: #f4f4f5 !important;
 }
 
+/* Segmented Control Pill Bars in Light Mode */
+html.light [class*="bg-white/[0.03]"]:has(button),
+html.light [class*="bg-white/[0.04]"]:has(button) {
+  background-color: #f4f4f5 !important;
+  border-color: #e4e4e7 !important;
+}
+
+html.light [class*="bg-white/[0.1]"]:is(button) {
+  background-color: #ffffff !important;
+  color: #09090b !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06) !important;
+}
+
+/* Progress bar track */
+html.light [class*="bg-white/[0.06]"]:not(button) {
+  background-color: #e4e4e7 !important;
+}
+
+/* Badges & Alert Tints in Light Mode */
+html.light .bg-emerald-500\/10,
+html.light .bg-emerald-950\/10 {
+  background-color: #ecfdf5 !important;
+  color: #059669 !important;
+  border-color: #a7f3d0 !important;
+}
+
+html.light .bg-rose-500\/10,
+html.light .bg-rose-500\/20,
+html.light .bg-rose-950\/10 {
+  background-color: #fff1f2 !important;
+  color: #e11d48 !important;
+  border-color: #fecdd3 !important;
+}
+
+html.light .bg-indigo-500\/10,
+html.light .bg-indigo-500\/20,
+html.light [class*="bg-indigo-950"] {
+  background-color: #eef2ff !important;
+  border-color: #c7d2fe !important;
+}
+
+html.light .bg-amber-500\/10,
+html.light .bg-amber-400\/10 {
+  background-color: #fffbeb !important;
+  color: #d97706 !important;
+  border-color: #fde68a !important;
+}
+
+html.light .bg-sky-500\/10 {
+  background-color: #f0f9ff !important;
+  color: #0284c7 !important;
+  border-color: #bae6fd !important;
+}
+
 /* Typography Contrast in Light Mode */
 html.light .text-white {
   color: #09090b !important;
@@ -206,6 +343,7 @@ html.light .text-white {
 
 html.light .text-slate-200,
 html.light .text-slate-300,
+html.light .text-zinc-200,
 html.light .text-zinc-300 {
   color: #3f3f46 !important;
 }
@@ -215,9 +353,15 @@ html.light .text-zinc-400 {
   color: #71717a !important;
 }
 
+html.light .text-slate-500,
+html.light .text-zinc-500 {
+  color: #71717a !important;
+}
+
 html.light .text-violet-200,
 html.light .text-violet-300,
 html.light .text-violet-400,
+html.light .text-indigo-300,
 html.light .text-indigo-400 {
   color: #4f46e5 !important;
 }
@@ -237,12 +381,20 @@ html.light .text-amber-400 {
   color: #d97706 !important;
 }
 
-/* Recharts Tooltip in Light Mode */
+html.light .text-sky-400 {
+  color: #0284c7 !important;
+}
+
+/* Recharts Tooltip & Grid in Light Mode */
+html.light .recharts-cartesian-grid line {
+  stroke: #e4e4e7 !important;
+}
+
 html.light .recharts-default-tooltip {
   background-color: #ffffff !important;
   border-color: #e4e4e7 !important;
   color: #09090b !important;
-  box-shadow: 0 4px 12px rgba(9, 9, 11, 0.08) !important;
+  box-shadow: 0 4px 16px rgba(9, 9, 11, 0.08) !important;
 }
 
 html.light .recharts-tooltip-label,
@@ -250,7 +402,7 @@ html.light .recharts-tooltip-item {
   color: #09090b !important;
 }
 
-/* Preserve Minimalist Dark Primary Balance Card in both Dark & Light Modes */
+/* Preserve Minimalist Dark Primary Balance Card on Dashboard in both Dark & Light Modes */
 html.light .hero-card-preserve {
   background: #18181b !important;
   border-color: #27272a !important;

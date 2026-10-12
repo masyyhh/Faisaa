@@ -4,13 +4,16 @@ import { sendTelegramNotification } from '../services/telegramService.js';
 
 export async function getNotifications(req: Request, res: Response, next: NextFunction) {
   try {
-    const notifications = await prisma.notification.findMany({
-      where: { userId: req.user!.id },
-      orderBy: { createdAt: 'desc' },
-      take: 40,
-    });
-
-    const unreadCount = notifications.filter((n) => !n.isRead).length;
+    const [notifications, unreadCount] = await Promise.all([
+      prisma.notification.findMany({
+        where: { userId: req.user!.id },
+        orderBy: { createdAt: 'desc' },
+        take: 40,
+      }),
+      prisma.notification.count({
+        where: { userId: req.user!.id, isRead: false },
+      }),
+    ]);
 
     res.json({
       success: true,

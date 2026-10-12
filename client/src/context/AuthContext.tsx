@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react';
-import api, { type User } from '../services/api';
+import api, { type User, setStepUpToken } from '../services/api';
 
 export interface Toast {
   id: number;
@@ -13,10 +13,20 @@ export interface QuickTxModalState {
   editTransaction: any | null;
 }
 
+export interface LoginResult {
+  user?: User;
+  requiresOtp?: boolean;
+  userId?: string;
+  message?: string;
+  simulationOtp?: string;
+}
+
 export interface AuthContextType {
   user: User | null;
   loading: boolean;
-  login: (identifier: string, password: string) => Promise<User>;
+  login: (identifier: string, password: string) => Promise<LoginResult>;
+  verifyOtp: (userId: string, otp: string, trustDevice?: boolean, trustDays?: number) => Promise<User>;
+  stepUpAuth: (password: string) => Promise<string>;
   register: (payload: any) => Promise<User>;
   logout: () => Promise<void>;
   deleteAccount: (password: string) => Promise<void>;
@@ -100,12 +110,42 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     fetchMe();
   }, [fetchMe]);
 
-  const login = async (identifier: string, password: string): Promise<User> => {
+  const login = async (identifier: string, password: string): Promise<LoginResult> => {
     const { data } = await api.post('/auth/login', {
       email: identifier,
       username: identifier,
       identifier,
       password,
+    });
+
+    if (data.requiresOtp) {
+      return {
+        requiresOtp: true,
+        userId: data.userId,
+        message: data.message,
+        simulationOtp: data.simulationOtp,
+      };
+    }
+
+    localStorage.setItem('faisaa_token', data.token);
+    localStorage.removeItem('finora_token');
+    setUser(data.user);
+    applyTheme(data.user.theme || 'dark');
+    addToast(`Welcome back, ${data.user.firstName}!`, 'success');
+    return { user: data.user };
+  };
+
+  const verifyOtp = async (
+    userId: string,
+    otp: string,
+    trustDevice: boolean = true,
+    trustDays: number = 30
+  ): Promise<User> => {
+    const { data } = await api.post('/auth/verify-otp', {
+      userId,
+      otp,
+      trustDevice,
+      trustDays,
     });
     localStorage.setItem('faisaa_token', data.token);
     localStorage.removeItem('finora_token');
@@ -113,6 +153,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     applyTheme(data.user.theme || 'dark');
     addToast(`Welcome back, ${data.user.firstName}!`, 'success');
     return data.user;
+  };
+
+  const stepUpAuth = async (password: string): Promise<string> => {
+    const { data } = await api.post('/auth/step-up', { password });
+    if (data.stepUpToken) {
+      setStepUpToken(data.stepUpToken, data.expiresInSeconds || 300);
+      return data.stepUpToken;
+    }
+    throw new Error('Step-up verification failed.');
   };
 
   const register = async (payload: any): Promise<User> => {
@@ -138,6 +187,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const deleteAccount = async (password: string): Promise<void> => {
+    await stepUpAuth(password);
     await api.delete('/auth/account', { data: { password } });
     localStorage.removeItem('faisaa_token');
     localStorage.removeItem('finora_token');
@@ -190,6 +240,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         user,
         loading,
         login,
+        verifyOtp,
+        stepUpAuth,
         register,
         logout,
         deleteAccount,

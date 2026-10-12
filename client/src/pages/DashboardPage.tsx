@@ -16,6 +16,7 @@ import {
   XAxis,
   YAxis,
   Tooltip,
+  CartesianGrid,
 } from 'recharts';
 import { useAuth } from '../context/AuthContext';
 import api, { Account, Transaction, SavingsGoal, Bill, Category } from '../services/api';
@@ -41,7 +42,6 @@ interface DashboardData {
     totalIncome?: number;
     totalExpenses?: number;
     netCashflow?: number;
-    netWorth?: number;
     usdToMvrRate?: number;
     [key: string]: any;
   };
@@ -209,7 +209,6 @@ export default function DashboardPage() {
   const totalIncome = Number(metrics?.totalIncome) || 0;
   const totalExpenses = Number(metrics?.totalExpenses) || 0;
   const netCashflow = Number(metrics?.netCashflow) || 0;
-  const netWorth = Number(metrics?.netWorth ?? metrics?.totalBalance) || 0;
 
   const displayedBalance = selectedAccount
     ? selectedAccount.currency === 'USD'
@@ -221,58 +220,29 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      {/* Minimalist Header + Inline Rate Control */}
+      {/* Minimalist Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 pb-2 border-b border-white/[0.06]">
         <div>
           <h1 className="text-xl sm:text-2xl font-bold text-white font-display tracking-tight">
             Overview
           </h1>
           <p className="text-xs text-zinc-400 mt-0.5">
-            Base currency <span className="text-zinc-200 font-medium">MVR</span> • Secondary{' '}
-            <span className="text-zinc-200 font-medium">USD ($)</span> valued at{' '}
+            Base currency <span className="text-zinc-200 font-medium">MVR</span> • Valued at{' '}
             <span className="text-emerald-400 font-medium tabular-nums">
               $1 = MVR {liveRate.toFixed(2)}
             </span>
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
-          {/* Compact Inline Rate Editor */}
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              handleQuickRateUpdate(quickRate);
-            }}
-            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white/[0.03] border border-white/[0.07]"
-          >
-            <span className="text-[11px] text-zinc-400">$1 =</span>
-            <input
-              type="number"
-              step="0.01"
-              min="1"
-              value={quickRate}
-              onChange={(e) => setQuickRate(e.target.value)}
-              aria-label="Exchange rate MVR per USD"
-              className="w-14 bg-transparent text-xs font-semibold text-white tabular-nums focus:outline-none text-center"
-            />
-            <span className="text-[11px] text-zinc-500">MVR</span>
-            <button
-              type="submit"
-              disabled={updatingRate}
-              className="ml-1 px-2 py-0.5 rounded bg-white/[0.07] hover:bg-white/[0.12] text-[11px] font-medium text-emerald-400 transition-colors cursor-pointer"
-            >
-              {updatingRate ? '...' : 'Set'}
-            </button>
-          </form>
-
+        <div className="flex items-center gap-2">
           <Button variant="secondary" size="sm" onClick={openExchangeModal}>
             <ArrowLeftRight className="w-3.5 h-3.5 text-emerald-400" />
-            <span className="hidden sm:inline">Convert</span>
+            <span>Convert USD ↔ MVR</span>
           </Button>
 
           <Button size="sm" onClick={() => openTransactionModal('EXPENSE')}>
             <Plus className="w-3.5 h-3.5" />
-            <span>New</span>
+            <span>New Transaction</span>
           </Button>
         </div>
       </div>
@@ -280,11 +250,11 @@ export default function DashboardPage() {
       {/* Hero Balance + 4 Minimalist KPI Cards */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-3.5 sm:gap-4">
         {/* Minimalist Primary Balance Card */}
-        <div className="hero-card-preserve lg:col-span-5 rounded-2xl p-5 sm:p-6 bg-[#14151C] border border-white/[0.08] flex flex-col justify-between shadow-lg">
+        <div className="hero-card-preserve lg:col-span-5 rounded-2xl p-6 bg-[#111218] border border-white/[0.06] flex flex-col justify-between shadow-lg">
           <div>
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2">
-                <span className="text-xs font-medium text-zinc-400">Total Balance</span>
+                <span className="text-xs font-medium uppercase tracking-wider text-zinc-400">Total Balance</span>
                 <button
                   onClick={toggleHideBalances}
                   aria-label="Toggle balance visibility"
@@ -298,7 +268,7 @@ export default function DashboardPage() {
                 value={selectedAccountId}
                 onChange={(e) => setSelectedAccountId(e.target.value)}
                 aria-label="Filter balance by account"
-                className="max-w-[150px] sm:max-w-none px-2.5 py-1 rounded-lg bg-white/[0.05] border border-white/[0.08] text-xs text-zinc-200 focus:outline-none cursor-pointer truncate"
+                className="max-w-[150px] sm:max-w-none px-2.5 py-1 rounded-lg bg-white/[0.04] border border-white/[0.08] text-xs text-zinc-200 focus:outline-none cursor-pointer truncate"
               >
                 <option value="ALL">All Accounts ({accounts.length})</option>
                 {accounts.map((acc) => (
@@ -309,15 +279,14 @@ export default function DashboardPage() {
               </select>
             </div>
 
-            <div className="mt-4 sm:mt-5">
-              <p className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight text-white font-display tabular-nums break-words">
+            <div className="mt-5">
+              <p className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-white font-display tabular-nums break-words">
                 {formatCurrency(displayedBalance, 'MVR', hide)}
               </p>
-              <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-1.5">
-                <span className="text-xs font-medium text-emerald-400 tabular-nums">
-                  {formatSecondaryUSD(displayedBalance, liveRate, hide)} USD
+              <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 mt-2">
+                <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-400 text-xs font-medium border border-emerald-500/20 tabular-nums">
+                  ≈ {formatSecondaryUSD(displayedBalance, liveRate, hide)} USD
                 </span>
-                <span className="text-zinc-600 hidden sm:inline">•</span>
                 <span className="text-xs text-zinc-400">
                   {savingsRate}% savings rate
                 </span>
@@ -325,42 +294,42 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-3 gap-1.5 sm:gap-2 mt-5 sm:mt-6 pt-4 border-t border-white/[0.06]">
+          <div className="grid grid-cols-3 gap-2 mt-6 pt-4 border-t border-white/[0.06]">
             <button
               onClick={() => openTransactionModal('INCOME')}
-              className="py-2 px-1.5 sm:px-3 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] text-[11px] sm:text-xs font-medium text-zinc-200 flex items-center justify-center gap-1 sm:gap-1.5 transition-colors cursor-pointer"
+              className="py-2 px-2 rounded-lg bg-white/[0.03] hover:bg-white/[0.07] active:scale-[0.98] text-xs font-medium text-zinc-200 flex items-center justify-center gap-1.5 transition-all cursor-pointer"
             >
               <ArrowDownLeft className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
               <span>Income</span>
             </button>
             <button
               onClick={() => openTransactionModal('EXPENSE')}
-              className="py-2 px-1.5 sm:px-3 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] text-[11px] sm:text-xs font-medium text-zinc-200 flex items-center justify-center gap-1 sm:gap-1.5 transition-colors cursor-pointer"
+              className="py-2 px-2 rounded-lg bg-white/[0.03] hover:bg-white/[0.07] active:scale-[0.98] text-xs font-medium text-zinc-200 flex items-center justify-center gap-1.5 transition-all cursor-pointer"
             >
               <ArrowUpRight className="w-3.5 h-3.5 text-rose-400 shrink-0" />
               <span>Expense</span>
             </button>
             <button
               onClick={openExchangeModal}
-              className="py-2 px-1.5 sm:px-3 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] text-[11px] sm:text-xs font-medium text-zinc-200 flex items-center justify-center gap-1 sm:gap-1.5 transition-colors cursor-pointer"
+              className="py-2 px-2 rounded-lg bg-white/[0.03] hover:bg-white/[0.07] active:scale-[0.98] text-xs font-medium text-zinc-200 flex items-center justify-center gap-1.5 transition-all cursor-pointer"
             >
               <ArrowLeftRight className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
-              <span>$ ↔ MVR</span>
+              <span>Convert</span>
             </button>
           </div>
         </div>
 
         {/* 4 Minimalist KPI Cards */}
         <div className="lg:col-span-7 grid grid-cols-2 gap-2.5 sm:gap-4">
-          <Card className="flex flex-col justify-between">
+          <Card className="flex flex-col justify-between p-4 sm:p-5">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-medium text-zinc-400">Monthly Income</span>
-              <span className="text-[11px] font-medium text-emerald-400 tabular-nums">
+              <span className="text-[11px] font-medium uppercase tracking-wider text-zinc-400">Monthly Income</span>
+              <span className="text-[11px] font-semibold text-emerald-400 tabular-nums">
                 +{incomeChangePct}%
               </span>
             </div>
             <div className="mt-3">
-              <p className="text-xl sm:text-2xl font-bold text-white font-display tabular-nums">
+              <p className="text-xl sm:text-2xl font-bold tracking-tight text-white font-display tabular-nums">
                 {formatCurrency(totalIncome, 'MVR', hide)}
               </p>
               <p className="text-xs text-zinc-500 mt-0.5 tabular-nums">
@@ -369,15 +338,15 @@ export default function DashboardPage() {
             </div>
           </Card>
 
-          <Card className="flex flex-col justify-between">
+          <Card className="flex flex-col justify-between p-4 sm:p-5">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-medium text-zinc-400">Monthly Expenses</span>
-              <span className="text-[11px] font-medium text-zinc-400 tabular-nums">
+              <span className="text-[11px] font-medium uppercase tracking-wider text-zinc-400">Monthly Expenses</span>
+              <span className="text-[11px] font-semibold text-zinc-400 tabular-nums">
                 {expenseChangePct}%
               </span>
             </div>
             <div className="mt-3">
-              <p className="text-xl sm:text-2xl font-bold text-white font-display tabular-nums">
+              <p className="text-xl sm:text-2xl font-bold tracking-tight text-white font-display tabular-nums">
                 {formatCurrency(totalExpenses, 'MVR', hide)}
               </p>
               <p className="text-xs text-zinc-500 mt-0.5 tabular-nums">
@@ -386,16 +355,16 @@ export default function DashboardPage() {
             </div>
           </Card>
 
-          <Card className="flex flex-col justify-between">
+          <Card className="flex flex-col justify-between p-4 sm:p-5">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-medium text-zinc-400">Net Cashflow</span>
+              <span className="text-[11px] font-medium uppercase tracking-wider text-zinc-400">Net Cashflow</span>
               <Badge variant={netCashflow >= 0 ? 'success' : 'danger'}>
                 {netCashflow >= 0 ? 'Positive' : 'Deficit'}
               </Badge>
             </div>
             <div className="mt-3">
               <p
-                className={`text-xl sm:text-2xl font-bold font-display tabular-nums ${
+                className={`text-xl sm:text-2xl font-bold tracking-tight font-display tabular-nums ${
                   netCashflow >= 0 ? 'text-emerald-400' : 'text-rose-400'
                 }`}
               >
@@ -408,17 +377,19 @@ export default function DashboardPage() {
             </div>
           </Card>
 
-          <Card onClick={() => navigate('/net-worth')} className="flex flex-col justify-between">
+          <Card className="flex flex-col justify-between p-4 sm:p-5">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-medium text-zinc-400">Net Worth</span>
-              <ChevronRight className="w-4 h-4 text-zinc-500" />
+              <span className="text-[11px] font-medium uppercase tracking-wider text-zinc-400">Savings Rate</span>
+              <Badge variant={savingsRate >= 20 ? 'success' : savingsRate > 0 ? 'warning' : 'default'}>
+                {savingsRate >= 20 ? 'Target met' : savingsRate > 0 ? 'Pacing' : '0%'}
+              </Badge>
             </div>
             <div className="mt-3">
-              <p className="text-xl sm:text-2xl font-bold text-white font-display tabular-nums">
-                {formatCurrency(netWorth, 'MVR', hide)}
+              <p className="text-xl sm:text-2xl font-bold tracking-tight text-white font-display tabular-nums">
+                {savingsRate.toFixed(1)}%
               </p>
               <p className="text-xs text-zinc-500 mt-0.5 tabular-nums">
-                {formatSecondaryUSD(netWorth, liveRate, hide)} USD • {accounts.length} accounts
+                {savingsRate > 0 ? `${savingsRate.toFixed(0)}% of income saved` : 'Track monthly savings'}
               </p>
             </div>
           </Card>
@@ -468,7 +439,7 @@ export default function DashboardPage() {
 
       {/* Charts Row: Minimalist Cashflow + Category Breakdown */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
-        <Card className="lg:col-span-8">
+        <Card className="lg:col-span-8 p-5 sm:p-6">
           <div className="flex items-center justify-between mb-5">
             <div>
               <h3 className="text-sm font-semibold text-white">Cashflow</h3>
@@ -484,19 +455,20 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          <div className="h-60 w-full">
+          <div className="h-64 w-full">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={cashflowTrend} margin={{ top: 5, right: 5, left: -15, bottom: 0 }}>
                 <defs>
                   <linearGradient id="minIncome" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#10B981" stopOpacity={0.18} />
+                    <stop offset="5%" stopColor="#10B981" stopOpacity={0.12} />
                     <stop offset="95%" stopColor="#10B981" stopOpacity={0} />
                   </linearGradient>
                   <linearGradient id="minExpense" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#6366F1" stopOpacity={0.18} />
+                    <stop offset="5%" stopColor="#6366F1" stopOpacity={0.12} />
                     <stop offset="95%" stopColor="#6366F1" stopOpacity={0} />
                   </linearGradient>
                 </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.03)" vertical={false} />
                 <XAxis
                   dataKey="month"
                   axisLine={false}
@@ -542,7 +514,7 @@ export default function DashboardPage() {
         </Card>
 
         {/* Top Categories Minimalist Progress List */}
-        <Card className="lg:col-span-4 flex flex-col justify-between">
+        <Card className="lg:col-span-4 flex flex-col justify-between p-5 sm:p-6">
           <div>
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-sm font-semibold text-white">Top Spending</h3>
@@ -582,12 +554,12 @@ export default function DashboardPage() {
       {/* Bottom Split: Recent Transactions + Budgets & Goals */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
         {/* Minimalist Recent Transactions List */}
-        <Card className="lg:col-span-7">
+        <Card className="lg:col-span-7 p-5 sm:p-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-sm font-semibold text-white">Recent Transactions</h3>
             <button
               onClick={() => navigate('/transactions')}
-              className="text-xs text-zinc-400 hover:text-white flex items-center gap-1 cursor-pointer"
+              className="text-xs text-zinc-400 hover:text-white flex items-center gap-1 cursor-pointer transition-colors"
             >
               View all <ChevronRight className="w-3.5 h-3.5" />
             </button>
@@ -634,12 +606,12 @@ export default function DashboardPage() {
 
         {/* Budgets & Goals Summary Column */}
         <div className="lg:col-span-5 space-y-4">
-          <Card>
+          <Card className="p-5 sm:p-6">
             <div className="flex items-center justify-between mb-3.5">
               <h3 className="text-sm font-semibold text-white">Monthly Budgets</h3>
               <button
                 onClick={() => navigate('/budgets')}
-                className="text-xs text-zinc-400 hover:text-white cursor-pointer"
+                className="text-xs text-zinc-400 hover:text-white cursor-pointer transition-colors"
               >
                 Manage →
               </button>
@@ -668,7 +640,7 @@ export default function DashboardPage() {
             </div>
           </Card>
 
-          <Card>
+          <Card className="p-5 sm:p-6">
             <div className="flex items-center justify-between mb-3.5">
               <h3 className="text-sm font-semibold text-white">Upcoming Bills & Goals</h3>
               <button

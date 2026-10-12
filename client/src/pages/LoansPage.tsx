@@ -267,7 +267,7 @@ export default function LoansPage() {
 
       if (res.data.isPaidOff) {
         triggerConfetti();
-        addToast(`🎉 Huge Milestone! ${payingLoan.name} is now 100% PAID OFF!`, 'success');
+        addToast(`🎉 Milestone Reached! ${payingLoan.name} is now 100% PAID OFF!`, 'success');
       } else {
         addToast(
           payingLoan.type === 'OWED_BY_ME'
@@ -359,98 +359,117 @@ export default function LoansPage() {
   return (
     <div className="space-y-6 animate-fade-in pb-12">
       {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-white/[0.06]">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-3 border-b border-white/[0.06]">
         <div>
           <h1 className="text-xl sm:text-2xl font-bold text-white font-display tracking-tight flex items-center gap-2">
             <Coins className="w-5 h-5 text-indigo-400" />
-            Loans & Debt Tracker
+            Loans &amp; Debt Tracker
           </h1>
           <p className="text-xs text-zinc-400 mt-0.5">
-            Track bank loans, Islamic financing, IOUs, and accelerate payoff using Snowball &amp; Avalanche strategies.
+            Track bank loans, Islamic murabaha, friendly IOUs, and accelerate payoff using Snowball &amp; Avalanche strategies.
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
-          <Button onClick={() => handleOpenCreateModal()} size="sm">
-            <Plus className="w-3.5 h-3.5" /> Add Debt or Loan
-          </Button>
-        </div>
+        <Button onClick={() => handleOpenCreateModal()} size="sm" className="w-full sm:w-auto">
+          <Plus className="w-3.5 h-3.5" /> Add Debt or Loan
+        </Button>
       </div>
 
       {/* Summary KPI Cockpit */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-4">
-        <Card className="space-y-2 p-4">
-          <div className="flex items-center justify-between text-xs text-zinc-400 font-medium">
-            <span>Total Debts I Owe</span>
-            <div className="w-7 h-7 rounded-lg bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-400">
-              <ArrowDownLeft className="w-3.5 h-3.5" />
+        {/* Total Debts I Owe - Hero Card */}
+        <Card className="p-5 flex flex-col justify-between relative overflow-hidden bg-gradient-to-br from-[#121422] to-[#0f1019] border-rose-500/25">
+          <div>
+            <div className="flex items-center justify-between text-xs font-semibold uppercase tracking-wider text-rose-300/90">
+              <span>Total Debts I Owe</span>
+              <div className="w-8 h-8 rounded-xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-400">
+                <ArrowDownLeft className="w-4 h-4" />
+              </div>
             </div>
+            <p className="text-2xl sm:text-3xl font-bold text-white font-display tabular-nums tracking-tight mt-2 truncate">
+              {hide ? '••••••' : formatCurrency(summary.totalOwedByMe, currency)}
+            </p>
           </div>
-          <div className="text-lg sm:text-xl font-bold text-white font-display tabular-nums">
-            {hide ? '••••••' : formatCurrency(summary.totalOwedByMe, currency)}
-          </div>
-          <div className="flex items-center justify-between text-[11px] text-zinc-500 pt-0.5">
-            <span>Installments:</span>
-            <span className="font-semibold text-rose-400">
+          <div className="flex items-center justify-between text-[11px] text-zinc-500 pt-2 border-t border-white/[0.04] mt-2">
+            <span>Monthly Installments:</span>
+            <span className="font-semibold text-rose-400 tabular-nums">
               {hide ? '••••' : formatCurrency(summary.totalMonthlyCommitment, currency)}/mo
             </span>
           </div>
         </Card>
 
-        <Card className="space-y-2 p-4">
-          <div className="flex items-center justify-between text-xs text-zinc-400 font-medium">
-            <span>Receivables (IOUs)</span>
-            <div className="w-7 h-7 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
-              <ArrowUpRight className="w-3.5 h-3.5" />
+        {/* Receivables (IOUs) */}
+        <Card className="p-5 flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between text-xs font-medium text-zinc-400">
+              <span>Receivables (IOUs)</span>
+              <div className="w-8 h-8 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
+                <ArrowUpRight className="w-4 h-4" />
+              </div>
             </div>
+            <p className="text-2xl sm:text-3xl font-bold text-white font-display tabular-nums tracking-tight mt-2 truncate">
+              {hide ? '••••••' : formatCurrency(summary.totalOwedToMe, currency)}
+            </p>
           </div>
-          <div className="text-lg sm:text-xl font-bold text-white font-display tabular-nums">
-            {hide ? '••••••' : formatCurrency(summary.totalOwedToMe, currency)}
-          </div>
-          <div className="flex items-center justify-between text-[11px] text-zinc-500 pt-0.5">
-            <span>People:</span>
-            <span className="font-semibold text-emerald-400">{summary.activeReceivablesCount} active</span>
+          <div className="flex items-center justify-between text-[11px] text-zinc-500 pt-2 border-t border-white/[0.04] mt-2">
+            <span>Active Borrowers:</span>
+            <span className="font-semibold text-emerald-400 tabular-nums">
+              {summary.activeReceivablesCount} people
+            </span>
           </div>
         </Card>
 
-        <Card className="space-y-2 p-4">
-          <div className="flex items-center justify-between text-xs text-zinc-400 font-medium">
-            <span>Net Position</span>
-            <div className="w-7 h-7 rounded-lg bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
-              <TrendingDown className="w-3.5 h-3.5" />
+        {/* Net Debt Position */}
+        <Card className="p-5 flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between text-xs font-medium text-zinc-400">
+              <span>Net Debt Position</span>
+              <div className="w-8 h-8 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
+                <TrendingDown className="w-4 h-4" />
+              </div>
             </div>
+            <p
+              className={`text-2xl sm:text-3xl font-bold font-display tabular-nums tracking-tight mt-2 truncate ${
+                summary.netDebtBalance > 0 ? 'text-rose-400' : 'text-emerald-400'
+              }`}
+            >
+              {hide ? '••••••' : formatCurrency(Math.abs(summary.netDebtBalance), currency)}
+            </p>
           </div>
-          <div className={`text-lg sm:text-xl font-bold font-display tabular-nums ${summary.netDebtBalance > 0 ? 'text-rose-400' : 'text-emerald-400'}`}>
-            {hide ? '••••••' : formatCurrency(Math.abs(summary.netDebtBalance), currency)}
-          </div>
-          <div className="text-[11px] text-zinc-500 pt-0.5">
+          <div className="text-[11px] text-zinc-500 pt-2 border-t border-white/[0.04] mt-2">
             {summary.netDebtBalance > 0 ? 'Net Liability Owed' : 'Net Surplus Receivable'}
           </div>
         </Card>
 
-        <Card className="space-y-2 p-4">
-          <div className="flex items-center justify-between text-xs text-zinc-400 font-medium">
-            <span>Payoff Progress</span>
-            <div className="w-7 h-7 rounded-lg bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
-              <Sparkles className="w-3.5 h-3.5" />
+        {/* Payoff Progress */}
+        <Card className="p-5 flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between text-xs font-medium text-zinc-400">
+              <span>Payoff Progress</span>
+              <div className="w-8 h-8 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
+                <Sparkles className="w-4 h-4" />
+              </div>
             </div>
+            <p className="text-2xl sm:text-3xl font-bold text-white font-display tabular-nums tracking-tight mt-2 truncate">
+              {overallPayoffPct.toFixed(1)}%
+            </p>
           </div>
-          <div className="text-lg sm:text-xl font-bold text-white font-display tabular-nums">
-            {overallPayoffPct.toFixed(1)}%
-          </div>
-          <ProgressBar value={overallPayoffPct} color="#6366F1" height="h-1.5" />
-          <div className="text-[11px] text-zinc-500 pt-0.5">
-            {summary.paidOffCount} settled
+          <div className="space-y-1.5 pt-2 border-t border-white/[0.04] mt-2">
+            <ProgressBar value={overallPayoffPct} color="#6366F1" height="h-1.5" />
+            <div className="flex items-center justify-between text-[11px] text-zinc-500">
+              <span>{summary.paidOffCount} debts settled</span>
+              <span>{summary.activeDebtsCount} remaining</span>
+            </div>
           </div>
         </Card>
       </div>
 
       {/* Payoff Strategy Accelerator Banner (For Debts I Owe) */}
-      {topPriorityDebt && (
-        <div className="p-5 rounded-2xl bg-gradient-to-r from-indigo-950/40 via-purple-950/30 to-[#12141c] border border-indigo-500/30 flex flex-col md:flex-row items-start md:items-center justify-between gap-5">
+      {topPriorityDebt && activeTab === 'OWED_BY_ME' && (
+        <div className="faisaa-card finora-card rounded-2xl p-5 border border-indigo-500/30 bg-gradient-to-r from-indigo-950/30 via-[#131520] to-[#101118] flex flex-col md:flex-row items-start md:items-center justify-between gap-5">
           <div className="space-y-2 max-w-2xl">
-            <div className="flex items-center gap-2">
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 flex items-center gap-1">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 flex items-center gap-1">
                 {strategy === 'AVALANCHE' ? <Mountain className="w-3 h-3" /> : <Snowflake className="w-3 h-3" />}
                 {strategy === 'AVALANCHE' ? 'Debt Avalanche Strategy' : 'Debt Snowball Strategy'}
               </span>
@@ -463,42 +482,42 @@ export default function LoansPage() {
               Accelerate Payoff on <span className="text-indigo-300">{topPriorityDebt.name}</span>
             </h3>
 
-            <p className="text-xs text-slate-300 leading-relaxed">
+            <p className="text-xs text-zinc-300 leading-relaxed">
               {strategy === 'AVALANCHE' ? (
                 <>
-                  With an annual rate of <strong className="text-white">{topPriorityDebt.interestRate}%</strong>, paying this off first mathematically minimizes your total financing costs. Remaining balance: <strong className="text-white">{formatCurrency(topPriorityDebt.remainingBalance, topPriorityDebt.currency)}</strong>.
+                  With an annual rate of <strong className="text-white">{topPriorityDebt.interestRate}% APR</strong>, prioritizing this mathematically minimizes your total financing costs. Remaining balance: <strong className="text-white">{formatCurrency(topPriorityDebt.remainingBalance, topPriorityDebt.currency)}</strong>.
                 </>
               ) : (
                 <>
-                  With the smallest remaining balance of <strong className="text-white">{formatCurrency(topPriorityDebt.remainingBalance, topPriorityDebt.currency)}</strong>, eliminating this gives you the quickest psychological momentum win!
+                  With the smallest remaining balance of <strong className="text-white">{formatCurrency(topPriorityDebt.remainingBalance, topPriorityDebt.currency)}</strong>, eliminating this yields the quickest psychological momentum win!
                 </>
               )}
             </p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-3 shrink-0">
-            <div className="flex items-center rounded-xl bg-white/[0.05] p-1 border border-white/[0.08]">
+          <div className="flex flex-wrap items-center gap-2.5 w-full md:w-auto shrink-0">
+            <div className="inline-flex rounded-xl bg-white/[0.04] p-1 border border-white/[0.08] w-full sm:w-auto justify-center">
               <button
                 type="button"
                 onClick={() => setStrategy('AVALANCHE')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
                   strategy === 'AVALANCHE'
                     ? 'bg-indigo-600 text-white shadow-xs'
-                    : 'text-slate-400 hover:text-white'
+                    : 'text-zinc-400 hover:text-white'
                 }`}
               >
-                Avalanche (High Interest)
+                Avalanche (High Rate)
               </button>
               <button
                 type="button"
                 onClick={() => setStrategy('SNOWBALL')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
                   strategy === 'SNOWBALL'
                     ? 'bg-indigo-600 text-white shadow-xs'
-                    : 'text-slate-400 hover:text-white'
+                    : 'text-zinc-400 hover:text-white'
                 }`}
               >
-                Snowball (Small Balance)
+                Snowball (Low Balance)
               </button>
             </div>
 
@@ -506,7 +525,7 @@ export default function LoansPage() {
               size="sm"
               variant="primary"
               onClick={() => handleOpenPayModal(topPriorityDebt)}
-              className="bg-indigo-600 hover:bg-indigo-500 shadow-md"
+              className="w-full sm:w-auto"
             >
               Pay Installment Now
             </Button>
@@ -515,44 +534,44 @@ export default function LoansPage() {
       )}
 
       {/* Tabs and Filters */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/[0.06] pb-3">
-        {/* Two-Way Tabs */}
-        <div className="flex items-center gap-2">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/[0.06] pb-3">
+        {/* Two-Way Segmented Tabs */}
+        <div className="inline-flex p-1 rounded-xl bg-white/[0.03] border border-white/[0.06] gap-1 overflow-x-auto no-scrollbar">
           <button
             onClick={() => setActiveTab('OWED_BY_ME')}
-            className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all flex items-center gap-2 cursor-pointer ${
+            className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap ${
               activeTab === 'OWED_BY_ME'
-                ? 'bg-indigo-600 text-white shadow-md'
-                : 'bg-white/[0.03] text-slate-400 hover:text-white hover:bg-white/[0.06]'
+                ? 'bg-indigo-600 text-white shadow-xs'
+                : 'text-zinc-400 hover:text-white'
             }`}
           >
-            <ArrowDownLeft className="w-4 h-4 text-rose-400" />
+            <ArrowDownLeft className="w-3.5 h-3.5 text-rose-400" />
             Debts I Owe ({loans.filter((l) => l.type === 'OWED_BY_ME').length})
           </button>
 
           <button
             onClick={() => setActiveTab('OWED_TO_ME')}
-            className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all flex items-center gap-2 cursor-pointer ${
+            className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap ${
               activeTab === 'OWED_TO_ME'
-                ? 'bg-emerald-600 text-white shadow-md'
-                : 'bg-white/[0.03] text-slate-400 hover:text-white hover:bg-white/[0.06]'
+                ? 'bg-emerald-600 text-white shadow-xs'
+                : 'text-zinc-400 hover:text-white'
             }`}
           >
-            <ArrowUpRight className="w-4 h-4 text-emerald-300" />
-            Debts Owed to Me ({loans.filter((l) => l.type === 'OWED_TO_ME').length})
+            <ArrowUpRight className="w-3.5 h-3.5 text-emerald-300" />
+            Receivables / IOUs ({loans.filter((l) => l.type === 'OWED_TO_ME').length})
           </button>
         </div>
 
         {/* Status Filter */}
-        <div className="flex items-center gap-1.5 bg-white/[0.03] p-1 rounded-xl border border-white/[0.06]">
+        <div className="inline-flex p-1 rounded-xl bg-white/[0.03] border border-white/[0.06] gap-1">
           {(['ALL', 'ACTIVE', 'PAID_OFF'] as const).map((filter) => (
             <button
               key={filter}
               onClick={() => setStatusFilter(filter)}
-              className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors ${
+              className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
                 statusFilter === filter
-                  ? 'bg-white/[0.1] text-white'
-                  : 'text-slate-400 hover:text-white'
+                  ? 'bg-white/[0.1] text-white shadow-xs'
+                  : 'text-zinc-400 hover:text-white'
               }`}
             >
               {filter === 'ALL' ? 'All' : filter === 'ACTIVE' ? 'Active' : 'Settled'}
@@ -576,13 +595,13 @@ export default function LoansPage() {
               : 'Record money lent to colleagues or friends so you never lose track of pending repayments.'
           }
           action={
-            <Button onClick={() => handleOpenCreateModal(activeTab)}>
-              <Plus className="w-4 h-4" /> Add {activeTab === 'OWED_BY_ME' ? 'Debt / Loan' : 'Receivable / IOU'}
+            <Button onClick={() => handleOpenCreateModal(activeTab)} size="sm">
+              <Plus className="w-3.5 h-3.5" /> Add {activeTab === 'OWED_BY_ME' ? 'Debt / Loan' : 'Receivable / IOU'}
             </Button>
           }
         />
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5 sm:gap-4">
           {currentTabLoans.map((loan) => {
             const isOwedByMe = loan.type === 'OWED_BY_ME';
             const isPaidOff = loan.status === 'PAID_OFF';
@@ -590,45 +609,44 @@ export default function LoansPage() {
             return (
               <Card
                 key={loan.id}
-                className={`relative flex flex-col justify-between space-y-4 border transition-all ${
+                className={`relative flex flex-col justify-between border transition-all ${
                   isPaidOff
                     ? 'border-emerald-500/30 bg-emerald-950/10'
-                    : 'border-white/[0.08] hover:border-white/[0.16]'
+                    : 'border-white/[0.06] hover:border-white/[0.14]'
                 }`}
               >
                 <div>
                   {/* Card Header */}
                   <div className="flex items-start justify-between gap-3">
-                    <div className="flex items-center gap-2.5">
+                    <div className="flex items-center gap-3 min-w-0">
                       <div
-                        className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border"
+                        className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border border-white/[0.06]"
                         style={{
-                          backgroundColor: `${loan.color}20`,
-                          borderColor: `${loan.color}40`,
+                          backgroundColor: `${loan.color}15`,
                           color: loan.color,
                         }}
                       >
                         {isOwedByMe ? <Landmark className="w-5 h-5" /> : <UserCheck className="w-5 h-5" />}
                       </div>
-                      <div>
-                        <h4 className="text-sm font-bold text-white line-clamp-1">{loan.name}</h4>
-                        <p className="text-[11px] text-slate-400">
+                      <div className="min-w-0">
+                        <h4 className="text-sm font-bold text-white truncate">{loan.name}</h4>
+                        <p className="text-xs text-zinc-400 truncate mt-0.5">
                           {loan.lender ? `${loan.lender} • ` : ''}
                           {CATEGORIES.find((c) => c.value === loan.category)?.label || loan.category}
                         </p>
                       </div>
                     </div>
 
-                    <Badge variant={isPaidOff ? 'success' : 'purple'}>
+                    <Badge variant={isPaidOff ? 'success' : 'purple'} className="shrink-0">
                       {isPaidOff ? 'Paid Off' : 'Active'}
                     </Badge>
                   </div>
 
                   {/* Balance & Progress */}
                   <div className="mt-4 p-3.5 rounded-xl bg-white/[0.02] border border-white/[0.05] space-y-2">
-                    <div className="flex items-baseline justify-between">
-                      <span className="text-xs text-slate-400">Remaining Balance:</span>
-                      <span className="text-lg font-bold text-white tabular-nums">
+                    <div className="flex items-baseline justify-between gap-2">
+                      <span className="text-xs text-zinc-400">Remaining Balance:</span>
+                      <span className="text-xl sm:text-2xl font-bold text-white font-display tabular-nums tracking-tight truncate">
                         {hide ? '••••••' : formatCurrency(loan.remainingBalance, loan.currency)}
                       </span>
                     </div>
@@ -639,8 +657,8 @@ export default function LoansPage() {
                       height="h-2"
                     />
 
-                    <div className="flex items-center justify-between text-[11px] text-slate-400 pt-0.5">
-                      <span>{loan.progressPercentage}% paid off</span>
+                    <div className="flex items-center justify-between text-[11px] text-zinc-400 pt-0.5">
+                      <span className="font-medium">{loan.progressPercentage}% settled</span>
                       <span>
                         Original: {hide ? '••••' : formatCurrency(loan.originalAmount, loan.currency)}
                       </span>
@@ -649,16 +667,16 @@ export default function LoansPage() {
 
                   {/* Loan Parameters (Interest, Installment, Term) */}
                   <div className="grid grid-cols-2 gap-2 mt-3 text-xs">
-                    <div className="p-2.5 rounded-lg bg-white/[0.015] border border-white/[0.04]">
-                      <span className="text-[10px] text-slate-400 block">Rate / Profit:</span>
-                      <span className="font-semibold text-slate-200">
+                    <div className="p-2.5 rounded-xl bg-white/[0.02] border border-white/[0.04]">
+                      <span className="text-[10px] text-zinc-400 block">Rate / Profit</span>
+                      <span className="font-semibold text-zinc-200 mt-0.5 block truncate">
                         {loan.interestRate > 0 ? `${loan.interestRate}% APR` : '0% (Islamic / Friendly)'}
                       </span>
                     </div>
 
-                    <div className="p-2.5 rounded-lg bg-white/[0.015] border border-white/[0.04]">
-                      <span className="text-[10px] text-slate-400 block">Monthly Installment:</span>
-                      <span className="font-semibold text-slate-200">
+                    <div className="p-2.5 rounded-xl bg-white/[0.02] border border-white/[0.04]">
+                      <span className="text-[10px] text-zinc-400 block">Monthly Installment</span>
+                      <span className="font-semibold text-zinc-200 mt-0.5 block truncate">
                         {loan.minimumPayment > 0
                           ? `${formatCurrency(loan.minimumPayment, loan.currency)}/mo`
                           : 'Flexible'}
@@ -666,8 +684,8 @@ export default function LoansPage() {
                     </div>
 
                     {loan.estimatedMonths !== null && loan.estimatedMonths !== undefined && (
-                      <div className="p-2.5 rounded-lg bg-white/[0.015] border border-white/[0.04] col-span-2 flex items-center justify-between">
-                        <span className="text-[10px] text-slate-400 flex items-center gap-1">
+                      <div className="p-2.5 rounded-xl bg-white/[0.02] border border-white/[0.04] col-span-2 flex items-center justify-between">
+                        <span className="text-[10px] text-zinc-400 flex items-center gap-1">
                           <Clock className="w-3 h-3 text-indigo-400" />
                           Est. Time Remaining:
                         </span>
@@ -682,7 +700,7 @@ export default function LoansPage() {
                 </div>
 
                 {/* Card Actions */}
-                <div className="pt-3 border-t border-white/[0.06] flex items-center justify-between gap-2">
+                <div className="pt-3 mt-4 border-t border-white/[0.06] flex items-center justify-between gap-2">
                   <div className="flex items-center gap-1">
                     <button
                       type="button"
@@ -691,7 +709,7 @@ export default function LoansPage() {
                         setHistoryModalOpen(true);
                       }}
                       title="View Payment History"
-                      className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/[0.06] transition-colors cursor-pointer"
+                      className="p-1.5 sm:p-2 rounded-lg text-zinc-400 hover:text-white hover:bg-white/[0.06] transition-colors cursor-pointer"
                     >
                       <History className="w-4 h-4" />
                     </button>
@@ -699,7 +717,7 @@ export default function LoansPage() {
                       type="button"
                       onClick={() => handleOpenEditModal(loan)}
                       title="Edit Loan"
-                      className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/[0.06] transition-colors cursor-pointer"
+                      className="p-1.5 sm:p-2 rounded-lg text-zinc-400 hover:text-white hover:bg-white/[0.06] transition-colors cursor-pointer"
                     >
                       <Edit2 className="w-4 h-4" />
                     </button>
@@ -707,7 +725,7 @@ export default function LoansPage() {
                       type="button"
                       onClick={() => setDeleteTarget(loan)}
                       title="Delete Loan"
-                      className="p-1.5 rounded-lg text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 transition-colors cursor-pointer"
+                      className="p-1.5 sm:p-2 rounded-lg text-zinc-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
@@ -718,11 +736,12 @@ export default function LoansPage() {
                       size="sm"
                       variant={isOwedByMe ? 'primary' : 'emerald'}
                       onClick={() => handleOpenPayModal(loan)}
+                      className="w-full sm:w-auto"
                     >
                       {isOwedByMe ? 'Pay Installment' : 'Record Repayment'}
                     </Button>
                   ) : (
-                    <span className="text-xs text-emerald-400 font-medium flex items-center gap-1">
+                    <span className="text-xs text-emerald-400 font-medium flex items-center gap-1 py-1">
                       <CheckCircle2 className="w-3.5 h-3.5" /> Fully Settled
                     </span>
                   )}
@@ -743,7 +762,7 @@ export default function LoansPage() {
         {payingLoan && (
           <form onSubmit={handleExecutePayment} className="space-y-4">
             <div>
-              <label className="block text-xs text-slate-300 mb-1">
+              <label className="block text-xs font-medium text-zinc-300 mb-1.5">
                 Payment Amount ({payingLoan.currency})
               </label>
               <input
@@ -753,12 +772,12 @@ export default function LoansPage() {
                 required
                 value={payingAmount}
                 onChange={(e) => setPayingAmount(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.1] text-sm text-white font-mono"
+                className="w-full px-3.5 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.08] text-sm text-white font-mono placeholder-zinc-500 focus:outline-none focus:border-indigo-500/60 focus:ring-1 focus:ring-indigo-500/40 transition-colors"
               />
               {payingLoan.interestRate > 0 && parseFloat(payingAmount) > 0 && (
-                <div className="mt-2 p-2.5 rounded-lg bg-white/[0.02] border border-white/[0.05] text-[11px] text-slate-300 flex justify-between">
-                  <span>Estimated Interest/Profit:</span>
-                  <span className="text-amber-300 font-mono">
+                <div className="mt-2 p-2.5 rounded-xl bg-white/[0.02] border border-white/[0.05] text-[11px] text-zinc-300 flex justify-between">
+                  <span>Estimated Interest/Profit Portion:</span>
+                  <span className="text-amber-300 font-mono font-semibold">
                     {formatCurrency(
                       Math.min(
                         (payingLoan.remainingBalance * (payingLoan.interestRate / 100)) / 12,
@@ -772,15 +791,15 @@ export default function LoansPage() {
             </div>
 
             <div>
-              <label className="block text-xs text-slate-300 mb-1">
+              <label className="block text-xs font-medium text-zinc-300 mb-1.5">
                 {payingLoan.type === 'OWED_BY_ME' ? 'Deduct from Account' : 'Deposit into Account'}
               </label>
               <select
                 value={payAccountId}
                 onChange={(e) => setPayAccountId(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.1] text-xs text-white"
+                className="w-full px-3.5 py-2.5 rounded-xl bg-[#141620] border border-white/[0.08] text-xs sm:text-sm text-white focus:outline-none focus:border-indigo-500/60 focus:ring-1 focus:ring-indigo-500/40 transition-colors"
               >
-                <option value="">None (Update loan balance only)</option>
+                <option value="">None (Update loan ledger only)</option>
                 {accounts.map((acc) => (
                   <option key={acc.id} value={acc.id}>
                     {acc.name} ({acc.currency} {acc.balance.toFixed(2)}){acc.isDefault ? ' ★ Default' : ''}
@@ -791,28 +810,28 @@ export default function LoansPage() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs text-slate-300 mb-1">Payment Date</label>
+                <label className="block text-xs font-medium text-zinc-300 mb-1.5">Payment Date</label>
                 <input
                   type="date"
                   value={payDate}
                   onChange={(e) => setPayDate(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.1] text-xs text-white"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.08] text-xs sm:text-sm text-white focus:outline-none focus:border-indigo-500/60 focus:ring-1 focus:ring-indigo-500/40 transition-colors"
                 />
               </div>
 
               <div>
-                <label className="block text-xs text-slate-300 mb-1">Reference / Note</label>
+                <label className="block text-xs font-medium text-zinc-300 mb-1.5">Reference / Note</label>
                 <input
                   type="text"
                   placeholder="e.g. October Installment"
                   value={payNotes}
                   onChange={(e) => setPayNotes(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.1] text-xs text-white"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.08] text-xs sm:text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-indigo-500/60 focus:ring-1 focus:ring-indigo-500/40 transition-colors"
                 />
               </div>
             </div>
 
-            <div className="flex items-center justify-end gap-3 pt-3 border-t border-white/[0.06]">
+            <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-white/[0.06]">
               <Button type="button" variant="secondary" onClick={() => setPayModalOpen(false)}>
                 Cancel
               </Button>
@@ -838,7 +857,7 @@ export default function LoansPage() {
         <form onSubmit={handleSaveLoan} className="space-y-4">
           {/* Debt Type Selector */}
           <div>
-            <label className="block text-xs text-slate-300 mb-1">Tracker Type</label>
+            <label className="block text-xs font-medium text-zinc-300 mb-1.5">Tracker Type</label>
             <div className="grid grid-cols-2 gap-2">
               <button
                 type="button"
@@ -846,7 +865,7 @@ export default function LoansPage() {
                 className={`p-2.5 rounded-xl border text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors cursor-pointer ${
                   formData.type === 'OWED_BY_ME'
                     ? 'bg-rose-500/20 border-rose-500/40 text-rose-300'
-                    : 'bg-white/[0.02] border-white/[0.06] text-slate-400 hover:text-white'
+                    : 'bg-white/[0.02] border-white/[0.06] text-zinc-400 hover:text-white'
                 }`}
               >
                 <ArrowDownLeft className="w-3.5 h-3.5" /> Debt I Owe (Liability)
@@ -858,7 +877,7 @@ export default function LoansPage() {
                 className={`p-2.5 rounded-xl border text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors cursor-pointer ${
                   formData.type === 'OWED_TO_ME'
                     ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-300'
-                    : 'bg-white/[0.02] border-white/[0.06] text-slate-400 hover:text-white'
+                    : 'bg-white/[0.02] border-white/[0.06] text-zinc-400 hover:text-white'
                 }`}
               >
                 <ArrowUpRight className="w-3.5 h-3.5" /> Owed to Me (IOU / Receivable)
@@ -868,38 +887,38 @@ export default function LoansPage() {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs text-slate-300 mb-1">Loan / Item Name *</label>
+              <label className="block text-xs font-medium text-zinc-300 mb-1.5">Loan / Item Name *</label>
               <input
                 type="text"
                 required
-                placeholder="e.g. BML Personal Loan or Vehicle"
+                placeholder="e.g. BML Personal Loan or Vehicle Financing"
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className="w-full px-3.5 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.1] text-xs text-white"
+                className="w-full px-3.5 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.08] text-xs sm:text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-indigo-500/60 focus:ring-1 focus:ring-indigo-500/40 transition-colors"
               />
             </div>
 
             <div>
-              <label className="block text-xs text-slate-300 mb-1">
-                {formData.type === 'OWED_BY_ME' ? 'Lender / Bank' : 'Borrower / Friend Name'}
+              <label className="block text-xs font-medium text-zinc-300 mb-1.5">
+                {formData.type === 'OWED_BY_ME' ? 'Lender / Bank Name' : 'Borrower / Friend Name'}
               </label>
               <input
                 type="text"
                 placeholder="e.g. Bank of Maldives or Ahmed"
                 value={formData.lender}
                 onChange={(e) => setFormData({ ...formData, lender: e.target.value })}
-                className="w-full px-3.5 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.1] text-xs text-white"
+                className="w-full px-3.5 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.08] text-xs sm:text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-indigo-500/60 focus:ring-1 focus:ring-indigo-500/40 transition-colors"
               />
             </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs text-slate-300 mb-1">Category</label>
+              <label className="block text-xs font-medium text-zinc-300 mb-1.5">Category</label>
               <select
                 value={formData.category}
                 onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                className="w-full px-3.5 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.1] text-xs text-white"
+                className="w-full px-3.5 py-2.5 rounded-xl bg-[#141620] border border-white/[0.08] text-xs sm:text-sm text-white focus:outline-none focus:border-indigo-500/60 focus:ring-1 focus:ring-indigo-500/40 transition-colors"
               >
                 {CATEGORIES.map((c) => (
                   <option key={c.value} value={c.value}>
@@ -910,11 +929,11 @@ export default function LoansPage() {
             </div>
 
             <div>
-              <label className="block text-xs text-slate-300 mb-1">Currency</label>
+              <label className="block text-xs font-medium text-zinc-300 mb-1.5">Currency</label>
               <select
                 value={formData.currency}
                 onChange={(e) => setFormData({ ...formData, currency: e.target.value })}
-                className="w-full px-3.5 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.1] text-xs text-white"
+                className="w-full px-3.5 py-2.5 rounded-xl bg-[#141620] border border-white/[0.08] text-xs sm:text-sm text-white focus:outline-none focus:border-indigo-500/60 focus:ring-1 focus:ring-indigo-500/40 transition-colors"
               >
                 <option value="MVR">MVR (Maldivian Rufiyaa)</option>
                 <option value="USD">USD ($)</option>
@@ -924,7 +943,7 @@ export default function LoansPage() {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs text-slate-300 mb-1">Original Borrowed / Lent Amount *</label>
+              <label className="block text-xs font-medium text-zinc-300 mb-1.5">Original Borrowed / Lent Amount *</label>
               <input
                 type="number"
                 step="0.01"
@@ -933,12 +952,12 @@ export default function LoansPage() {
                 placeholder="50000"
                 value={formData.originalAmount}
                 onChange={(e) => setFormData({ ...formData, originalAmount: e.target.value })}
-                className="w-full px-3.5 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.1] text-xs text-white font-mono"
+                className="w-full px-3.5 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.08] text-xs sm:text-sm text-white font-mono placeholder-zinc-500 focus:outline-none focus:border-indigo-500/60 focus:ring-1 focus:ring-indigo-500/40 transition-colors"
               />
             </div>
 
             <div>
-              <label className="block text-xs text-slate-300 mb-1">Current Remaining Balance</label>
+              <label className="block text-xs font-medium text-zinc-300 mb-1.5">Current Remaining Balance</label>
               <input
                 type="number"
                 step="0.01"
@@ -946,14 +965,14 @@ export default function LoansPage() {
                 placeholder="Leave blank to match original"
                 value={formData.remainingBalance}
                 onChange={(e) => setFormData({ ...formData, remainingBalance: e.target.value })}
-                className="w-full px-3.5 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.1] text-xs text-white font-mono"
+                className="w-full px-3.5 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.08] text-xs sm:text-sm text-white font-mono placeholder-zinc-500 focus:outline-none focus:border-indigo-500/60 focus:ring-1 focus:ring-indigo-500/40 transition-colors"
               />
             </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
-              <label className="block text-xs text-slate-300 mb-1">Annual Interest / Profit Rate (%)</label>
+              <label className="block text-xs font-medium text-zinc-300 mb-1.5">Annual Interest Rate (%)</label>
               <input
                 type="number"
                 step="0.01"
@@ -962,12 +981,12 @@ export default function LoansPage() {
                 placeholder="0"
                 value={formData.interestRate}
                 onChange={(e) => setFormData({ ...formData, interestRate: e.target.value })}
-                className="w-full px-3.5 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.1] text-xs text-white font-mono"
+                className="w-full px-3.5 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.08] text-xs sm:text-sm text-white font-mono placeholder-zinc-500 focus:outline-none focus:border-indigo-500/60 focus:ring-1 focus:ring-indigo-500/40 transition-colors"
               />
             </div>
 
             <div>
-              <label className="block text-xs text-slate-300 mb-1">Monthly Installment</label>
+              <label className="block text-xs font-medium text-zinc-300 mb-1.5">Monthly Installment</label>
               <input
                 type="number"
                 step="0.01"
@@ -975,40 +994,40 @@ export default function LoansPage() {
                 placeholder="2500"
                 value={formData.minimumPayment}
                 onChange={(e) => setFormData({ ...formData, minimumPayment: e.target.value })}
-                className="w-full px-3.5 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.1] text-xs text-white font-mono"
+                className="w-full px-3.5 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.08] text-xs sm:text-sm text-white font-mono placeholder-zinc-500 focus:outline-none focus:border-indigo-500/60 focus:ring-1 focus:ring-indigo-500/40 transition-colors"
               />
             </div>
 
             <div>
-              <label className="block text-xs text-slate-300 mb-1">Due Day of Month</label>
+              <label className="block text-xs font-medium text-zinc-300 mb-1.5">Due Day of Month</label>
               <input
                 type="number"
                 min="1"
                 max="31"
                 value={formData.dueDay}
                 onChange={(e) => setFormData({ ...formData, dueDay: e.target.value })}
-                className="w-full px-3.5 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.1] text-xs text-white font-mono"
+                className="w-full px-3.5 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.08] text-xs sm:text-sm text-white font-mono placeholder-zinc-500 focus:outline-none focus:border-indigo-500/60 focus:ring-1 focus:ring-indigo-500/40 transition-colors"
               />
             </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs text-slate-300 mb-1">Target Payoff Date (Optional)</label>
+              <label className="block text-xs font-medium text-zinc-300 mb-1.5">Target Payoff Date (Optional)</label>
               <input
                 type="date"
                 value={formData.dueDate}
                 onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
-                className="w-full px-3.5 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.1] text-xs text-white"
+                className="w-full px-3.5 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.08] text-xs sm:text-sm text-white focus:outline-none focus:border-indigo-500/60 focus:ring-1 focus:ring-indigo-500/40 transition-colors"
               />
             </div>
 
             <div>
-              <label className="block text-xs text-slate-300 mb-1">Linked Account for Payments</label>
+              <label className="block text-xs font-medium text-zinc-300 mb-1.5">Linked Account for Payments</label>
               <select
                 value={formData.accountId}
                 onChange={(e) => setFormData({ ...formData, accountId: e.target.value })}
-                className="w-full px-3.5 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.1] text-xs text-white"
+                className="w-full px-3.5 py-2.5 rounded-xl bg-[#141620] border border-white/[0.08] text-xs sm:text-sm text-white focus:outline-none focus:border-indigo-500/60 focus:ring-1 focus:ring-indigo-500/40 transition-colors"
               >
                 <option value="">None (Manual Tracking)</option>
                 {accounts.map((acc) => (
@@ -1021,17 +1040,17 @@ export default function LoansPage() {
           </div>
 
           <div>
-            <label className="block text-xs text-slate-300 mb-1">Notes / Terms</label>
+            <label className="block text-xs font-medium text-zinc-300 mb-1.5">Notes / Terms</label>
             <textarea
               rows={2}
               placeholder="e.g. 5-year repayment plan agreed on verbal contract"
               value={formData.notes}
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-              className="w-full px-3.5 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.1] text-xs text-white"
+              className="w-full px-3.5 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.08] text-xs sm:text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-indigo-500/60 focus:ring-1 focus:ring-indigo-500/40 transition-colors"
             />
           </div>
 
-          <div className="flex items-center justify-end gap-3 pt-3 border-t border-white/[0.06]">
+          <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-white/[0.06]">
             <Button type="button" variant="secondary" onClick={() => setLoanModalOpen(false)}>
               Cancel
             </Button>
@@ -1047,27 +1066,27 @@ export default function LoansPage() {
         isOpen={historyModalOpen}
         onClose={() => setHistoryModalOpen(false)}
         title="Payment History"
-        subtitle={selectedLoanForHistory ? selectedLoanForHistory.name : ''}
+        subtitle={selectedLoanForHistory ? `${selectedLoanForHistory.name} • Installment Records` : ''}
       >
         {selectedLoanForHistory && (
           <div className="space-y-4">
             {(!selectedLoanForHistory.payments || selectedLoanForHistory.payments.length === 0) ? (
-              <p className="text-xs text-slate-400 py-6 text-center">
+              <div className="py-10 text-center text-xs text-zinc-500">
                 No installment payments logged for this loan yet.
-              </p>
+              </div>
             ) : (
-              <div className="space-y-2.5 max-h-80 overflow-y-auto">
+              <div className="space-y-2.5 max-h-80 overflow-y-auto pr-1">
                 {selectedLoanForHistory.payments.map((p) => (
                   <div
                     key={p.id}
-                    className="p-3 rounded-xl bg-white/[0.02] border border-white/[0.05] flex items-center justify-between"
+                    className="p-3 rounded-xl bg-white/[0.02] border border-white/[0.05] flex items-center justify-between gap-3"
                   >
                     <div>
-                      <p className="text-xs font-semibold text-white">
+                      <p className="text-xs font-semibold text-white tabular-nums">
                         {formatCurrency(p.amount, selectedLoanForHistory.currency)}
                       </p>
-                      <p className="text-[10px] text-slate-400">
-                        {formatDate(p.date)}
+                      <p className="text-[11px] text-zinc-400 mt-0.5">
+                        {formatDate(p.date, user?.dateFormat)}
                         {p.notes ? ` • ${p.notes}` : ''}
                       </p>
                     </div>
