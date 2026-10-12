@@ -257,15 +257,15 @@ export default function TransactionModal() {
         )}
 
         {/* Large Amount Input + Currency Selector (MVR / USD) */}
-        <div className="p-4 rounded-2xl bg-black/[0.02] dark:bg-white/[0.02] border border-black/10 dark:border-white/[0.06] text-center">
-          <label className="block text-xs uppercase tracking-wider text-zinc-500 dark:text-zinc-400 mb-1">
+        <div className="p-4 sm:p-5 rounded-2xl bg-[#141624] border border-white/[0.08] text-center shadow-inner">
+          <label className="block text-[11px] font-semibold uppercase tracking-wider text-zinc-400 mb-1.5">
             Transaction Amount ({txCurrency})
           </label>
           <div className="flex items-center justify-center gap-2">
             <select
               value={txCurrency}
               onChange={(e) => setTxCurrency(e.target.value)}
-              className="px-2.5 py-1.5 rounded-xl bg-white dark:bg-[#111218] border border-black/10 dark:border-white/[0.08] text-xs font-bold text-emerald-600 dark:text-emerald-400 focus:outline-none cursor-pointer"
+              className="px-3 py-1.5 rounded-xl bg-[#1C1F30] border border-white/[0.1] text-xs font-bold text-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-500/40 cursor-pointer transition-colors"
             >
               <option value="MVR">MVR</option>
               <option value="USD">USD ($)</option>
@@ -279,7 +279,7 @@ export default function TransactionModal() {
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
               placeholder="0.00"
-              className="w-44 bg-transparent text-center text-3xl font-bold text-zinc-900 dark:text-white focus:outline-none font-display tabular-nums"
+              className="w-48 bg-transparent text-center text-4xl sm:text-5xl font-extrabold text-white placeholder-zinc-600 focus:outline-none font-display tabular-nums tracking-tight"
             />
           </div>
         </div>
@@ -287,7 +287,7 @@ export default function TransactionModal() {
         {/* Payee & Date */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
-            <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">
+            <label className="block text-xs font-medium text-zinc-300 mb-1.5">
               {type === 'INCOME' ? 'Source / Payer' : type === 'TRANSFER' ? 'Transfer Title' : 'Merchant / Payee'}
             </label>
             <input
@@ -302,22 +302,22 @@ export default function TransactionModal() {
                   ? 'e.g. Savings Sweep'
                   : 'e.g. Redwave, Coffee Lab, Dhiraagu'
               }
-              className="w-full px-3.5 py-2.5 rounded-xl bg-black/[0.03] dark:bg-white/[0.03] border border-black/10 dark:border-white/[0.07] text-sm text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none focus:border-indigo-500/50"
+              className="w-full px-3.5 py-2.5 rounded-xl bg-[#151724] border border-white/[0.08] text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-indigo-500/60 focus:ring-1 focus:ring-indigo-500/30 transition-colors"
             />
             {suggestedCategory && type !== 'TRANSFER' && (
               <div className="flex items-center justify-between gap-2 mt-2 px-3 py-1.5 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-xs animate-fade-in">
                 <div className="flex items-center gap-1.5 min-w-0">
-                  <Sparkles className="w-3.5 h-3.5 text-indigo-500 dark:text-indigo-400 shrink-0" />
-                  <span className="text-zinc-700 dark:text-zinc-300 truncate">
-                    Suggested: <strong className="text-zinc-900 dark:text-white font-medium">{suggestedCategory.categoryName}</strong>
+                  <Sparkles className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
+                  <span className="text-zinc-300 truncate">
+                    Suggested: <strong className="text-white font-medium">{suggestedCategory.categoryName}</strong>
                   </span>
-                  <span className="text-[10px] text-zinc-400 dark:text-zinc-500 hidden sm:inline">
+                  <span className="text-[10px] text-zinc-500 hidden sm:inline">
                     ({suggestedCategory.source === 'history' ? 'past match' : 'smart match'})
                   </span>
                 </div>
                 <div className="flex items-center gap-1.5 shrink-0">
                   {isSuggestionConfirmed ? (
-                    <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
+                    <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-400">
                       <Check className="w-3 h-3" /> Confirmed
                     </span>
                   ) : (
@@ -339,7 +339,7 @@ export default function TransactionModal() {
                       setIsSuggestionConfirmed(false);
                       setUserManuallySelectedCategory(true);
                     }}
-                    className="p-0.5 text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors cursor-pointer"
+                    className="p-0.5 text-zinc-400 hover:text-white transition-colors cursor-pointer"
                     title="Dismiss suggestion"
                   >
                     <X className="w-3.5 h-3.5" />
@@ -349,7 +349,7 @@ export default function TransactionModal() {
             )}
           </div>
           <div>
-            <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">
+            <label className="block text-xs font-medium text-zinc-300 mb-1.5">
               <span className="inline-flex items-center gap-1">
                 <Calendar className="w-3.5 h-3.5 text-zinc-400" /> Date
               </span>
@@ -359,7 +359,7 @@ export default function TransactionModal() {
               required
               value={date}
               onChange={(e) => setDate(e.target.value)}
-              className="w-full px-3.5 py-2.5 rounded-xl bg-black/[0.03] dark:bg-white/[0.03] border border-black/10 dark:border-white/[0.07] text-sm text-zinc-900 dark:text-white focus:outline-none focus:border-indigo-500/50"
+              className="w-full px-3.5 py-2.5 rounded-xl bg-[#151724] border border-white/[0.08] text-sm text-white focus:outline-none focus:border-indigo-500/60 focus:ring-1 focus:ring-indigo-500/30 transition-colors"
             />
           </div>
         </div>
@@ -368,13 +368,13 @@ export default function TransactionModal() {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <div className="flex items-center justify-between mb-1.5">
-              <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300">
+              <label className="block text-xs font-medium text-zinc-300">
                 {type === 'TRANSFER' ? 'From Account' : 'Account'}
               </label>
               {accounts.find((a) => a.id === accountId) && (
                 <div className="flex items-center gap-1.5">
                   <AccountLogo account={accounts.find((a) => a.id === accountId)} size="xs" />
-                  <span className="text-[11px] font-medium text-zinc-500 dark:text-zinc-400 truncate max-w-[120px]">
+                  <span className="text-[11px] font-medium text-zinc-400 truncate max-w-[120px]">
                     {accounts.find((a) => a.id === accountId)?.institution || accounts.find((a) => a.id === accountId)?.name}
                   </span>
                 </div>
@@ -390,7 +390,7 @@ export default function TransactionModal() {
                   setTxCurrency(found.currency === 'USD' ? 'USD' : 'MVR');
                 }
               }}
-              className="w-full px-3.5 py-2.5 rounded-xl bg-white dark:bg-[#111218] border border-black/10 dark:border-white/[0.08] text-sm text-zinc-900 dark:text-white focus:outline-none focus:border-indigo-500/50 cursor-pointer"
+              className="w-full px-3.5 py-2.5 rounded-xl bg-[#151724] border border-white/[0.08] text-sm text-white focus:outline-none focus:border-indigo-500/60 focus:ring-1 focus:ring-indigo-500/30 cursor-pointer transition-colors"
             >
               {accounts.map((acc) => (
                 <option key={acc.id} value={acc.id}>
@@ -403,13 +403,13 @@ export default function TransactionModal() {
           {type === 'TRANSFER' ? (
             <div>
               <div className="flex items-center justify-between mb-1.5">
-                <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300">
+                <label className="block text-xs font-medium text-zinc-300">
                   To Account
                 </label>
                 {accounts.find((a) => a.id === transferToAccountId) && (
                   <div className="flex items-center gap-1.5">
                     <AccountLogo account={accounts.find((a) => a.id === transferToAccountId)} size="xs" />
-                    <span className="text-[11px] font-medium text-zinc-500 dark:text-zinc-400 truncate max-w-[120px]">
+                    <span className="text-[11px] font-medium text-zinc-400 truncate max-w-[120px]">
                       {accounts.find((a) => a.id === transferToAccountId)?.institution || accounts.find((a) => a.id === transferToAccountId)?.name}
                     </span>
                   </div>
@@ -418,7 +418,7 @@ export default function TransactionModal() {
               <select
                 value={transferToAccountId}
                 onChange={(e) => setTransferToAccountId(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-xl bg-white dark:bg-[#111218] border border-black/10 dark:border-white/[0.08] text-sm text-zinc-900 dark:text-white focus:outline-none focus:border-indigo-500/50 cursor-pointer"
+                className="w-full px-3.5 py-2.5 rounded-xl bg-[#151724] border border-white/[0.08] text-sm text-white focus:outline-none focus:border-indigo-500/60 focus:ring-1 focus:ring-indigo-500/30 cursor-pointer transition-colors"
               >
                 {accounts
                   .filter((a) => a.id !== accountId)
@@ -432,11 +432,11 @@ export default function TransactionModal() {
           ) : (
             <div>
               <div className="flex items-center justify-between mb-1.5">
-                <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300">
+                <label className="block text-xs font-medium text-zinc-300">
                   Category
                 </label>
                 {suggestedCategory && categoryId === suggestedCategory.categoryId && (
-                  <span className="text-[10px] text-indigo-600 dark:text-indigo-400 flex items-center gap-1 font-medium">
+                  <span className="text-[10px] text-indigo-400 flex items-center gap-1 font-medium">
                     <Sparkles className="w-2.5 h-2.5" /> Suggested
                   </span>
                 )}
@@ -452,7 +452,7 @@ export default function TransactionModal() {
                     setSuggestedCategory(null);
                   }
                 }}
-                className="w-full px-3.5 py-2.5 rounded-xl bg-white dark:bg-[#111218] border border-black/10 dark:border-white/[0.08] text-sm text-zinc-900 dark:text-white focus:outline-none focus:border-indigo-500/50 cursor-pointer"
+                className="w-full px-3.5 py-2.5 rounded-xl bg-[#151724] border border-white/[0.08] text-sm text-white focus:outline-none focus:border-indigo-500/60 focus:ring-1 focus:ring-indigo-500/30 cursor-pointer transition-colors"
               >
                 {filteredCategories.map((cat) => (
                   <option key={cat.id} value={cat.id}>
@@ -467,7 +467,7 @@ export default function TransactionModal() {
         {/* Description & Tags */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
-            <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">
+            <label className="block text-xs font-medium text-zinc-300 mb-1.5">
               <span className="inline-flex items-center gap-1">
                 <FileText className="w-3.5 h-3.5 text-zinc-400" /> Description
               </span>
@@ -477,11 +477,11 @@ export default function TransactionModal() {
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Optional short note..."
-              className="w-full px-3.5 py-2 rounded-xl bg-black/[0.03] dark:bg-white/[0.03] border border-black/10 dark:border-white/[0.07] text-sm text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none focus:border-indigo-500/50"
+              className="w-full px-3.5 py-2 rounded-xl bg-[#151724] border border-white/[0.08] text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-indigo-500/60 focus:ring-1 focus:ring-indigo-500/30 transition-colors"
             />
           </div>
           <div>
-            <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">
+            <label className="block text-xs font-medium text-zinc-300 mb-1.5">
               <span className="inline-flex items-center gap-1">
                 <Tag className="w-3.5 h-3.5 text-zinc-400" /> Tags (comma separated)
               </span>
@@ -491,20 +491,20 @@ export default function TransactionModal() {
               value={tagsInput}
               onChange={(e) => setTagsInput(e.target.value)}
               placeholder="Essential, Work, Leisure"
-              className="w-full px-3.5 py-2 rounded-xl bg-black/[0.03] dark:bg-white/[0.03] border border-black/10 dark:border-white/[0.07] text-sm text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none focus:border-indigo-500/50"
+              className="w-full px-3.5 py-2 rounded-xl bg-[#151724] border border-white/[0.08] text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-indigo-500/60 focus:ring-1 focus:ring-indigo-500/30 transition-colors"
             />
           </div>
         </div>
 
         {/* Recurring Toggle */}
-        <label className="flex items-center justify-between p-3 rounded-xl bg-black/[0.02] dark:bg-white/[0.03] border border-black/5 dark:border-white/[0.06] cursor-pointer">
+        <label className="flex items-center justify-between p-3 rounded-xl bg-[#151724] border border-white/[0.06] cursor-pointer hover:bg-[#181a29] transition-colors">
           <div className="flex items-center gap-2.5">
-            <Repeat className="w-4 h-4 text-indigo-500 dark:text-indigo-400" />
+            <Repeat className="w-4 h-4 text-indigo-400" />
             <div>
-              <span className="text-xs font-medium text-zinc-900 dark:text-white block">
+              <span className="text-xs font-medium text-white block">
                 Recurring Transaction
               </span>
-              <span className="text-[11px] text-zinc-500 dark:text-zinc-400">
+              <span className="text-[11px] text-zinc-400">
                 Mark as a repeating subscription, bill, or paycheck
               </span>
             </div>

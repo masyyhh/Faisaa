@@ -38,7 +38,7 @@ import {
   SkeletonMetric,
 } from '../components/ui';
 import { StepUpModal } from '../components/StepUpModal';
-import { AccountLogo, BANK_PRESETS } from '../components/AccountLogo';
+import { AccountLogo, BANK_PRESETS, detectBankLogo } from '../components/AccountLogo';
 import { formatCurrency, formatSecondaryUSD, formatDate, DynamicIcon } from '../utils/formatters';
 
 export interface AccountDetail extends Account {
@@ -225,14 +225,16 @@ export default function AccountsPage() {
 
   const openEditModal = (acc: Account) => {
     setEditingAccount(acc);
+    const detected = detectBankLogo({ name: acc.name, institution: acc.institution, icon: acc.icon });
+    const matchedPreset = BANK_PRESETS.find((p) => p.id === detected);
     setForm({
       name: acc.name,
       type: acc.type,
-      balance: String(acc.balance),
+      balance: String(Number((Number(acc.balance) || 0).toFixed(2))),
       currency: acc.currency === 'USD' ? 'USD' : 'MVR',
-      color: acc.color || '#8B5CF6',
-      icon: acc.icon || 'landmark',
-      institution: acc.institution || '',
+      color: acc.color || matchedPreset?.color || '#8B5CF6',
+      icon: acc.icon && acc.icon !== 'landmark' ? acc.icon : (detected !== 'landmark' ? detected : 'landmark'),
+      institution: acc.institution || matchedPreset?.institution || '',
       lastFour: acc.lastFour || '',
       notes: acc.notes || '',
       isDefault: Boolean(acc.isDefault),
@@ -842,7 +844,7 @@ export default function AccountsPage() {
                 value={form.balance}
                 onChange={(e) => setForm({ ...form, balance: e.target.value })}
                 placeholder="0.00"
-                className="w-full px-3.5 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.08] text-xs sm:text-sm text-white font-mono placeholder-zinc-500 focus:outline-none focus:border-indigo-500/60 focus:ring-1 focus:ring-indigo-500/40 transition-colors"
+                className="w-full px-3.5 py-2.5 rounded-xl bg-[#141620] border border-white/[0.08] text-xs sm:text-sm text-white font-mono placeholder-zinc-500 focus:outline-none focus:border-indigo-500/60 focus:ring-1 focus:ring-indigo-500/40 transition-colors"
               />
             </div>
             <div>
@@ -852,7 +854,7 @@ export default function AccountsPage() {
                 value={form.institution}
                 onChange={(e) => setForm({ ...form, institution: e.target.value })}
                 placeholder="e.g. Bank of Maldives"
-                className="w-full px-3.5 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.08] text-xs sm:text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-indigo-500/60 focus:ring-1 focus:ring-indigo-500/40 transition-colors"
+                className="w-full px-3.5 py-2.5 rounded-xl bg-[#141620] border border-white/[0.08] text-xs sm:text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-indigo-500/60 focus:ring-1 focus:ring-indigo-500/40 transition-colors"
               />
             </div>
           </div>
@@ -866,24 +868,28 @@ export default function AccountsPage() {
                   (Choose preset or auto-detect from bank name)
                 </span>
               </label>
-              <div className="flex items-center gap-1.5">
-                <span className="text-[10px] text-zinc-400">Preview:</span>
-                <AccountLogo
-                  name={form.name}
-                  institution={form.institution}
-                  icon={form.icon}
-                  color={form.color}
-                  size="sm"
-                />
+              <div className="flex items-center gap-2">
+                <span className="text-[11px] text-zinc-400">Preview:</span>
+                <div className="p-1 rounded-xl bg-white/[0.04] border border-white/[0.08] shadow-xs flex items-center justify-center">
+                  <AccountLogo
+                    name={form.name}
+                    institution={form.institution}
+                    icon={form.icon}
+                    color={form.color}
+                    size="sm"
+                  />
+                </div>
               </div>
             </div>
 
             {/* Presets Grid */}
             <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
               {BANK_PRESETS.map((p) => {
+                const detected = detectBankLogo({ name: form.name, institution: form.institution, icon: form.icon });
                 const isSelected =
                   form.icon === p.id ||
-                  (!form.icon && form.institution?.toLowerCase().includes(p.keywords[0]));
+                  (form.icon === 'landmark' && detected === p.id) ||
+                  (!form.icon && detected === p.id);
                 return (
                   <button
                     key={p.id}
@@ -897,7 +903,7 @@ export default function AccountsPage() {
                         currency: form.currency || p.defaultCurrency,
                       });
                     }}
-                    className={`p-2 rounded-xl flex flex-col items-center gap-1.5 transition-all border cursor-pointer ${
+                    className={`p-2.5 rounded-xl flex flex-col items-center gap-1.5 transition-all border cursor-pointer ${
                       isSelected
                         ? 'border-indigo-500 bg-indigo-500/15 shadow-xs ring-1 ring-indigo-500/30'
                         : 'border-white/[0.06] bg-white/[0.02] hover:bg-white/[0.06]'
@@ -923,13 +929,13 @@ export default function AccountsPage() {
                 }
                 onChange={(e) => setForm({ ...form, icon: e.target.value })}
                 placeholder="Or paste custom logo URL (https://...)"
-                className="flex-1 px-3 py-1.5 rounded-xl bg-white/[0.04] border border-white/[0.08] text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-indigo-500/60"
+                className="flex-1 px-3 py-2 rounded-xl bg-[#141622] border border-white/[0.08] text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-indigo-500/60 transition-colors"
               />
               {form.icon && form.icon !== 'landmark' && (
                 <button
                   type="button"
                   onClick={() => setForm({ ...form, icon: 'landmark' })}
-                  className="px-2.5 py-1.5 rounded-xl text-xs text-zinc-400 hover:text-white bg-white/[0.04] hover:bg-white/[0.08] cursor-pointer"
+                  className="px-2.5 py-2 rounded-xl text-xs text-zinc-400 hover:text-white bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] transition-colors cursor-pointer"
                 >
                   Auto-Detect
                 </button>

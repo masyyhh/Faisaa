@@ -171,18 +171,18 @@ export default function AnalyticsPage() {
   return (
     <div className="space-y-6">
       {/* Header & Date Filter Bar */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-2 border-b border-black/5 dark:border-white/[0.06]">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-3 border-b border-white/[0.06]">
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-zinc-900 dark:text-white font-display tracking-tight">
+          <h1 className="text-xl sm:text-2xl font-bold text-white font-display tracking-tight">
             Financial Intelligence & Analytics
           </h1>
-          <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
+          <p className="text-xs text-zinc-400 mt-0.5">
             Interactive visualizations across cashflow, categories, merchants, accounts, and savings growth.
           </p>
         </div>
 
         {/* Date Filter Pills */}
-        <div className="inline-flex items-center gap-1 bg-black/5 dark:bg-white/[0.03] border border-black/10 dark:border-white/[0.06] p-1 rounded-xl overflow-x-auto no-scrollbar max-w-full">
+        <div className="inline-flex items-center gap-1 bg-white/[0.03] border border-white/[0.06] p-1 rounded-xl overflow-x-auto no-scrollbar max-w-full">
           {DATE_RANGES.map((r) => (
             <button
               key={r.id}
@@ -190,7 +190,7 @@ export default function AnalyticsPage() {
               className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all shrink-0 whitespace-nowrap cursor-pointer ${
                 range === r.id
                   ? 'bg-indigo-600 text-white shadow-xs'
-                  : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white'
+                  : 'text-zinc-400 hover:text-white'
               }`}
             >
               {r.label}
@@ -200,20 +200,20 @@ export default function AnalyticsPage() {
       </div>
 
       {range === 'custom' && (
-        <Card className="flex flex-wrap items-center gap-3 py-3">
-          <span className="text-xs text-zinc-500 dark:text-zinc-400">Custom Date Filter:</span>
+        <Card className="flex flex-wrap items-center gap-3 py-3 px-4">
+          <span className="text-xs text-zinc-400">Custom Date Filter:</span>
           <input
             type="date"
             value={customStart}
             onChange={(e) => setCustomStart(e.target.value)}
-            className="px-2.5 py-1.5 rounded-lg bg-black/[0.03] dark:bg-white/[0.03] border border-black/10 dark:border-white/[0.07] text-xs text-zinc-900 dark:text-zinc-200 focus:outline-none focus:border-indigo-500/50"
+            className="px-3 py-1.5 rounded-xl bg-[#141620] border border-white/[0.08] text-xs text-white focus:outline-none focus:border-indigo-500/60 focus:ring-1 focus:ring-indigo-500/40 transition-colors"
           />
-          <span className="text-xs text-zinc-400 dark:text-zinc-500">to</span>
+          <span className="text-xs text-zinc-500">to</span>
           <input
             type="date"
             value={customEnd}
             onChange={(e) => setCustomEnd(e.target.value)}
-            className="px-2.5 py-1.5 rounded-lg bg-black/[0.03] dark:bg-white/[0.03] border border-black/10 dark:border-white/[0.07] text-xs text-zinc-900 dark:text-zinc-200 focus:outline-none focus:border-indigo-500/50"
+            className="px-3 py-1.5 rounded-xl bg-[#141620] border border-white/[0.08] text-xs text-white focus:outline-none focus:border-indigo-500/60 focus:ring-1 focus:ring-indigo-500/40 transition-colors"
           />
         </Card>
       )}
@@ -221,26 +221,26 @@ export default function AnalyticsPage() {
       {/* KPI Summary Strip */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-4">
         <Card className="p-4 flex flex-col justify-between">
-          <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Period Income</span>
-          <p className="text-lg sm:text-xl font-bold text-emerald-500 dark:text-emerald-400 font-display tabular-nums mt-1 truncate">
+          <span className="text-xs font-medium text-zinc-400">Period Income</span>
+          <p className="text-lg sm:text-xl font-bold text-emerald-400 font-display tabular-nums mt-1 truncate">
             {formatCurrency(totals.totalIncome, currency, hide)}
           </p>
         </Card>
         <Card className="p-4 flex flex-col justify-between">
-          <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Period Expenses</span>
-          <p className="text-lg sm:text-xl font-bold text-rose-500 dark:text-rose-400 font-display tabular-nums mt-1 truncate">
+          <span className="text-xs font-medium text-zinc-400">Period Expenses</span>
+          <p className="text-lg sm:text-xl font-bold text-rose-400 font-display tabular-nums mt-1 truncate">
             {formatCurrency(totals.totalExpenses, currency, hide)}
           </p>
         </Card>
         <Card className="p-4 flex flex-col justify-between">
-          <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Net Cashflow</span>
-          <p className="text-lg sm:text-xl font-bold text-zinc-900 dark:text-white font-display tabular-nums mt-1 truncate">
+          <span className="text-xs font-medium text-zinc-400">Net Cashflow</span>
+          <p className="text-lg sm:text-xl font-bold text-white font-display tabular-nums mt-1 truncate">
             {formatCurrency(totals.netCashflow, currency, hide)}
           </p>
         </Card>
         <Card className="p-4 flex flex-col justify-between">
-          <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Savings Rate</span>
-          <p className="text-lg sm:text-xl font-bold text-indigo-500 dark:text-indigo-400 font-display tabular-nums mt-1 truncate">{totals.savingsRate}%</p>
+          <span className="text-xs font-medium text-zinc-400">Savings Rate</span>
+          <p className="text-lg sm:text-xl font-bold text-indigo-400 font-display tabular-nums mt-1 truncate">{totals.savingsRate}%</p>
         </Card>
       </div>
 
@@ -248,8 +248,8 @@ export default function AnalyticsPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card className="min-w-0">
           <div className="mb-4">
-            <h3 className="text-base font-bold text-zinc-900 dark:text-white">1. Income vs Expenses</h3>
-            <p className="text-xs text-zinc-500 dark:text-zinc-400">Direct side-by-side comparison per period</p>
+            <h3 className="text-base font-bold text-white">1. Income vs Expenses</h3>
+            <p className="text-xs text-zinc-400">Direct side-by-side comparison per period</p>
           </div>
           <div className="h-68 w-full">
             <ResponsiveContainer width="100%" height="100%">
@@ -271,8 +271,8 @@ export default function AnalyticsPage() {
 
         <Card className="min-w-0">
           <div className="mb-4">
-            <h3 className="text-base font-bold text-zinc-900 dark:text-white">2. Net Cashflow Over Time</h3>
-            <p className="text-xs text-zinc-500 dark:text-zinc-400">Net surplus (Income minus Expenses) trajectory</p>
+            <h3 className="text-base font-bold text-white">2. Net Cashflow Over Time</h3>
+            <p className="text-xs text-zinc-400">Net surplus (Income minus Expenses) trajectory</p>
           </div>
           <div className="h-68 w-full">
             <ResponsiveContainer width="100%" height="100%">
@@ -308,8 +308,8 @@ export default function AnalyticsPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card className="min-w-0">
           <div className="mb-4">
-            <h3 className="text-base font-bold text-zinc-900 dark:text-white">3. Spending by Category</h3>
-            <p className="text-xs text-zinc-500 dark:text-zinc-400">Proportional share of total expenses</p>
+            <h3 className="text-base font-bold text-white">3. Spending by Category</h3>
+            <p className="text-xs text-zinc-400">Proportional share of total expenses</p>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 items-center gap-4">
             <div className="h-60 w-full">
@@ -339,14 +339,14 @@ export default function AnalyticsPage() {
             <div className="space-y-2.5">
               {spendingByCategory.slice(0, 6).map((cat: SpendingCategoryItem) => (
                 <div key={cat.name} className="flex items-center justify-between text-xs">
-                  <span className="flex items-center gap-2 text-zinc-600 dark:text-zinc-300">
+                  <span className="flex items-center gap-2 text-zinc-300">
                     <span
                       className="w-2.5 h-2.5 rounded-full"
                       style={{ backgroundColor: cat.color }}
                     />
                     {cat.name}
                   </span>
-                  <span className="font-bold text-zinc-900 dark:text-white tabular-nums">
+                  <span className="font-bold text-white tabular-nums">
                     {formatCurrency(cat.amount, currency, hide)} ({cat.percentage}%)
                   </span>
                 </div>
@@ -357,8 +357,8 @@ export default function AnalyticsPage() {
 
         <Card className="min-w-0">
           <div className="mb-4">
-            <h3 className="text-base font-bold text-zinc-900 dark:text-white">4. Top Spending by Merchant</h3>
-            <p className="text-xs text-zinc-500 dark:text-zinc-400">Highest volume payees & vendors</p>
+            <h3 className="text-base font-bold text-white">4. Top Spending by Merchant</h3>
+            <p className="text-xs text-zinc-400">Highest volume payees & vendors</p>
           </div>
           <div className="h-64 w-full">
             <ResponsiveContainer width="100%" height="100%">
@@ -393,8 +393,8 @@ export default function AnalyticsPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card className="min-w-0">
           <div className="mb-4">
-            <h3 className="text-base font-bold text-zinc-900 dark:text-white">5. Account Balances Breakdown</h3>
-            <p className="text-xs text-zinc-500 dark:text-zinc-400">Current distribution across active institutions</p>
+            <h3 className="text-base font-bold text-white">5. Account Balances Breakdown</h3>
+            <p className="text-xs text-zinc-400">Current distribution across active institutions</p>
           </div>
           <div className="h-64 w-full">
             <ResponsiveContainer width="100%" height="100%">
@@ -414,8 +414,8 @@ export default function AnalyticsPage() {
 
         <Card className="min-w-0">
           <div className="mb-4">
-            <h3 className="text-base font-bold text-zinc-900 dark:text-white">6. Monthly Comparison Trend</h3>
-            <p className="text-xs text-zinc-500 dark:text-zinc-400">Multi-series monthly income, expense & net lines</p>
+            <h3 className="text-base font-bold text-white">6. Monthly Comparison Trend</h3>
+            <p className="text-xs text-zinc-400">Multi-series monthly income, expense & net lines</p>
           </div>
           <div className="h-64 w-full">
             <ResponsiveContainer width="100%" height="100%">
@@ -441,8 +441,8 @@ export default function AnalyticsPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card className="min-w-0">
           <div className="mb-4">
-            <h3 className="text-base font-bold text-zinc-900 dark:text-white">7. Budget Performance by Category</h3>
-            <p className="text-xs text-zinc-500 dark:text-zinc-400">Allocated monthly budget vs actual spend</p>
+            <h3 className="text-base font-bold text-white">7. Budget Performance by Category</h3>
+            <p className="text-xs text-zinc-400">Allocated monthly budget vs actual spend</p>
           </div>
           <div className="h-64 w-full">
             <ResponsiveContainer width="100%" height="100%">
@@ -465,8 +465,8 @@ export default function AnalyticsPage() {
         <Card className="min-w-0">
           <div className="mb-4 flex items-center justify-between">
             <div>
-              <h3 className="text-base font-bold text-zinc-900 dark:text-white">8. Cumulative Savings Growth</h3>
-              <p className="text-xs text-zinc-500 dark:text-zinc-400">Compounding liquid & reserve accumulation</p>
+              <h3 className="text-base font-bold text-white">8. Cumulative Savings Growth</h3>
+              <p className="text-xs text-zinc-400">Compounding liquid & reserve accumulation</p>
             </div>
             {timeline.length > 0 && (
               <Badge variant={(timeline[timeline.length - 1]?.savingsGrowth || 0) >= 0 ? 'success' : 'danger'}>

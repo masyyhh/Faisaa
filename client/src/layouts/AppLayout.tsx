@@ -295,41 +295,40 @@ export default function AppLayout() {
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0 pb-24 lg:pb-8">
         {/* Minimalist Top Bar */}
-        <header className="h-14 sticky top-0 z-30 backdrop-blur-md bg-[#090A0F]/85 border-b border-white/[0.06] px-3 sm:px-6 lg:px-8 flex items-center justify-between gap-2 sm:gap-4">
+        <header className="h-14 sticky top-0 z-30 backdrop-blur-md bg-[#090A0F]/90 border-b border-white/[0.06] px-3 sm:px-6 lg:px-8 flex items-center justify-between gap-2 sm:gap-4">
           {/* Mobile Menu Trigger & Brand */}
           <div className="flex items-center gap-2 lg:hidden shrink-0">
             <button
               onClick={() => setMobileMenuOpen(true)}
               aria-label="Open navigation menu"
-              className="p-1.5 rounded-lg bg-white/[0.04] border border-white/[0.06] text-zinc-300"
+              className="p-1.5 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] text-zinc-300 transition-colors cursor-pointer"
             >
               <Menu className="w-4 h-4" />
             </button>
             <div className="flex items-center gap-1.5">
-              <div className="w-6 h-6 rounded-md bg-indigo-600 flex items-center justify-center text-white font-bold text-[11px]">
+              <div className="w-6 h-6 rounded-md bg-gradient-to-tr from-indigo-600 to-violet-500 flex items-center justify-center text-white font-bold text-[11px] shadow-xs shadow-indigo-500/20">
                 F
               </div>
-              <span className="font-bold text-sm text-white font-display">Faisaa</span>
+              <span className="font-bold text-sm text-white font-display tracking-tight">Faisaa</span>
             </div>
           </div>
 
-          {/* Minimalist Search Trigger */}
+          {/* Minimalist Search Trigger (Desktop: full bar, Mobile: icon button) */}
           <button
             onClick={() => setSearchOpen(true)}
-            className="flex-1 max-w-xs sm:max-w-sm flex items-center justify-between gap-2 px-3 py-1.5 rounded-lg bg-white/[0.02] hover:bg-white/[0.05] border border-white/[0.06] text-zinc-400 text-xs transition-colors cursor-pointer min-w-0"
+            className="hidden sm:flex flex-1 max-w-xs sm:max-w-sm items-center justify-between gap-2 px-3 py-1.5 rounded-lg bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.06] text-zinc-400 text-xs transition-colors cursor-pointer min-w-0"
           >
             <span className="flex items-center gap-2 truncate">
               <Search className="w-3.5 h-3.5 text-zinc-500 shrink-0" />
-              <span className="hidden sm:inline text-zinc-400">Search transactions...</span>
-              <span className="sm:hidden text-zinc-500">Search...</span>
+              <span className="text-zinc-400">Search transactions...</span>
             </span>
-            <kbd className="hidden sm:inline-block px-1.5 py-0.5 text-[10px] font-mono bg-white/[0.04] border border-white/[0.06] rounded text-zinc-400">
+            <kbd className="px-1.5 py-0.5 text-[10px] font-mono bg-white/[0.04] border border-white/[0.06] rounded text-zinc-400">
               ⌘K
             </kbd>
           </button>
 
           {/* Live Day & Time Indicator (Desktop only) */}
-          <div className="hidden md:flex items-center gap-2 px-2.5 py-1 rounded-md bg-black/[0.02] dark:bg-white/[0.02] border border-black/5 dark:border-white/[0.05] text-[11px] text-zinc-500 dark:text-zinc-400 font-mono select-none shrink-0 tabular-nums">
+          <div className="hidden md:flex items-center gap-2 px-2.5 py-1 rounded-md bg-white/[0.02] border border-white/[0.05] text-[11px] text-zinc-400 font-mono select-none shrink-0 tabular-nums">
             <span>
               {currentDateTime.toLocaleDateString('en-US', {
                 weekday: 'short',
@@ -337,8 +336,8 @@ export default function AppLayout() {
                 day: 'numeric',
               })}
             </span>
-            <span className="text-zinc-300 dark:text-zinc-600">/</span>
-            <span className="text-zinc-800 dark:text-zinc-200 font-medium">
+            <span className="text-zinc-600">/</span>
+            <span className="text-zinc-200 font-medium">
               {currentDateTime.toLocaleTimeString('en-US', {
                 hour: 'numeric',
                 minute: '2-digit',
@@ -350,31 +349,42 @@ export default function AppLayout() {
 
           {/* Right Controls */}
           <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
+            {/* Mobile Search Icon Button */}
+            <button
+              onClick={() => setSearchOpen(true)}
+              aria-label="Search"
+              className="sm:hidden p-1.5 rounded-lg bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.06] text-zinc-400 hover:text-white transition-colors cursor-pointer"
+            >
+              <Search className="w-3.5 h-3.5" />
+            </button>
+
             {/* Currency Rate Indicator */}
             <button
               onClick={openExchangeModal}
               title="Open USD ↔ MVR Currency Exchange"
-              className="inline-flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-1 rounded-md bg-black/[0.02] dark:bg-white/[0.02] hover:bg-black/[0.05] dark:hover:bg-white/[0.06] border border-black/5 dark:border-white/[0.06] text-xs font-medium text-zinc-700 dark:text-zinc-300 transition-colors cursor-pointer"
+              className="inline-flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-1 rounded-lg bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.06] text-xs font-medium text-zinc-300 transition-colors cursor-pointer"
             >
-              <span className="text-zinc-400 text-[11px] hidden xs:inline">USD</span>
-              <span className="tabular-nums text-emerald-600 dark:text-emerald-400 font-semibold">{liveRate}</span>
+              <span className="text-zinc-400 text-[11px] hidden xs:inline">$</span>
+              <span className="tabular-nums text-emerald-400 font-semibold">{liveRate}</span>
               <span className="text-zinc-500 text-[10px] hidden xs:inline">MVR</span>
             </button>
 
+            {/* Balance Visibility Toggle */}
             <button
               onClick={toggleHideBalances}
               title={user?.hideBalances ? 'Show balances' : 'Hide balances'}
               aria-label="Toggle balance visibility"
-              className="p-1.5 sm:p-2 rounded-md hover:bg-black/5 dark:hover:bg-white/[0.05] text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors cursor-pointer"
+              className="p-1.5 sm:p-2 rounded-lg hover:bg-white/[0.06] text-zinc-400 hover:text-white transition-colors cursor-pointer"
             >
               {user?.hideBalances ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
             </button>
 
+            {/* Theme Toggle (Desktop only; on mobile accessible via drawer) */}
             <button
               onClick={toggleTheme}
               title="Switch theme"
               aria-label="Switch theme"
-              className="p-1.5 sm:p-2 rounded-md hover:bg-black/5 dark:hover:bg-white/[0.05] text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors cursor-pointer"
+              className="hidden sm:inline-flex p-1.5 sm:p-2 rounded-lg hover:bg-white/[0.06] text-zinc-400 hover:text-white transition-colors cursor-pointer"
             >
               {user?.theme === 'light' ? (
                 <Moon className="w-4 h-4" />
@@ -383,45 +393,46 @@ export default function AppLayout() {
               )}
             </button>
 
-            {/* Quick Add Button */}
+            {/* Quick Add Button (Desktop only — mobile has prominent bottom FAB) */}
             <button
               onClick={() => openTransactionModal('EXPENSE')}
               title="Add new transaction (Press 'N')"
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-indigo-600 hover:bg-indigo-500 active:scale-[0.98] text-white text-xs font-medium shadow-xs transition-all cursor-pointer"
+              className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 active:scale-[0.98] text-white text-xs font-medium shadow-xs shadow-indigo-600/30 transition-all cursor-pointer"
             >
               <Plus className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Add</span>
+              <span>Add</span>
               <kbd className="hidden md:inline-block ml-0.5 px-1 py-0.2 text-[9px] font-mono bg-white/20 rounded">N</kbd>
             </button>
+
             {/* Notifications */}
             <div className="relative">
               <button
                 onClick={() => setNotifOpen((prev) => !prev)}
                 aria-label="Notifications"
-                className="relative p-1.5 sm:p-2 rounded-lg hover:bg-black/5 dark:hover:bg-white/[0.06] text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors cursor-pointer"
+                className="relative p-1.5 sm:p-2 rounded-lg hover:bg-white/[0.06] text-zinc-400 hover:text-white transition-colors cursor-pointer"
               >
                 <Bell className="w-4 h-4" />
                 {unreadCount > 0 && (
-                  <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-indigo-500" />
+                  <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-indigo-500 ring-2 ring-[#090A0F]" />
                 )}
               </button>
 
               {notifOpen && (
-                <div className="faisaa-card finora-card absolute right-0 mt-2 w-[calc(100vw-2rem)] max-w-sm sm:w-96 bg-white dark:bg-[#111218] border border-black/10 dark:border-white/[0.08] rounded-xl shadow-2xl overflow-hidden z-50">
-                  <div className="flex items-center justify-between px-4 py-3 border-b border-black/5 dark:border-white/[0.06]">
-                    <span className="text-xs font-semibold text-zinc-900 dark:text-white">
+                <div className="faisaa-card finora-card absolute right-0 mt-2 w-[calc(100vw-2rem)] max-w-sm sm:w-96 bg-[#11121A] border border-white/[0.08] rounded-2xl shadow-2xl overflow-hidden z-50">
+                  <div className="flex items-center justify-between px-4 py-3 border-b border-white/[0.06]">
+                    <span className="text-xs font-semibold text-white">
                       Notifications ({unreadCount})
                     </span>
                     {unreadCount > 0 && (
                       <button
                         onClick={handleMarkAllRead}
-                        className="text-[11px] text-indigo-600 dark:text-indigo-400 hover:text-indigo-500 dark:hover:text-indigo-300 flex items-center gap-1 cursor-pointer"
+                        className="text-[11px] text-indigo-400 hover:text-indigo-300 flex items-center gap-1 cursor-pointer"
                       >
                         <CheckCheck className="w-3 h-3" /> Mark read
                       </button>
                     )}
                   </div>
-                  <div className="max-h-80 overflow-y-auto divide-y divide-black/5 dark:divide-white/[0.05]">
+                  <div className="max-h-80 overflow-y-auto divide-y divide-white/[0.05]">
                     {notifList.length === 0 ? (
                       <div className="py-8 text-center text-xs text-zinc-500">
                         No notifications
@@ -431,8 +442,8 @@ export default function AppLayout() {
                         <div
                           key={notif.id}
                           onClick={() => handleNotificationClick(notif)}
-                          className={`p-3.5 hover:bg-black/[0.02] dark:hover:bg-white/[0.03] transition-colors cursor-pointer ${
-                            !notif.isRead ? 'bg-indigo-500/[0.04]' : ''
+                          className={`p-3.5 hover:bg-white/[0.03] transition-colors cursor-pointer ${
+                            !notif.isRead ? 'bg-indigo-500/[0.06]' : ''
                           }`}
                         >
                           <p className="text-xs font-medium text-white">{notif.title}</p>
@@ -460,22 +471,25 @@ export default function AppLayout() {
 
       {/* Mobile Navigation Drawer */}
       {mobileMenuOpen && (
-        <div className="fixed inset-0 z-50 lg:hidden flex">
+        <div className="fixed inset-0 z-50 lg:hidden flex animate-fade-in">
           <div
-            className="fixed inset-0 bg-black/70 backdrop-blur-xs transition-opacity"
+            className="fixed inset-0 bg-black/75 backdrop-blur-xs transition-opacity"
             onClick={() => setMobileMenuOpen(false)}
           />
-          <div className="relative w-72 max-w-[85vw] bg-white dark:bg-[#0B0C12] border-r border-black/10 dark:border-white/[0.08] h-full flex flex-col p-4 z-10 shadow-2xl">
-            <div className="flex items-center justify-between mb-4 pb-3 border-b border-black/5 dark:border-white/[0.06]">
-              <div className="flex items-center gap-2">
-                <div className="w-7 h-7 rounded-lg bg-indigo-600 flex items-center justify-center text-white font-bold text-xs">
+          <div className="relative w-72 max-w-[85vw] bg-[#0C0E17] border-r border-white/[0.08] h-full flex flex-col p-4 z-10 shadow-2xl animate-scale-in">
+            <div className="flex items-center justify-between mb-4 pb-3 border-b border-white/[0.06]">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-500 flex items-center justify-center text-white font-bold text-sm shadow-sm shadow-indigo-500/30">
                   F
                 </div>
-                <span className="font-bold text-base text-zinc-900 dark:text-white font-display">Faisaa</span>
+                <div>
+                  <span className="font-bold text-base text-white font-display tracking-tight">Faisaa</span>
+                  <p className="text-[10px] text-zinc-400">Financial Command Center</p>
+                </div>
               </div>
               <button
                 onClick={() => setMobileMenuOpen(false)}
-                className="p-1.5 rounded-lg text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white cursor-pointer"
+                className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-white/[0.06] cursor-pointer transition-colors"
                 aria-label="Close menu"
               >
                 <X className="w-4 h-4" />
@@ -483,15 +497,15 @@ export default function AppLayout() {
             </div>
 
             {/* Nav links */}
-            <nav className="flex-1 space-y-3.5 overflow-y-auto pr-1" aria-label="Mobile Navigation">
+            <nav className="flex-1 space-y-4 overflow-y-auto pr-1" aria-label="Mobile Navigation">
               {NAV_SECTIONS.map((section) => (
                 <div key={section.title || 'main'}>
                   {section.title && (
-                    <p className="px-3 pb-1 text-[10px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 select-none">
+                    <p className="px-3 pb-1.5 text-[10px] font-semibold uppercase tracking-wider text-zinc-500 select-none">
                       {section.title}
                     </p>
                   )}
-                  <div className="space-y-0.5">
+                  <div className="space-y-1">
                     {section.items.map((item) => {
                       const Icon = item.icon;
                       return (
@@ -501,14 +515,14 @@ export default function AppLayout() {
                           end={item.path === '/'}
                           onClick={() => setMobileMenuOpen(false)}
                           className={({ isActive }) =>
-                            `flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-medium transition-colors ${
+                            `flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-medium transition-all ${
                               isActive
-                                ? 'bg-black/[0.06] dark:bg-white/[0.08] text-zinc-900 dark:text-white font-semibold'
-                                : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-black/[0.03] dark:hover:bg-white/[0.03]'
+                                ? 'bg-indigo-500/15 text-indigo-300 font-semibold border border-indigo-500/25 shadow-xs'
+                                : 'text-zinc-400 hover:text-white hover:bg-white/[0.04]'
                             }`
                           }
                         >
-                          <Icon className="w-4 h-4 opacity-80" />
+                          <Icon className="w-4 h-4 shrink-0" />
                           <span>{item.name}</span>
                         </NavLink>
                       );
@@ -518,24 +532,41 @@ export default function AppLayout() {
               ))}
             </nav>
 
-            {/* User Info & Logout */}
-            <div className="mt-auto pt-3 border-t border-black/5 dark:border-white/[0.06]">
-              <div className="flex items-center justify-between mb-3 px-1">
-                <div className="flex items-center gap-2 min-w-0">
-                  <div className="w-7 h-7 rounded-full bg-black/[0.06] dark:bg-white/[0.08] flex items-center justify-center text-zinc-900 dark:text-white font-semibold text-xs shrink-0">
+            {/* Drawer Footer: Appearance & User Info */}
+            <div className="mt-auto pt-3 border-t border-white/[0.06] space-y-2.5">
+              {/* Quick Theme Switch */}
+              <div className="flex items-center justify-between px-3 py-2 rounded-xl bg-white/[0.02] border border-white/[0.05]">
+                <span className="text-xs text-zinc-400 flex items-center gap-2">
+                  {user?.theme === 'light' ? <Sun className="w-3.5 h-3.5 text-amber-400" /> : <Moon className="w-3.5 h-3.5 text-indigo-400" />}
+                  Theme
+                </span>
+                <button
+                  type="button"
+                  onClick={toggleTheme}
+                  className="px-2.5 py-1 rounded-lg text-xs font-medium bg-white/[0.06] hover:bg-white/[0.1] text-zinc-200 transition-colors cursor-pointer"
+                >
+                  {user?.theme === 'light' ? 'Light Mode' : 'Dark Mode'}
+                </button>
+              </div>
+
+              {/* User info */}
+              <div className="flex items-center justify-between px-1">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="w-8 h-8 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 flex items-center justify-center font-bold text-xs shrink-0">
                     {user?.firstName?.[0] || 'F'}
                   </div>
                   <div className="min-w-0">
-                    <p className="text-xs font-medium text-zinc-900 dark:text-white truncate">
+                    <p className="text-xs font-semibold text-white truncate">
                       {user?.firstName} {user?.lastName}
                     </p>
                     <p className="text-[10px] text-zinc-500 truncate">{user?.username ? `@${user.username}` : user?.email}</p>
                   </div>
                 </div>
               </div>
+
               <button
                 onClick={logout}
-                className="w-full flex items-center justify-center gap-2 py-2 rounded-xl bg-rose-500/10 text-rose-600 dark:text-rose-400 hover:bg-rose-500/20 text-xs font-medium transition-colors cursor-pointer"
+                className="w-full flex items-center justify-center gap-2 py-2 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 text-xs font-medium transition-colors cursor-pointer"
               >
                 <LogOut className="w-3.5 h-3.5" /> Sign Out
               </button>
@@ -545,7 +576,7 @@ export default function AppLayout() {
       )}
 
       {/* Mobile Bottom Navigation with safe-area padding */}
-      <nav className="lg:hidden fixed bottom-0 inset-x-0 z-40 bg-white/95 dark:bg-[#0B0C12]/95 backdrop-blur-lg border-t border-black/10 dark:border-white/[0.08] px-2 pt-1.5 pb-[max(0.6rem,env(safe-area-inset-bottom))] flex items-center justify-around shadow-2xl">
+      <nav className="lg:hidden fixed bottom-0 inset-x-0 z-40 bg-[#0C0E17]/95 backdrop-blur-xl border-t border-white/[0.08] px-3 pt-1.5 pb-[max(0.6rem,env(safe-area-inset-bottom))] flex items-center justify-around shadow-2xl">
         {[ALL_NAV_ITEMS[0], ALL_NAV_ITEMS[1], null, ALL_NAV_ITEMS[2], { name: 'More', path: '#more', icon: Menu }].map((item) => {
           if (!item) {
             return (
@@ -553,7 +584,7 @@ export default function AppLayout() {
                 key="fab-add"
                 onClick={() => openTransactionModal('EXPENSE')}
                 aria-label="Quick Add Transaction"
-                className="w-11 h-11 -mt-4 rounded-full bg-indigo-600 hover:bg-indigo-500 text-white flex items-center justify-center shadow-lg shadow-indigo-600/30 border-2 border-white dark:border-[#090A0F] active:scale-95 transition-transform cursor-pointer"
+                className="w-11 h-11 -mt-5 rounded-full bg-indigo-600 hover:bg-indigo-500 text-white flex items-center justify-center shadow-lg shadow-indigo-600/35 border-2 border-[#090A0F] active:scale-95 transition-all cursor-pointer"
               >
                 <Plus className="w-5 h-5 stroke-[2.5]" />
               </button>
@@ -565,7 +596,7 @@ export default function AppLayout() {
                 key="more-menu"
                 onClick={() => setMobileMenuOpen(true)}
                 aria-label="Open More Menu"
-                className="flex flex-col items-center justify-center gap-0.5 px-3 py-1 rounded-xl text-[10px] font-medium text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-200 transition-colors cursor-pointer"
+                className="flex flex-col items-center justify-center gap-0.5 px-3 py-1 rounded-xl text-[10px] font-medium text-zinc-400 hover:text-white transition-colors cursor-pointer"
               >
                 <Menu className="w-4 h-4" />
                 <span>More</span>
@@ -580,7 +611,7 @@ export default function AppLayout() {
               end={item.path === '/'}
               className={({ isActive }) =>
                 `flex flex-col items-center justify-center gap-0.5 px-3 py-1 rounded-xl text-[10px] font-medium transition-colors ${
-                  isActive ? 'text-indigo-600 dark:text-indigo-400 font-semibold' : 'text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-200'
+                  isActive ? 'text-indigo-400 font-semibold' : 'text-zinc-400 hover:text-zinc-200'
                 }`
               }
             >
@@ -591,11 +622,12 @@ export default function AppLayout() {
         })}
       </nav>
 
+
       {/* Minimalist Command Search Modal */}
       {searchOpen && (
-        <div className="fixed inset-0 z-50 flex items-start justify-center pt-20 px-4 bg-black/60 dark:bg-black/75 backdrop-blur-xs">
-          <div className="faisaa-card finora-card w-full max-w-lg bg-white dark:bg-[#111218] border border-black/10 dark:border-white/[0.1] rounded-2xl shadow-2xl overflow-hidden animate-scale-in">
-            <div className="flex items-center gap-2.5 px-4 py-3 border-b border-black/5 dark:border-white/[0.06]">
+        <div className="fixed inset-0 z-50 flex items-start justify-center pt-20 px-4 bg-black/75 backdrop-blur-xs">
+          <div className="faisaa-card finora-card w-full max-w-lg bg-[#11121A] border border-white/[0.08] rounded-2xl shadow-2xl overflow-hidden animate-scale-in">
+            <div className="flex items-center gap-2.5 px-4 py-3.5 border-b border-white/[0.06]">
               <Search className="w-4 h-4 text-zinc-400 shrink-0" />
               <input
                 ref={searchInputRef}
@@ -603,11 +635,11 @@ export default function AppLayout() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search payee, category, or tag..."
-                className="flex-1 bg-transparent text-xs sm:text-sm text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none"
+                className="flex-1 bg-transparent text-xs sm:text-sm text-white placeholder-zinc-500 focus:outline-none"
               />
               <button
                 onClick={() => setSearchOpen(false)}
-                className="p-1 rounded-md text-zinc-400 hover:text-zinc-700 dark:hover:text-white cursor-pointer"
+                className="p-1 rounded-md text-zinc-400 hover:text-white cursor-pointer transition-colors"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -615,13 +647,13 @@ export default function AppLayout() {
 
             <div className="max-h-80 overflow-y-auto p-2">
               {!searchQuery.trim() ? (
-                <div className="py-6 text-center text-xs text-zinc-500">
+                <div className="py-8 text-center text-xs text-zinc-500">
                   Type to search transactions...
                 </div>
               ) : searching ? (
-                <div className="py-6 text-center text-xs text-zinc-500">Searching...</div>
+                <div className="py-8 text-center text-xs text-zinc-500">Searching...</div>
               ) : resultsList.length === 0 ? (
-                <div className="py-6 text-center text-xs text-zinc-500">
+                <div className="py-8 text-center text-xs text-zinc-500">
                   No results for "{searchQuery}"
                 </div>
               ) : (
@@ -633,17 +665,17 @@ export default function AppLayout() {
                         setSearchOpen(false);
                         navigate(`/transactions?search=${encodeURIComponent(tx.payee)}`);
                       }}
-                      className="flex items-center justify-between p-2.5 rounded-xl hover:bg-black/[0.04] dark:hover:bg-white/[0.04] transition-colors cursor-pointer"
+                      className="flex items-center justify-between p-2.5 rounded-xl hover:bg-white/[0.04] transition-colors cursor-pointer"
                     >
                       <div>
-                        <p className="text-xs font-medium text-zinc-900 dark:text-white">{tx.payee}</p>
+                        <p className="text-xs font-medium text-white">{tx.payee}</p>
                         <p className="text-[11px] text-zinc-500">
                           {tx.category?.name || tx.type} • {tx.account?.name} • {formatDate(tx.date)}
                         </p>
                       </div>
                       <span
                         className={`text-xs font-semibold tabular-nums ${
-                          tx.type === 'INCOME' ? 'text-emerald-600 dark:text-emerald-400' : 'text-zinc-900 dark:text-white'
+                          tx.type === 'INCOME' ? 'text-emerald-400' : 'text-white'
                         }`}
                       >
                         {tx.type === 'INCOME' ? '+' : '-'}

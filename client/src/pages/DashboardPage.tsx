@@ -8,6 +8,7 @@ import {
   Eye,
   EyeOff,
   ChevronRight,
+  Target,
 } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -222,11 +223,11 @@ export default function DashboardPage() {
   return (
     <div className="space-y-6">
       {/* Minimalist Header */}
-      <div className="pb-2 border-b border-black/5 dark:border-white/[0.06]">
-        <h1 className="text-xl sm:text-2xl font-bold text-zinc-900 dark:text-white font-display tracking-tight">
+      <div className="pb-2 border-b border-white/[0.06]">
+        <h1 className="text-xl sm:text-2xl font-bold text-white font-display tracking-tight">
           Overview
         </h1>
-        <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
+        <p className="text-xs text-zinc-400 mt-0.5">
           Real-time portfolio metrics, accounts, and monthly cashflow.
         </p>
       </div>
@@ -234,45 +235,49 @@ export default function DashboardPage() {
       {/* Hero Balance + 4 Minimalist KPI Cards */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-3.5 sm:gap-4">
         {/* Minimalist Primary Balance Card */}
-        <div className="hero-card-preserve lg:col-span-5 rounded-2xl p-6 bg-[#111218] border border-white/[0.06] flex flex-col justify-between shadow-lg">
+        <div className="hero-card-preserve lg:col-span-5 rounded-3xl p-6 sm:p-7 bg-gradient-to-br from-[#131524] to-[#0D0F19] border border-white/[0.08] flex flex-col justify-between shadow-xl shadow-black/30 relative overflow-hidden">
           <div>
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2">
-                <span className="text-xs font-medium uppercase tracking-wider text-zinc-400">Total Balance</span>
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                <span className="text-xs font-semibold uppercase tracking-wider text-zinc-400">Total Net Balance</span>
+              </div>
+
+              <div className="flex items-center gap-2">
                 <button
                   onClick={toggleHideBalances}
                   aria-label="Toggle balance visibility"
-                  className="p-1 rounded text-zinc-400 hover:text-white transition-colors cursor-pointer"
+                  className="p-1.5 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] text-zinc-400 hover:text-white transition-colors cursor-pointer"
                 >
                   {hide ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                 </button>
-              </div>
 
-              <select
-                value={selectedAccountId}
-                onChange={(e) => setSelectedAccountId(e.target.value)}
-                aria-label="Filter balance by account"
-                className="max-w-[150px] sm:max-w-none px-2.5 py-1 rounded-lg bg-white/[0.04] border border-white/[0.08] text-xs text-zinc-200 focus:outline-none cursor-pointer truncate"
-              >
-                <option value="ALL">All Accounts ({accounts.length})</option>
-                {accounts.map((acc) => (
-                  <option key={acc.id} value={acc.id}>
-                    {acc.name} ({acc.currency}){acc.isDefault ? ' ★' : ''}
-                  </option>
-                ))}
-              </select>
+                <select
+                  value={selectedAccountId}
+                  onChange={(e) => setSelectedAccountId(e.target.value)}
+                  aria-label="Filter balance by account"
+                  className="max-w-[140px] sm:max-w-none px-2.5 py-1 rounded-lg bg-white/[0.04] border border-white/[0.08] text-xs text-zinc-200 focus:outline-none cursor-pointer truncate"
+                >
+                  <option value="ALL">All Accounts ({accounts.length})</option>
+                  {accounts.map((acc) => (
+                    <option key={acc.id} value={acc.id}>
+                      {acc.name} ({acc.currency}){acc.isDefault ? ' ★' : ''}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
 
             <div className="mt-5">
-              <p className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-white font-display tabular-nums break-words">
+              <p className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tight text-white font-display tabular-nums break-words">
                 {formatCurrency(displayedBalance, 'MVR', hide)}
               </p>
-              <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 mt-2">
-                <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-400 text-xs font-medium border border-emerald-500/20 tabular-nums">
+              <div className="flex flex-wrap items-center gap-2 mt-2.5">
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-md bg-emerald-500/10 text-emerald-400 text-xs font-medium border border-emerald-500/20 tabular-nums">
                   ≈ {formatSecondaryUSD(displayedBalance, liveRate, hide)} USD
                 </span>
-                <span className="text-xs text-zinc-400">
-                  {savingsRate}% savings rate
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md bg-indigo-500/10 text-indigo-300 text-xs font-medium border border-indigo-500/20 tabular-nums">
+                  <Target className="w-3 h-3 text-indigo-400" /> {savingsRate}% savings rate
                 </span>
               </div>
             </div>
@@ -281,21 +286,21 @@ export default function DashboardPage() {
           <div className="grid grid-cols-3 gap-2 mt-6 pt-4 border-t border-white/[0.06]">
             <button
               onClick={() => openTransactionModal('INCOME')}
-              className="py-2 px-2 rounded-lg bg-white/[0.03] hover:bg-white/[0.07] active:scale-[0.98] text-xs font-medium text-zinc-200 flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+              className="py-2.5 px-2 rounded-xl bg-white/[0.03] hover:bg-emerald-500/10 hover:text-emerald-300 hover:border-emerald-500/20 border border-white/[0.06] active:scale-[0.98] text-xs font-semibold text-zinc-200 flex items-center justify-center gap-1.5 transition-all cursor-pointer"
             >
               <ArrowDownLeft className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
               <span>Income</span>
             </button>
             <button
               onClick={() => openTransactionModal('EXPENSE')}
-              className="py-2 px-2 rounded-lg bg-white/[0.03] hover:bg-white/[0.07] active:scale-[0.98] text-xs font-medium text-zinc-200 flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+              className="py-2.5 px-2 rounded-xl bg-white/[0.03] hover:bg-rose-500/10 hover:text-rose-300 hover:border-rose-500/20 border border-white/[0.06] active:scale-[0.98] text-xs font-semibold text-zinc-200 flex items-center justify-center gap-1.5 transition-all cursor-pointer"
             >
               <ArrowUpRight className="w-3.5 h-3.5 text-rose-400 shrink-0" />
               <span>Expense</span>
             </button>
             <button
               onClick={openExchangeModal}
-              className="py-2 px-2 rounded-lg bg-white/[0.03] hover:bg-white/[0.07] active:scale-[0.98] text-xs font-medium text-zinc-200 flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+              className="py-2.5 px-2 rounded-xl bg-white/[0.03] hover:bg-indigo-500/10 hover:text-indigo-300 hover:border-indigo-500/20 border border-white/[0.06] active:scale-[0.98] text-xs font-semibold text-zinc-200 flex items-center justify-center gap-1.5 transition-all cursor-pointer"
             >
               <ArrowLeftRight className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
               <span>Convert</span>
@@ -305,7 +310,7 @@ export default function DashboardPage() {
 
         {/* 4 Minimalist KPI Cards */}
         <div className="lg:col-span-7 grid grid-cols-2 gap-2.5 sm:gap-4">
-          <Card className="flex flex-col justify-between p-4 sm:p-5">
+          <Card className="flex flex-col justify-between p-4 sm:p-5 bg-[#0F111A] border-white/[0.06] hover:border-white/[0.12] transition-colors">
             <div className="flex items-center justify-between">
               <span className="text-[11px] font-medium uppercase tracking-wider text-zinc-400">Monthly Income</span>
               <span className="text-[11px] font-semibold text-emerald-400 tabular-nums">
@@ -322,7 +327,7 @@ export default function DashboardPage() {
             </div>
           </Card>
 
-          <Card className="flex flex-col justify-between p-4 sm:p-5">
+          <Card className="flex flex-col justify-between p-4 sm:p-5 bg-[#0F111A] border-white/[0.06] hover:border-white/[0.12] transition-colors">
             <div className="flex items-center justify-between">
               <span className="text-[11px] font-medium uppercase tracking-wider text-zinc-400">Monthly Expenses</span>
               <span className="text-[11px] font-semibold text-zinc-400 tabular-nums">
@@ -339,7 +344,7 @@ export default function DashboardPage() {
             </div>
           </Card>
 
-          <Card className="flex flex-col justify-between p-4 sm:p-5">
+          <Card className="flex flex-col justify-between p-4 sm:p-5 bg-[#0F111A] border-white/[0.06] hover:border-white/[0.12] transition-colors">
             <div className="flex items-center justify-between">
               <span className="text-[11px] font-medium uppercase tracking-wider text-zinc-400">Net Cashflow</span>
               <Badge variant={netCashflow >= 0 ? 'success' : 'danger'}>
@@ -361,7 +366,7 @@ export default function DashboardPage() {
             </div>
           </Card>
 
-          <Card className="flex flex-col justify-between p-4 sm:p-5">
+          <Card className="flex flex-col justify-between p-4 sm:p-5 bg-[#0F111A] border-white/[0.06] hover:border-white/[0.12] transition-colors">
             <div className="flex items-center justify-between">
               <span className="text-[11px] font-medium uppercase tracking-wider text-zinc-400">Savings Rate</span>
               <Badge variant={savingsRate >= 20 ? 'success' : savingsRate > 0 ? 'warning' : 'default'}>
@@ -372,9 +377,12 @@ export default function DashboardPage() {
               <p className="text-xl sm:text-2xl font-bold tracking-tight text-white font-display tabular-nums">
                 {savingsRate.toFixed(1)}%
               </p>
-              <p className="text-xs text-zinc-500 mt-0.5 tabular-nums">
-                {savingsRate > 0 ? `${savingsRate.toFixed(0)}% of income saved` : 'Track monthly savings'}
-              </p>
+              <div className="w-full bg-white/[0.06] rounded-full h-1.5 mt-2 overflow-hidden">
+                <div
+                  className="h-full bg-emerald-400 rounded-full transition-all duration-500"
+                  style={{ width: `${Math.min(100, Math.max(0, savingsRate))}%` }}
+                />
+              </div>
             </div>
           </Card>
         </div>

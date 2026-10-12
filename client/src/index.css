@@ -1,5 +1,7 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 @layer base {
   :root {
     --bg-primary: #090a0f;
@@ -44,6 +46,20 @@
   td,
   input[type="number"] {
     font-variant-numeric: tabular-nums;
+  }
+
+  input[type="number"]::-webkit-inner-spin-button,
+  input[type="number"]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  input[type="number"] {
+    -moz-appearance: textfield;
+  }
+
+  select option {
+    background-color: #141622;
+    color: #f4f4f5;
   }
 }
 
