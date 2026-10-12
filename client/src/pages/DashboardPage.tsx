@@ -32,6 +32,7 @@ import {
   SkeletonTable,
 } from '../components/ui';
 import { formatCurrency, formatSecondaryUSD, formatDate, DynamicIcon } from '../utils/formatters';
+import { AccountLogo } from '../components/AccountLogo';
 
 interface DashboardData {
   metrics: {
@@ -221,30 +222,13 @@ export default function DashboardPage() {
   return (
     <div className="space-y-6">
       {/* Minimalist Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 pb-2 border-b border-white/[0.06]">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-white font-display tracking-tight">
-            Overview
-          </h1>
-          <p className="text-xs text-zinc-400 mt-0.5">
-            Base currency <span className="text-zinc-200 font-medium">MVR</span> • Valued at{' '}
-            <span className="text-emerald-400 font-medium tabular-nums">
-              $1 = MVR {liveRate.toFixed(2)}
-            </span>
-          </p>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <Button variant="secondary" size="sm" onClick={openExchangeModal}>
-            <ArrowLeftRight className="w-3.5 h-3.5 text-emerald-400" />
-            <span>Convert USD ↔ MVR</span>
-          </Button>
-
-          <Button size="sm" onClick={() => openTransactionModal('EXPENSE')}>
-            <Plus className="w-3.5 h-3.5" />
-            <span>New Transaction</span>
-          </Button>
-        </div>
+      <div className="pb-2 border-b border-black/5 dark:border-white/[0.06]">
+        <h1 className="text-xl sm:text-2xl font-bold text-zinc-900 dark:text-white font-display tracking-tight">
+          Overview
+        </h1>
+        <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
+          Real-time portfolio metrics, accounts, and monthly cashflow.
+        </p>
       </div>
 
       {/* Hero Balance + 4 Minimalist KPI Cards */}
@@ -397,15 +381,18 @@ export default function DashboardPage() {
       </div>
 
       {/* Minimalist Account Strip */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+      <div className="flex sm:grid sm:grid-cols-3 lg:grid-cols-5 gap-3 overflow-x-auto pb-2 scrollbar-none snap-x">
         {accounts.slice(0, 5).map((acc) => (
           <div
             key={acc.id}
             onClick={() => navigate('/accounts')}
-            className="faisaa-card p-3.5 rounded-xl bg-[#111218] border border-white/[0.06] hover:border-white/[0.15] transition-colors cursor-pointer flex flex-col justify-between gap-2.5"
+            className="faisaa-card min-w-[155px] sm:min-w-0 flex-1 snap-start p-3.5 rounded-xl bg-[#111218] border border-white/[0.06] hover:border-white/[0.15] transition-colors cursor-pointer flex flex-col justify-between gap-2.5 shrink-0 sm:shrink"
           >
             <div className="flex items-center justify-between gap-2">
-              <span className="text-xs font-medium text-zinc-300 truncate">{acc.name}</span>
+              <div className="flex items-center gap-2 min-w-0">
+                <AccountLogo account={acc} size="xs" />
+                <span className="text-xs font-medium text-zinc-300 truncate">{acc.name}</span>
+              </div>
               <div className="flex items-center gap-1 shrink-0">
                 {acc.isDefault && (
                   <span className="text-[11px] text-amber-400 font-bold" title="Default Account">★</span>

@@ -21,6 +21,7 @@ import {
 import { useAuth } from '../context/AuthContext';
 import api, { Account, Category, Transaction, RecurringTransaction, getStepUpToken } from '../services/api';
 import { StepUpModal } from '../components/StepUpModal';
+import AccountLogo from '../components/AccountLogo';
 import {
   Card,
   Button,
@@ -580,8 +581,17 @@ export default function TransactionsPage() {
                           </Badge>
                         </TableCell>
                         <TableCell className="text-zinc-300">
-                          {tx.account?.name}
-                          {tx.transferToAccount && ` → ${tx.transferToAccount.name}`}
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            {tx.account && <AccountLogo account={tx.account} size="xs" />}
+                            <span className="truncate">{tx.account?.name}</span>
+                            {tx.transferToAccount && (
+                              <>
+                                <span className="text-zinc-500 shrink-0">→</span>
+                                <AccountLogo account={tx.transferToAccount} size="xs" />
+                                <span className="truncate">{tx.transferToAccount.name}</span>
+                              </>
+                            )}
+                          </div>
                         </TableCell>
                         <TableCell className="text-zinc-400 tabular-nums">
                           {formatDate(tx.date, user?.dateFormat)}
@@ -688,9 +698,16 @@ export default function TransactionsPage() {
                       <Badge variant="default" className="text-[10px] py-0.5 px-2">
                         {tx.category?.name || tx.type}
                       </Badge>
-                      <span className="text-zinc-400 px-2 py-0.5 rounded-md bg-white/[0.03] border border-white/[0.06] text-[10px]">
-                        {tx.account?.name}
-                        {tx.transferToAccount && ` → ${tx.transferToAccount.name}`}
+                      <span className="inline-flex items-center gap-1.5 text-zinc-400 px-2 py-0.5 rounded-md bg-white/[0.03] border border-white/[0.06] text-[10px]">
+                        {tx.account && <AccountLogo account={tx.account} size="xs" />}
+                        <span>{tx.account?.name}</span>
+                        {tx.transferToAccount && (
+                          <>
+                            <span className="text-zinc-500">→</span>
+                            <AccountLogo account={tx.transferToAccount} size="xs" />
+                            <span>{tx.transferToAccount.name}</span>
+                          </>
+                        )}
                       </span>
                       {tx.tags && tx.tags.map((tg) => (
                         <span
@@ -904,9 +921,12 @@ export default function TransactionsPage() {
               </div>
               <div className="p-3 rounded-xl bg-white/[0.02] border border-white/[0.05]">
                 <span className="text-zinc-400 block">Account:</span>
-                <span className="font-semibold text-white mt-0.5 block">
-                  {detailTx.account?.name || 'Primary'}
-                </span>
+                <div className="flex items-center gap-1.5 mt-0.5">
+                  {detailTx.account && <AccountLogo account={detailTx.account} size="xs" />}
+                  <span className="font-semibold text-white truncate">
+                    {detailTx.account?.name || 'Primary'}
+                  </span>
+                </div>
               </div>
               <div className="p-3 rounded-xl bg-white/[0.02] border border-white/[0.05]">
                 <span className="text-zinc-400 block">Category:</span>

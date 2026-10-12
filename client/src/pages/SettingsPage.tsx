@@ -24,6 +24,7 @@ import {
   LogOut,
   RefreshCw,
   ShieldAlert,
+  Clock,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import api, { Account, Category, Transaction, ActiveSession, getStepUpToken } from '../services/api';
@@ -51,6 +52,9 @@ export default function SettingsPage() {
     usdToMvrRate: number | string;
     dateFormat: string;
     theme: string;
+    dailyBriefingEnabled: boolean;
+    dailyBriefingTime: string;
+    timezone: string;
     telegramEnabled: boolean;
     telegramBotToken: string;
     telegramChatId: string;
@@ -64,6 +68,9 @@ export default function SettingsPage() {
     usdToMvrRate: user?.usdToMvrRate || 15.42,
     dateFormat: user?.dateFormat || 'MMM dd, yyyy',
     theme: user?.theme || 'dark',
+    dailyBriefingEnabled: user?.dailyBriefingEnabled ?? true,
+    dailyBriefingTime: user?.dailyBriefingTime || '08:00',
+    timezone: user?.timezone || (typeof Intl !== 'undefined' ? Intl.DateTimeFormat().resolvedOptions().timeZone : 'Indian/Maldives') || 'Indian/Maldives',
     telegramEnabled: user?.telegramEnabled ?? true,
     telegramBotToken: user?.telegramBotToken || '',
     telegramChatId: user?.telegramChatId || '',
@@ -89,6 +96,9 @@ export default function SettingsPage() {
         usdToMvrRate: user.usdToMvrRate || 15.42,
         dateFormat: user.dateFormat || 'MMM dd, yyyy',
         theme: user.theme || 'dark',
+        dailyBriefingEnabled: user.dailyBriefingEnabled ?? true,
+        dailyBriefingTime: user.dailyBriefingTime || '08:00',
+        timezone: user.timezone || prev.timezone,
         telegramEnabled: user.telegramEnabled ?? true,
         telegramBotToken: user.telegramBotToken || '',
         telegramChatId: user.telegramChatId || '',
@@ -169,7 +179,7 @@ export default function SettingsPage() {
   const handleRevokeSession = async (sessionId: string) => {
     setRevokingSessionId(sessionId);
     try {
-      const { data } = await api.post(`/auth/sessions/revoke/${sessionId}`);
+      const { data } = await api.delete(`/auth/sessions/${sessionId}`);
       addToast(data.message || 'Session logged out.', 'success');
       await loadSessions();
     } catch (err: any) {
@@ -592,24 +602,26 @@ export default function SettingsPage() {
       </div>
 
       {/* Navigation Tabs */}
-      <div className="inline-flex items-center gap-1 bg-black/5 dark:bg-white/[0.03] border border-black/10 dark:border-white/[0.06] p-1 rounded-xl overflow-x-auto no-scrollbar max-w-full">
-        {TABS.map((t) => {
-          const Icon = t.icon;
-          return (
-            <button
-              key={t.id}
-              onClick={() => setActiveTab(t.id)}
-              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all shrink-0 whitespace-nowrap cursor-pointer ${
-                activeTab === t.id
-                  ? 'bg-indigo-600 text-white shadow-xs'
-                  : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white'
-              }`}
-            >
-              <Icon className="w-3.5 h-3.5" />
-              {t.label}
-            </button>
-          );
-        })}
+      <div className="overflow-x-auto pb-1 scrollbar-none -mx-1 px-1">
+        <div className="inline-flex items-center gap-1 bg-black/5 dark:bg-white/[0.03] border border-black/10 dark:border-white/[0.06] p-1 rounded-xl min-w-max">
+          {TABS.map((t) => {
+            const Icon = t.icon;
+            return (
+              <button
+                key={t.id}
+                onClick={() => setActiveTab(t.id)}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all shrink-0 whitespace-nowrap cursor-pointer ${
+                  activeTab === t.id
+                    ? 'bg-indigo-600 text-white shadow-xs'
+                    : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white'
+                }`}
+              >
+                <Icon className="w-3.5 h-3.5" />
+                {t.label}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {activeTab === 'PROFILE' && (
@@ -1143,6 +1155,140 @@ export default function SettingsPage() {
                 />
               </label>
             ))}
+          </Card>
+
+          {/* Daily Morning Financial Briefing Schedule */}
+          <Card className="lg:col-span-2 space-y-4 bg-gradient-to-br from-amber-500/5 dark:from-amber-950/20 via-black/[0.02] dark:via-[#101322] to-transparent border-amber-500/20">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-500 shrink-0">
+                  <Clock className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-base font-bold text-zinc-900 dark:text-white">Daily Morning Briefing</h3>
+                    <Badge variant={profileForm.dailyBriefingEnabled ? 'warning' : 'default'}>
+                      {profileForm.dailyBriefingEnabled ? `Scheduled for ${profileForm.dailyBriefingTime || '08:00'}` : 'Disabled'}
+                    </Badge>
+                  </div>
+                  <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                    Receive an automated morning summary of your liquid balances, yesterday's expenses, bills due today, and budget warnings.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 shrink-0">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  loading={sendingBriefing}
+                  onClick={handleSendDailyBriefing}
+                  className="bg-amber-500/10 text-amber-600 dark:text-amber-300 hover:bg-amber-500/20 border-amber-500/30"
+                >
+                  <Sparkles className="w-3.5 h-3.5 mr-1 text-amber-500 dark:text-amber-400" /> Push Briefing Now
+                </Button>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-4 pt-2">
+              <div className="md:col-span-7 space-y-3">
+                <label className="flex items-center justify-between p-3.5 rounded-2xl bg-black/[0.02] dark:bg-white/[0.03] border border-black/5 dark:border-white/[0.07] cursor-pointer">
+                  <div>
+                    <p className="text-sm font-semibold text-zinc-900 dark:text-white">Enable Automated Morning Digest</p>
+                    <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                      Dispatches to Telegram &amp; In-App notifications at your configured local time
+                    </p>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={Boolean(profileForm.dailyBriefingEnabled)}
+                    onChange={(e) =>
+                      setProfileForm({ ...profileForm, dailyBriefingEnabled: e.target.checked })
+                    }
+                    className="w-4 h-4 accent-amber-500 rounded cursor-pointer"
+                  />
+                </label>
+
+                <div className="p-3.5 rounded-2xl bg-black/[0.02] dark:bg-white/[0.03] border border-black/5 dark:border-white/[0.07] space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-semibold text-zinc-800 dark:text-zinc-200 flex items-center gap-1.5">
+                      <Clock className="w-3.5 h-3.5 text-amber-500" /> Briefing Delivery Time
+                    </label>
+                    <span className="text-[11px] text-zinc-500 dark:text-zinc-400 font-mono">
+                      Current setting: {profileForm.dailyBriefingTime || '08:00'}
+                    </span>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-2">
+                    <input
+                      type="time"
+                      value={profileForm.dailyBriefingTime || '08:00'}
+                      onChange={(e) =>
+                        setProfileForm({ ...profileForm, dailyBriefingTime: e.target.value })
+                      }
+                      className="px-3 py-2 rounded-xl bg-black/[0.03] dark:bg-white/[0.04] border border-black/10 dark:border-white/[0.1] text-xs font-mono text-zinc-900 dark:text-white focus:outline-none focus:border-amber-500 transition-colors"
+                    />
+
+                    {/* Quick Preset Chips */}
+                    {['06:30', '07:00', '07:30', '08:00', '08:30', '09:00', '10:00'].map((preset) => (
+                      <button
+                        key={preset}
+                        type="button"
+                        onClick={() => setProfileForm({ ...profileForm, dailyBriefingTime: preset })}
+                        className={`px-2.5 py-1.5 rounded-lg text-xs font-mono transition-all cursor-pointer ${
+                          profileForm.dailyBriefingTime === preset
+                            ? 'bg-amber-500 text-white font-semibold shadow-xs'
+                            : 'bg-black/[0.04] dark:bg-white/[0.05] hover:bg-black/[0.08] dark:hover:bg-white/[0.08] text-zinc-600 dark:text-zinc-400'
+                        }`}
+                      >
+                        {preset}
+                      </button>
+                    ))}
+                  </div>
+
+                  <div className="flex items-center justify-between pt-2 border-t border-black/5 dark:border-white/[0.06] text-[11px] text-zinc-500 dark:text-zinc-400">
+                    <span className="flex items-center gap-1">
+                      <Globe className="w-3 h-3 text-zinc-400" /> Active Timezone: <code className="font-mono text-zinc-700 dark:text-zinc-300">{profileForm.timezone || 'Indian/Maldives'}</code>
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const detected = Intl.DateTimeFormat().resolvedOptions().timeZone;
+                        setProfileForm({ ...profileForm, timezone: detected });
+                        addToast(`Detected timezone set: ${detected}`, 'info');
+                      }}
+                      className="text-amber-600 dark:text-amber-400 hover:underline cursor-pointer"
+                    >
+                      Use Device Timezone
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="md:col-span-5 p-3.5 rounded-2xl bg-black/[0.02] dark:bg-white/[0.03] border border-black/5 dark:border-white/[0.07] flex flex-col justify-between space-y-3">
+                <div className="space-y-1.5 text-xs">
+                  <p className="font-semibold text-zinc-900 dark:text-white flex items-center gap-1.5">
+                    <Sparkles className="w-3.5 h-3.5 text-amber-500" /> What's in your morning briefing?
+                  </p>
+                  <ul className="space-y-1 text-zinc-500 dark:text-zinc-400 text-[11px] leading-relaxed">
+                    <li>• Total real-time liquid balance across all bank accounts</li>
+                    <li>• Yesterday's total spending breakdown &amp; transactions</li>
+                    <li>• Upcoming bills &amp; subscriptions due today</li>
+                    <li>• Critical category budget pacing &amp; limit warnings</li>
+                  </ul>
+                </div>
+
+                <Button
+                  type="button"
+                  loading={savingProfile}
+                  onClick={handleSaveProfile}
+                  className="w-full bg-amber-600 hover:bg-amber-500 text-white"
+                >
+                  Save Briefing Schedule
+                </Button>
+              </div>
+            </div>
           </Card>
 
           {/* Two-Way Telegram Bot & Simulator Card */}

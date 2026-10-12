@@ -23,6 +23,9 @@ model User {
   notifyBudgetAlerts   Boolean                @default(true)
   notifyBillReminders  Boolean                @default(true)
   notifyGoalMilestones Boolean                @default(true)
+  dailyBriefingEnabled Boolean                @default(true)
+  dailyBriefingTime    String                 @default("08:00") // 24-hr format HH:mm
+  timezone             String                 @default("Indian/Maldives")
   telegramEnabled      Boolean                @default(true)
   telegramBotToken     String?
   telegramChatId       String?

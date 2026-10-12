@@ -12,6 +12,7 @@ import {
   X,
 } from 'lucide-react';
 import { Modal, Button } from '../../components/ui';
+import { AccountLogo } from '../../components/AccountLogo';
 import api, { Account, Category } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { detectCategoryFromPayee, type CategorySuggestion } from '../../utils/categoryMatcher';
@@ -366,9 +367,19 @@ export default function TransactionModal() {
         {/* Account & Category / Destination Account */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
-            <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">
-              {type === 'TRANSFER' ? 'From Account' : 'Account'}
-            </label>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300">
+                {type === 'TRANSFER' ? 'From Account' : 'Account'}
+              </label>
+              {accounts.find((a) => a.id === accountId) && (
+                <div className="flex items-center gap-1.5">
+                  <AccountLogo account={accounts.find((a) => a.id === accountId)} size="xs" />
+                  <span className="text-[11px] font-medium text-zinc-500 dark:text-zinc-400 truncate max-w-[120px]">
+                    {accounts.find((a) => a.id === accountId)?.institution || accounts.find((a) => a.id === accountId)?.name}
+                  </span>
+                </div>
+              )}
+            </div>
             <select
               value={accountId}
               onChange={(e) => {
@@ -391,9 +402,19 @@ export default function TransactionModal() {
 
           {type === 'TRANSFER' ? (
             <div>
-              <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">
-                To Account
-              </label>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300">
+                  To Account
+                </label>
+                {accounts.find((a) => a.id === transferToAccountId) && (
+                  <div className="flex items-center gap-1.5">
+                    <AccountLogo account={accounts.find((a) => a.id === transferToAccountId)} size="xs" />
+                    <span className="text-[11px] font-medium text-zinc-500 dark:text-zinc-400 truncate max-w-[120px]">
+                      {accounts.find((a) => a.id === transferToAccountId)?.institution || accounts.find((a) => a.id === transferToAccountId)?.name}
+                    </span>
+                  </div>
+                )}
+              </div>
               <select
                 value={transferToAccountId}
                 onChange={(e) => setTransferToAccountId(e.target.value)}

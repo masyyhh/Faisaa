@@ -149,6 +149,7 @@ router.post('/auth/verify-otp', verifyLoginOtp);
 router.post('/auth/step-up', protect, stepUpVerify);
 router.get('/auth/sessions', protect, getSessions);
 router.delete('/auth/sessions/:id', protect, revokeSession);
+router.post('/auth/sessions/revoke/:id', protect, revokeSession);
 router.post('/auth/sessions/revoke-others', protect, revokeOtherSessions);
 router.post('/auth/forgot-password', requestPasswordReset);
 router.post('/auth/reset-password', confirmPasswordReset);

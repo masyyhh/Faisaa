@@ -25,6 +25,7 @@ import {
   SkeletonMetric,
 } from '../components/ui';
 import { formatCurrency, formatDate } from '../utils/formatters';
+import AccountLogo from '../components/AccountLogo';
 
 export default function BillsPage() {
   const { user, addToast, refreshTrigger, triggerDataRefresh } = useAuth();
@@ -370,9 +371,12 @@ export default function BillsPage() {
                           </span>
                         )}
                       </div>
-                      <p className="text-xs text-zinc-400 mt-0.5 truncate">
-                        {bill.category?.name || 'Utilities'} • {bill.account?.name || 'Default Account'}
-                      </p>
+                      <div className="flex items-center gap-1.5 mt-0.5 text-xs text-zinc-400 truncate">
+                        <span>{bill.category?.name || 'Utilities'}</span>
+                        <span>•</span>
+                        {bill.account && <AccountLogo account={bill.account} size="xs" />}
+                        <span className="truncate">{bill.account?.name || 'Default Account'}</span>
+                      </div>
                     </div>
 
                     <Badge
@@ -510,7 +514,15 @@ export default function BillsPage() {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium text-zinc-300 mb-1.5">Payment Account</label>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="text-xs font-medium text-zinc-300">Payment Account</label>
+                {accounts.find((a) => a.id === form.accountId) && (
+                  <AccountLogo
+                    account={accounts.find((a) => a.id === form.accountId)}
+                    size="xs"
+                  />
+                )}
+              </div>
               <select
                 value={form.accountId}
                 onChange={(e) => setForm({ ...form, accountId: e.target.value })}

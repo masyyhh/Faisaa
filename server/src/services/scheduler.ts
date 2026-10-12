@@ -45,49 +45,79 @@ export async function runScheduledTasks(): Promise<void> {
     console.error('[Scheduler] Error checking bill reminders:', msg);
   }
 
-  // 3. Daily Morning Briefing (Triggered in morning hours: 8:00 AM - 9:00 AM)
-  if (currentHour >= 8 && currentHour < 10) {
-    try {
-      const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
+  // 3. User-Scheduled Daily Financial Briefing
+  try {
+    const candidateUsers = await prisma.user.findMany({
+      where: {
+        dailyBriefingEnabled: true,
+      },
+      select: {
+        id: true,
+        email: true,
+        telegramEnabled: true,
+        telegramChatId: true,
+        dailyBriefingTime: true,
+        timezone: true,
+      },
+    });
 
-      const telegramUsers = await prisma.user.findMany({
-        where: {
-          telegramEnabled: true,
-          OR: [
-            { telegramChatId: { not: null } },
-            { email: 'alex@faisaa.online' },
-            { email: 'alex@faisaa.io' },
-            { email: 'alex@finora.io' },
-          ],
-        },
-        select: { id: true },
-      });
+    for (const u of candidateUsers) {
+      const userTz = u.timezone || 'Indian/Maldives';
+      let userHours = now.getHours();
+      let userMinutes = now.getMinutes();
 
-      const userIds = telegramUsers.map((u) => u.id);
-      const alreadySent = await prisma.notification.findMany({
-        where: {
-          userId: { in: userIds },
-          title: '🌅 Your Daily Financial Briefing',
-          createdAt: { gte: todayStart },
-        },
-        select: { userId: true },
-      });
-      const alreadySentSet = new Set(alreadySent.map((n) => n.userId));
+      try {
+        const formatter = new Intl.DateTimeFormat('en-US', {
+          timeZone: userTz,
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: false,
+        });
+        const parts = formatter.formatToParts(now);
+        const hPart = parts.find((p) => p.type === 'hour')?.value;
+        const mPart = parts.find((p) => p.type === 'minute')?.value;
+        if (hPart) userHours = parseInt(hPart, 10);
+        if (mPart) userMinutes = parseInt(mPart, 10);
+      } catch {
+        // Fallback to local system time if user's timezone string is invalid
+        userHours = now.getHours();
+        userMinutes = now.getMinutes();
+      }
 
-      for (const userId of userIds) {
-        if (alreadySentSet.has(userId)) continue;
-        try {
-          await sendDailyBriefing(userId);
-          console.log(`[Scheduler] 🌅 Sent daily briefing to user ${userId}`);
-        } catch (briefingErr: unknown) {
-          const msg = briefingErr instanceof Error ? briefingErr.message : String(briefingErr);
-          console.error(`[Scheduler] Error sending briefing to user ${userId}:`, msg);
+      const [targetHStr, targetMStr] = (u.dailyBriefingTime || '08:00').split(':');
+      const targetHours = parseInt(targetHStr, 10) || 8;
+      const targetMinutes = parseInt(targetMStr, 10) || 0;
+
+      const targetTotalMins = targetHours * 60 + targetMinutes;
+      const currentTotalMins = userHours * 60 + userMinutes;
+
+      // Deliver if current time is at or within 90 minutes after target time
+      if (currentTotalMins >= targetTotalMins && currentTotalMins < targetTotalMins + 90) {
+        // Check if briefing was already dispatched within the last 18 hours
+        const eighteenHoursAgo = new Date(Date.now() - 18 * 60 * 60 * 1000);
+        const alreadySent = await prisma.notification.findFirst({
+          where: {
+            userId: u.id,
+            title: '🌅 Your Daily Financial Briefing',
+            createdAt: { gte: eighteenHoursAgo },
+          },
+          select: { id: true },
+        });
+
+        if (!alreadySent) {
+          try {
+            await sendDailyBriefing(u.id);
+            console.log(`[Scheduler] 🌅 Sent personalized daily briefing to user ${u.email || u.id} at ${u.dailyBriefingTime} (${userTz})`);
+          } catch (briefingErr: unknown) {
+            const msg = briefingErr instanceof Error ? briefingErr.message : String(briefingErr);
+            console.error(`[Scheduler] Error sending briefing to user ${u.id}:`, msg);
+          }
         }
       }
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : String(err);
-      console.error('[Scheduler] Error running daily briefing cycle:', msg);
     }
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error('[Scheduler] Error running daily briefing cycle:', msg);
   }
 }
 

@@ -38,6 +38,7 @@ import {
   SkeletonMetric,
 } from '../components/ui';
 import { StepUpModal } from '../components/StepUpModal';
+import { AccountLogo, BANK_PRESETS } from '../components/AccountLogo';
 import { formatCurrency, formatSecondaryUSD, formatDate, DynamicIcon } from '../utils/formatters';
 
 export interface AccountDetail extends Account {
@@ -345,22 +346,14 @@ export default function AccountsPage() {
         <div>
           <h1 className="text-xl sm:text-2xl font-bold text-white font-display tracking-tight flex items-center gap-2">
             <Landmark className="w-5 h-5 text-indigo-400" />
-            Accounts & Institutions
+            Accounts &amp; Institutions
           </h1>
           <p className="text-xs text-zinc-400 mt-0.5">
-            Manage MVR & USD ($) accounts, monitor liquidity, and convert balances at live rate ($1 = MVR {liveRate.toFixed(2)}).
+            Manage MVR &amp; USD accounts, track cash reserves, and monitor bank liquidity.
           </p>
         </div>
 
         <div className="flex flex-wrap sm:flex-nowrap items-center gap-2">
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={openExchangeModal}
-            className="w-full sm:w-auto"
-          >
-            <ArrowLeftRight className="w-3.5 h-3.5 text-emerald-400" /> Exchange $ ↔ MVR
-          </Button>
           <Button
             variant="secondary"
             size="sm"
@@ -505,12 +498,7 @@ export default function AccountsPage() {
                 <div>
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex items-center gap-3 min-w-0">
-                      <div
-                        className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border border-white/[0.06] transition-transform group-hover:scale-105"
-                        style={{ backgroundColor: `${acc.color}15`, color: acc.color }}
-                      >
-                        <DynamicIcon name={acc.icon} className="w-5 h-5" />
-                      </div>
+                      <AccountLogo account={acc} size="lg" className="transition-transform group-hover:scale-105" />
                       <div className="min-w-0">
                         <div className="flex items-center gap-1.5 flex-wrap">
                           <h3 className="text-sm font-semibold text-white truncate">{acc.name}</h3>
@@ -609,62 +597,65 @@ export default function AccountsPage() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6 pt-2">
           {/* 6-Month Balance History AreaChart */}
           <Card className="lg:col-span-7 min-w-0">
-            <div className="flex items-center justify-between mb-4 gap-2 flex-wrap sm:flex-nowrap">
-              <div>
-                <div className="flex items-center gap-2 flex-wrap">
-                  <h3 className="text-sm sm:text-base font-semibold text-white">
-                    {selectedAccount.name} — 6-Month Balance History
-                  </h3>
-                  {selectedAccount.isDefault && (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium bg-amber-400/10 text-amber-300 border border-amber-400/20">
-                      <Star className="w-2.5 h-2.5 fill-amber-300 text-amber-300" /> Default
-                    </span>
+            <div className="flex items-center justify-between mb-4 gap-3 flex-wrap sm:flex-nowrap">
+              <div className="flex items-center gap-3 min-w-0">
+                <AccountLogo account={selectedAccount} size="lg" />
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h3 className="text-sm sm:text-base font-semibold text-white">
+                      {selectedAccount.name} — 6-Month History
+                    </h3>
+                    {selectedAccount.isDefault && (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium bg-amber-400/10 text-amber-300 border border-amber-400/20">
+                        <Star className="w-2.5 h-2.5 fill-amber-300 text-amber-300" /> Default
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-zinc-400 mt-0.5">
+                    {selectedAccount.institution || 'Standard Account'} • Historical trajectory &amp; balance changes
+                  </p>
+                  {selectedAccount.lastFour && (
+                    <div className="flex items-center gap-2 mt-2 flex-wrap">
+                      <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white/[0.04] border border-white/[0.08] text-xs">
+                        <CreditCard className="w-3.5 h-3.5 text-zinc-400" />
+                        <span className="font-mono text-zinc-200 tracking-wider">
+                          {revealedAccounts[selectedAccount.id] || `•••• •••• •••• ${selectedAccount.lastFour}`}
+                        </span>
+                        {revealedAccounts[selectedAccount.id] ? (
+                          <div className="flex items-center gap-1 ml-1.5">
+                            <button
+                              type="button"
+                              onClick={() => handleCopyAccountNumber(revealedAccounts[selectedAccount.id])}
+                              title="Copy full account number"
+                              className="p-1 rounded text-zinc-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+                            >
+                              <Copy className="w-3 h-3" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleHideAccountNumber(selectedAccount.id)}
+                              title="Hide account number"
+                              className="p-1 rounded text-zinc-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+                            >
+                              <EyeOff className="w-3 h-3" />
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            type="button"
+                            disabled={revealingAccountId === selectedAccount.id}
+                            onClick={() => handleRevealAccountNumber(selectedAccount.id, selectedAccount.name)}
+                            title="Decrypt and reveal full account number"
+                            className="ml-1.5 inline-flex items-center gap-1 text-[11px] font-medium text-indigo-400 hover:text-indigo-300 transition-colors cursor-pointer disabled:opacity-50"
+                          >
+                            <Eye className="w-3 h-3" />
+                            <span>{revealingAccountId === selectedAccount.id ? 'Decrypting...' : 'Reveal Number'}</span>
+                          </button>
+                        )}
+                      </div>
+                    </div>
                   )}
                 </div>
-                <p className="text-xs text-zinc-400 mt-0.5">
-                  {selectedAccount.institution || 'Standard Account'} • Historical trajectory & balance changes
-                </p>
-                {selectedAccount.lastFour && (
-                  <div className="flex items-center gap-2 mt-2 flex-wrap">
-                    <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white/[0.04] border border-white/[0.08] text-xs">
-                      <CreditCard className="w-3.5 h-3.5 text-zinc-400" />
-                      <span className="font-mono text-zinc-200 tracking-wider">
-                        {revealedAccounts[selectedAccount.id] || `•••• •••• •••• ${selectedAccount.lastFour}`}
-                      </span>
-                      {revealedAccounts[selectedAccount.id] ? (
-                        <div className="flex items-center gap-1 ml-1.5">
-                          <button
-                            type="button"
-                            onClick={() => handleCopyAccountNumber(revealedAccounts[selectedAccount.id])}
-                            title="Copy full account number"
-                            className="p-1 rounded text-zinc-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
-                          >
-                            <Copy className="w-3 h-3" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleHideAccountNumber(selectedAccount.id)}
-                            title="Hide account number"
-                            className="p-1 rounded text-zinc-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
-                          >
-                            <EyeOff className="w-3 h-3" />
-                          </button>
-                        </div>
-                      ) : (
-                        <button
-                          type="button"
-                          disabled={revealingAccountId === selectedAccount.id}
-                          onClick={() => handleRevealAccountNumber(selectedAccount.id, selectedAccount.name)}
-                          title="Decrypt and reveal full account number"
-                          className="ml-1.5 inline-flex items-center gap-1 text-[11px] font-medium text-indigo-400 hover:text-indigo-300 transition-colors cursor-pointer disabled:opacity-50"
-                        >
-                          <Eye className="w-3 h-3" />
-                          <span>{revealingAccountId === selectedAccount.id ? 'Decrypting...' : 'Reveal Number'}</span>
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                )}
               </div>
               <div className="flex items-center gap-2">
                 {!selectedAccount.isDefault && (
@@ -866,6 +857,86 @@ export default function AccountsPage() {
             </div>
           </div>
 
+          {/* Institution & Bank Logo Selection (Bitwarden-style) */}
+          <div className="space-y-2 p-3.5 rounded-2xl bg-white/[0.02] border border-white/[0.06]">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-semibold text-zinc-200 flex items-center gap-2">
+                <span>Account Logo</span>
+                <span className="text-[11px] font-normal text-zinc-400">
+                  (Choose preset or auto-detect from bank name)
+                </span>
+              </label>
+              <div className="flex items-center gap-1.5">
+                <span className="text-[10px] text-zinc-400">Preview:</span>
+                <AccountLogo
+                  name={form.name}
+                  institution={form.institution}
+                  icon={form.icon}
+                  color={form.color}
+                  size="sm"
+                />
+              </div>
+            </div>
+
+            {/* Presets Grid */}
+            <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
+              {BANK_PRESETS.map((p) => {
+                const isSelected =
+                  form.icon === p.id ||
+                  (!form.icon && form.institution?.toLowerCase().includes(p.keywords[0]));
+                return (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onClick={() => {
+                      setForm({
+                        ...form,
+                        icon: p.id,
+                        institution: form.institution || p.institution,
+                        color: p.color,
+                        currency: form.currency || p.defaultCurrency,
+                      });
+                    }}
+                    className={`p-2 rounded-xl flex flex-col items-center gap-1.5 transition-all border cursor-pointer ${
+                      isSelected
+                        ? 'border-indigo-500 bg-indigo-500/15 shadow-xs ring-1 ring-indigo-500/30'
+                        : 'border-white/[0.06] bg-white/[0.02] hover:bg-white/[0.06]'
+                    }`}
+                  >
+                    <AccountLogo icon={p.id} size="sm" />
+                    <span className="text-[10px] font-semibold text-zinc-300 truncate w-full text-center">
+                      {p.id.toUpperCase()}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Custom Logo URL / Reset */}
+            <div className="flex items-center gap-2 pt-1">
+              <input
+                type="text"
+                value={
+                  form.icon.startsWith('http') || form.icon.startsWith('data:')
+                    ? form.icon
+                    : ''
+                }
+                onChange={(e) => setForm({ ...form, icon: e.target.value })}
+                placeholder="Or paste custom logo URL (https://...)"
+                className="flex-1 px-3 py-1.5 rounded-xl bg-white/[0.04] border border-white/[0.08] text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-indigo-500/60"
+              />
+              {form.icon && form.icon !== 'landmark' && (
+                <button
+                  type="button"
+                  onClick={() => setForm({ ...form, icon: 'landmark' })}
+                  className="px-2.5 py-1.5 rounded-xl text-xs text-zinc-400 hover:text-white bg-white/[0.04] hover:bg-white/[0.08] cursor-pointer"
+                >
+                  Auto-Detect
+                </button>
+              )}
+            </div>
+          </div>
+
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-medium text-zinc-300 mb-1.5">Last 4 Digits</label>
@@ -929,7 +1000,15 @@ export default function AccountsPage() {
         <form onSubmit={handleTransfer} className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium text-zinc-300 mb-1.5">From Account</label>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="text-xs font-medium text-zinc-300">From Account</label>
+                {accounts.find((a) => a.id === transferForm.fromAccountId) && (
+                  <AccountLogo
+                    account={accounts.find((a) => a.id === transferForm.fromAccountId)}
+                    size="xs"
+                  />
+                )}
+              </div>
               <select
                 value={transferForm.fromAccountId}
                 onChange={(e) =>
@@ -945,7 +1024,15 @@ export default function AccountsPage() {
               </select>
             </div>
             <div>
-              <label className="block text-xs font-medium text-zinc-300 mb-1.5">To Account</label>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="text-xs font-medium text-zinc-300">To Account</label>
+                {accounts.find((a) => a.id === transferForm.toAccountId) && (
+                  <AccountLogo
+                    account={accounts.find((a) => a.id === transferForm.toAccountId)}
+                    size="xs"
+                  />
+                )}
+              </div>
               <select
                 value={transferForm.toAccountId}
                 onChange={(e) =>

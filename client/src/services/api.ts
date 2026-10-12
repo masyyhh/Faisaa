@@ -15,6 +15,9 @@ export interface User {
   notifyBudgetAlerts: boolean;
   notifyBillReminders: boolean;
   notifyGoalMilestones: boolean;
+  dailyBriefingEnabled?: boolean;
+  dailyBriefingTime?: string;
+  timezone?: string;
   telegramEnabled: boolean;
   telegramBotToken: string | null;
   telegramChatId: string | null;

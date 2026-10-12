@@ -18,6 +18,9 @@ export interface AuthUser {
   notifyBudgetAlerts: boolean;
   notifyBillReminders: boolean;
   notifyGoalMilestones: boolean;
+  dailyBriefingEnabled: boolean;
+  dailyBriefingTime: string;
+  timezone: string;
   telegramEnabled: boolean;
   telegramBotToken: string | null;
   telegramChatId: string | null;
@@ -212,6 +215,9 @@ export async function protect(
         notifyBudgetAlerts: true,
         notifyBillReminders: true,
         notifyGoalMilestones: true,
+        dailyBriefingEnabled: true,
+        dailyBriefingTime: true,
+        timezone: true,
         telegramEnabled: true,
         telegramBotToken: true,
         telegramChatId: true,

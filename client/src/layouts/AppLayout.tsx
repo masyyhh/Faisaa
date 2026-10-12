@@ -218,7 +218,7 @@ export default function AppLayout() {
       {/* Minimalist Desktop Sidebar */}
       <aside className="faisaa-sidebar finora-sidebar hidden lg:flex flex-col w-60 shrink-0 border-r border-white/[0.06] bg-[#0B0C12] z-30 sticky top-0 h-screen">
         {/* Brand Header */}
-        <div className="h-14 px-5 flex items-center justify-between border-b border-white/[0.05]">
+        <div className="h-14 px-5 flex items-center border-b border-white/[0.05]">
           <div className="flex items-center gap-2.5">
             <div className="w-7 h-7 rounded-lg bg-indigo-600 flex items-center justify-center text-white font-bold text-xs shadow-md shadow-indigo-600/30">
               F
@@ -227,36 +227,10 @@ export default function AppLayout() {
               Faisaa
             </span>
           </div>
-          <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-white/[0.05] text-zinc-400">
-            MVR / $
-          </span>
-        </div>
-
-        {/* Primary Action */}
-        <div className="p-3.5 space-y-1.5">
-          <button
-            onClick={() => openTransactionModal('EXPENSE')}
-            className="w-full py-2 px-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer shadow-sm shadow-indigo-600/20"
-          >
-            <Plus className="w-3.5 h-3.5" />
-            New Transaction
-          </button>
-          <button
-            onClick={openExchangeModal}
-            className="w-full py-1.5 px-3 rounded-lg bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.06] text-zinc-300 font-medium text-xs flex items-center justify-between transition-colors cursor-pointer"
-          >
-            <span className="flex items-center gap-1.5 text-zinc-400">
-              <ArrowLeftRight className="w-3 h-3 text-emerald-400" />
-              USD ↔ MVR
-            </span>
-            <span className="tabular-nums font-semibold text-emerald-400">
-              {liveRate}
-            </span>
-          </button>
         </div>
 
         {/* Navigation Links */}
-        <nav className="flex-1 px-3 py-2 space-y-3.5 overflow-y-auto" aria-label="Main Navigation">
+        <nav className="flex-1 px-3 py-3 space-y-4 overflow-y-auto" aria-label="Main Navigation">
           {NAV_SECTIONS.map((section) => (
             <div key={section.title || 'main'}>
               {section.title && (
@@ -354,7 +328,7 @@ export default function AppLayout() {
             </kbd>
           </button>
 
-          {/* Live Day & Time Indicator */}
+          {/* Live Day & Time Indicator (Desktop only) */}
           <div className="hidden md:flex items-center gap-2 px-2.5 py-1 rounded-md bg-black/[0.02] dark:bg-white/[0.02] border border-black/5 dark:border-white/[0.05] text-[11px] text-zinc-500 dark:text-zinc-400 font-mono select-none shrink-0 tabular-nums">
             <span>
               {currentDateTime.toLocaleDateString('en-US', {
@@ -374,25 +348,17 @@ export default function AppLayout() {
             </span>
           </div>
 
-          <div className="flex md:hidden items-center px-2 py-1 rounded-md bg-black/[0.02] dark:bg-white/[0.02] border border-black/5 dark:border-white/[0.05] text-[11px] font-mono text-zinc-700 dark:text-zinc-300 select-none shrink-0 tabular-nums">
-            {currentDateTime.toLocaleTimeString('en-US', {
-              hour: 'numeric',
-              minute: '2-digit',
-              hour12: true,
-            })}
-          </div>
-
           {/* Right Controls */}
           <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
             {/* Currency Rate Indicator */}
             <button
               onClick={openExchangeModal}
               title="Open USD ↔ MVR Currency Exchange"
-              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-black/[0.02] dark:bg-white/[0.02] hover:bg-black/[0.05] dark:hover:bg-white/[0.06] border border-black/5 dark:border-white/[0.06] text-xs font-medium text-zinc-700 dark:text-zinc-300 transition-colors cursor-pointer"
+              className="inline-flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-1 rounded-md bg-black/[0.02] dark:bg-white/[0.02] hover:bg-black/[0.05] dark:hover:bg-white/[0.06] border border-black/5 dark:border-white/[0.06] text-xs font-medium text-zinc-700 dark:text-zinc-300 transition-colors cursor-pointer"
             >
-              <span className="text-zinc-400 text-[11px]">USD</span>
+              <span className="text-zinc-400 text-[11px] hidden xs:inline">USD</span>
               <span className="tabular-nums text-emerald-600 dark:text-emerald-400 font-semibold">{liveRate}</span>
-              <span className="text-zinc-500 text-[10px]">MVR</span>
+              <span className="text-zinc-500 text-[10px] hidden xs:inline">MVR</span>
             </button>
 
             <button
@@ -487,7 +453,7 @@ export default function AppLayout() {
         </header>
 
         {/* Main Page Outlet */}
-        <main className="flex-1 px-3 sm:px-6 lg:px-8 py-4 sm:py-6 max-w-6xl w-full mx-auto">
+        <main className="flex-1 px-3 sm:px-6 lg:px-8 py-4 sm:py-6 pb-28 lg:pb-8 max-w-6xl w-full mx-auto">
           <Outlet />
         </main>
       </div>
@@ -513,32 +479,6 @@ export default function AppLayout() {
                 aria-label="Close menu"
               >
                 <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            {/* Mobile Actions in Drawer */}
-            <div className="space-y-2 mb-4">
-              <button
-                onClick={() => {
-                  setMobileMenuOpen(false);
-                  openTransactionModal('EXPENSE');
-                }}
-                className="w-full py-2.5 px-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-xs flex items-center justify-center gap-2 transition-colors cursor-pointer shadow-sm shadow-indigo-600/20"
-              >
-                <Plus className="w-4 h-4" /> New Transaction
-              </button>
-              <button
-                onClick={() => {
-                  setMobileMenuOpen(false);
-                  openExchangeModal();
-                }}
-                className="w-full py-2 px-3 rounded-xl bg-black/[0.03] dark:bg-white/[0.04] border border-black/5 dark:border-white/[0.06] text-zinc-700 dark:text-zinc-300 font-medium text-xs flex items-center justify-between transition-colors cursor-pointer"
-              >
-                <span className="flex items-center gap-2">
-                  <ArrowLeftRight className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-                  USD ↔ MVR
-                </span>
-                <span className="tabular-nums font-semibold text-emerald-600 dark:text-emerald-400">$1 = {liveRate}</span>
               </button>
             </div>
 
