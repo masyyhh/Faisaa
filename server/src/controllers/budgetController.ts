@@ -97,7 +97,7 @@ export async function getBudgets(req: Request, res: Response, next: NextFunction
       const budgetedSum =
         monthBudgets.length > 0
           ? monthBudgets.reduce((s, b) => s + b.amount, 0)
-          : totalBudgeted || 4140;
+          : totalBudgeted || 0;
 
       const spentSum = sixMonthExpenses
         .filter((tx) => {

@@ -27,7 +27,7 @@ export async function getCategories(req: Request, res: Response, next: NextFunct
       include: {
         transactions: {
           where: { date: { gte: startOfMonth } },
-          select: { amount: true },
+          select: { amount: true, currency: true },
         },
         _count: {
           select: { transactions: true },
@@ -35,8 +35,17 @@ export async function getCategories(req: Request, res: Response, next: NextFunct
       },
     });
 
+    const rate = Number(req.user!.usdToMvrRate || 15.42);
     const formatted = categories.map((c) => {
-      const monthlyTotal = c.transactions.reduce((sum: number, t: { amount: number }) => sum + t.amount, 0);
+      const monthlyTotal = Number(
+        c.transactions
+          .reduce(
+            (sum: number, t: { amount: number; currency: string }) =>
+              sum + (t.currency === 'USD' ? t.amount * rate : t.amount),
+            0
+          )
+          .toFixed(2)
+      );
       const { transactions, ...rest } = c;
       return {
         ...rest,

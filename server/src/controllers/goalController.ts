@@ -209,6 +209,7 @@ export async function contributeToGoal(req: Request, res: Response, next: NextFu
           where: { id: accountId, userId: req.user!.id },
         });
         if (account) {
+          const txAmt = action === 'WITHDRAW' ? effectiveAmount : numericAmount;
           await tx.account.update({
             where: { id: account.id },
             data: {
@@ -216,6 +217,26 @@ export async function contributeToGoal(req: Request, res: Response, next: NextFu
                 action === 'WITHDRAW'
                   ? { increment: effectiveAmount }
                   : { decrement: numericAmount },
+            },
+          });
+
+          await tx.transaction.create({
+            data: {
+              userId: req.user!.id,
+              accountId: account.id,
+              type: action === 'WITHDRAW' ? 'INCOME' : 'EXPENSE',
+              amount: txAmt,
+              currency: account.currency || 'MVR',
+              exchangeRateUsed: Number(req.user!.usdToMvrRate || 15.42),
+              payee:
+                action === 'WITHDRAW'
+                  ? `Goal Withdrawal: ${existing.name}`
+                  : `Savings Goal: ${existing.name}`,
+              description:
+                action === 'WITHDRAW'
+                  ? `Withdrew funds from savings goal "${existing.name}" back to ${account.name}`
+                  : `Contributed funds to savings goal "${existing.name}" from ${account.name}`,
+              date: new Date(),
             },
           });
         }

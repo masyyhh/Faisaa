@@ -19,7 +19,8 @@ import {
   Calendar,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import api, { Account, Category, Transaction, RecurringTransaction } from '../services/api';
+import api, { Account, Category, Transaction, RecurringTransaction, getStepUpToken } from '../services/api';
+import { StepUpModal } from '../components/StepUpModal';
 import {
   Card,
   Button,
@@ -233,7 +234,9 @@ export default function TransactionsPage() {
     }
   };
 
-  const handleExportCSV = async () => {
+  const [stepUpOpen, setStepUpOpen] = useState(false);
+
+  const runExportCSV = async () => {
     try {
       const res = await api.get('/data/export/csv', { responseType: 'blob' });
       const url = window.URL.createObjectURL(new Blob([res.data]));
@@ -246,6 +249,15 @@ export default function TransactionsPage() {
       addToast('Transactions exported to CSV!', 'success');
     } catch {
       addToast('CSV export failed.', 'error');
+    }
+  };
+
+  const handleExportCSV = async () => {
+    const token = getStepUpToken();
+    if (token) {
+      await runExportCSV();
+    } else {
+      setStepUpOpen(true);
     }
   };
 
@@ -1042,6 +1054,16 @@ export default function TransactionsPage() {
         loading={deleting}
         title="Delete Transaction"
         message={`Delete "${deleteTarget?.payee}" (${formatCurrency(deleteTarget?.amount || 0, currency)})? This will automatically reverse its effect on account balances.`}
+      />
+
+      {/* Step-Up Authentication Modal for sensitive CSV Export */}
+      <StepUpModal
+        isOpen={stepUpOpen}
+        onClose={() => setStepUpOpen(false)}
+        title="Authorize Data Export"
+        description="Confirm your account password to authorize downloading full transaction financial history."
+        actionLabel="Authorize Export"
+        onSuccess={() => runExportCSV()}
       />
     </div>
   );

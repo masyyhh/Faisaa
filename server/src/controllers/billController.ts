@@ -191,39 +191,53 @@ export async function payBill(req: Request, res: Response, next: NextFunction): 
       return;
     }
 
-    // Calculate next due date based on frequency
+    // Calculate next due date safely preserving dueDay without month drift
     const nextDue = new Date(existing.dueDate);
-    if (existing.frequency === 'WEEKLY') nextDue.setDate(nextDue.getDate() + 7);
-    else if (existing.frequency === 'BIWEEKLY') nextDue.setDate(nextDue.getDate() + 14);
-    else if (existing.frequency === 'QUARTERLY') nextDue.setMonth(nextDue.getMonth() + 3);
-    else if (existing.frequency === 'YEARLY') nextDue.setFullYear(nextDue.getFullYear() + 1);
-    else nextDue.setMonth(nextDue.getMonth() + 1);
+    const targetDueDay = existing.dueDay || nextDue.getDate();
+    if (existing.frequency === 'WEEKLY') {
+      nextDue.setDate(nextDue.getDate() + 7);
+    } else if (existing.frequency === 'BIWEEKLY') {
+      nextDue.setDate(nextDue.getDate() + 14);
+    } else {
+      const addedMonths =
+        existing.frequency === 'QUARTERLY' ? 3 : existing.frequency === 'YEARLY' ? 12 : 1;
+      const totalMonths = nextDue.getFullYear() * 12 + nextDue.getMonth() + addedMonths;
+      const targetYear = Math.floor(totalMonths / 12);
+      const targetMonth = totalMonths % 12;
+      const maxDaysInTargetMonth = new Date(targetYear, targetMonth + 1, 0).getDate();
+      const safeDay = Math.min(targetDueDay, maxDaysInTargetMonth);
+      nextDue.setFullYear(targetYear, targetMonth, safeDay);
+    }
+
+    const targetAccountId = req.body.accountId || existing.accountId;
 
     const updated = await prisma.$transaction(async (tx) => {
-      if (recordTransaction && existing.accountId) {
-        const account = await tx.account.findUnique({
-          where: { id: existing.accountId },
+      if (recordTransaction && targetAccountId) {
+        const account = await tx.account.findFirst({
+          where: { id: targetAccountId, userId: req.user!.id },
         });
 
-        await tx.account.update({
-          where: { id: existing.accountId },
-          data: { balance: { decrement: existing.amount } },
-        });
+        if (account) {
+          await tx.account.update({
+            where: { id: account.id },
+            data: { balance: { decrement: existing.amount } },
+          });
 
-        await tx.transaction.create({
-          data: {
-            userId: req.user!.id,
-            accountId: existing.accountId,
-            categoryId: existing.categoryId,
-            type: 'EXPENSE',
-            amount: existing.amount,
-            currency: account?.currency || 'MVR',
-            payee: existing.name,
-            description: `Bill payment: ${existing.name}`,
-            date: new Date(),
-            isRecurring: true,
-          },
-        });
+          await tx.transaction.create({
+            data: {
+              userId: req.user!.id,
+              accountId: account.id,
+              categoryId: existing.categoryId,
+              type: 'EXPENSE',
+              amount: existing.amount,
+              currency: account.currency || 'MVR',
+              payee: existing.name,
+              description: `Bill payment: ${existing.name}`,
+              date: new Date(),
+              isRecurring: true,
+            },
+          });
+        }
       }
 
       return tx.bill.update({

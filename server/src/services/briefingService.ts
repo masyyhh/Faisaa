@@ -51,7 +51,7 @@ export async function getBriefingData(userId: string): Promise<BriefingData | nu
   if (!user) return null;
 
   const now = new Date();
-  const rate = user.usdToMvrRate || 18.45;
+  const rate = user.usdToMvrRate || 15.42;
 
   // 1. Account Balances
   let mvrTotal = 0;

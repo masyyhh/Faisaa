@@ -107,7 +107,7 @@ export default function LoansPage() {
   });
 
   const currency = user?.currency || 'MVR';
-  const liveRate = user?.usdToMvrRate || 18.45;
+  const liveRate = user?.usdToMvrRate || 15.42;
   const hide = user?.hideBalances;
 
   const loadData = useCallback(async () => {

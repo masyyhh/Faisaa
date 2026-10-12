@@ -468,7 +468,12 @@ export default function AnalyticsPage() {
               <h3 className="text-base font-bold text-zinc-900 dark:text-white">8. Cumulative Savings Growth</h3>
               <p className="text-xs text-zinc-500 dark:text-zinc-400">Compounding liquid & reserve accumulation</p>
             </div>
-            <Badge variant="success">+24.6% Growth</Badge>
+            {timeline.length > 0 && (
+              <Badge variant={(timeline[timeline.length - 1]?.savingsGrowth || 0) >= 0 ? 'success' : 'danger'}>
+                {(timeline[timeline.length - 1]?.savingsGrowth || 0) >= 0 ? '+' : ''}
+                {formatCurrency(timeline[timeline.length - 1]?.savingsGrowth || 0, currency, hide)}
+              </Badge>
+            )}
           </div>
           <div className="h-64 w-full">
             <ResponsiveContainer width="100%" height="100%">

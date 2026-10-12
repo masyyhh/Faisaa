@@ -299,7 +299,7 @@ export default function AccountsPage() {
   };
 
   const currency = 'MVR';
-  const liveRate = Number(summary.usdToMvrRate || user?.usdToMvrRate || 18.45);
+  const liveRate = Number(summary.usdToMvrRate || user?.usdToMvrRate || 15.42);
   const hide = user?.hideBalances;
 
   const assetAccounts = useMemo(

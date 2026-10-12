@@ -186,11 +186,17 @@ export async function getDashboardSummary(req: Request, res: Response, next: Nex
       .reduce((s, t) => s + txToMvr(t), 0);
 
     const incomeChangePct =
-      prevIncome > 0 ? Number((((totalIncome - prevIncome) / prevIncome) * 100).toFixed(1)) : 12.4;
+      prevIncome > 0
+        ? Number((((totalIncome - prevIncome) / prevIncome) * 100).toFixed(1))
+        : totalIncome > 0
+        ? 100
+        : 0;
     const expenseChangePct =
       prevExpenses > 0
         ? Number((((totalExpenses - prevExpenses) / prevExpenses) * 100).toFixed(1))
-        : -4.2;
+        : totalExpenses > 0
+        ? 100
+        : 0;
 
     // 6-Month Cashflow Trend in MVR (Base)
     const cashflowTrend: Array<{ month: string; income: number; expenses: number; net: number }> = [];
@@ -363,10 +369,10 @@ export async function getCashflowAnalytics(req: Request, res: Response, next: Ne
       if (tx.type === 'EXPENSE') buckets[key].expenses += txToMvr(tx);
     }
 
-    let runningSavings = 420000;
+    let runningSavings = 0;
     const timeline = Object.values(buckets).map((b) => {
       const net = b.income - b.expenses;
-      runningSavings += Math.max(0, net * 0.65);
+      runningSavings += net;
       return {
         label: b.label,
         income: Number(b.income.toFixed(2)),

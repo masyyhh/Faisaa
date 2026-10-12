@@ -74,7 +74,7 @@ export async function sendTelegramNotification(
     }
 
     const cleanMessage = escapeMarkdown(message);
-    const text = `*Faisaa Online Alert*\n*${escapeMarkdown(title)}*\n\n${cleanMessage}\n\n_Base: MVR • Rate: 1 USD = MVR ${Number(user?.usdToMvrRate || 18.45).toFixed(2)}_`;
+    const text = `*Faisaa Online Alert*\n*${escapeMarkdown(title)}*\n\n${cleanMessage}\n\n_Base: MVR • Rate: 1 USD = MVR ${Number(user?.usdToMvrRate || 15.42).toFixed(2)}_`;
 
     return await sendTelegramMessageRaw(botToken, chatId, text);
   } catch (err: unknown) {

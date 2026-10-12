@@ -441,7 +441,7 @@ export async function handleTelegramWebhookUpdate(
       else mvrTotal += acc.balance;
     }
 
-    const rate = user.usdToMvrRate || 18.45;
+    const rate = user.usdToMvrRate || 15.42;
     const netMvr = mvrTotal + usdTotal * rate;
 
     msg += `\n*Total Liquid:* MVR ${netMvr.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -479,7 +479,7 @@ export async function handleTelegramWebhookUpdate(
       const sign = tx.type === 'INCOME' ? '+' : '-';
       msg += `• ${sign}*${tx.currency} ${tx.amount.toFixed(2)}* — ${tx.payee} _(${tx.category?.name || tx.account.name})_\n`;
       if (tx.type === 'EXPENSE') {
-        const amtMvr = tx.currency === 'USD' ? tx.amount * (user.usdToMvrRate || 18.45) : tx.amount;
+        const amtMvr = tx.currency === 'USD' ? tx.amount * (user.usdToMvrRate || 15.42) : tx.amount;
         totalExpenseMvr += amtMvr;
       }
     }
@@ -553,17 +553,26 @@ export async function handleTelegramWebhookUpdate(
   }
 
   try {
+    const liveRate = Number(user.usdToMvrRate || 15.42);
+    const targetAcc = parsed.targetAccount!;
+    let effectiveAccAmount = parsed.amount;
+    if (parsed.currency === 'USD' && targetAcc.currency === 'MVR') {
+      effectiveAccAmount = Number((parsed.amount * liveRate).toFixed(2));
+    } else if (parsed.currency === 'MVR' && targetAcc.currency === 'USD') {
+      effectiveAccAmount = Number((parsed.amount / liveRate).toFixed(2));
+    }
+
     const createdTx = await prisma.$transaction(async (tx) => {
       // 1. Update account balance
       if (parsed.type === 'INCOME') {
         await tx.account.update({
           where: { id: parsed.accountId },
-          data: { balance: { increment: parsed.amount } },
+          data: { balance: { increment: effectiveAccAmount } },
         });
       } else {
         await tx.account.update({
           where: { id: parsed.accountId },
-          data: { balance: { decrement: parsed.amount } },
+          data: { balance: { decrement: effectiveAccAmount } },
         });
       }
 
@@ -574,9 +583,9 @@ export async function handleTelegramWebhookUpdate(
           accountId: parsed.accountId!,
           categoryId: parsed.categoryId,
           type: parsed.type,
-          amount: parsed.amount,
-          currency: parsed.currency,
-          exchangeRateUsed: user.usdToMvrRate || 18.45,
+          amount: effectiveAccAmount,
+          currency: targetAcc.currency || 'MVR',
+          exchangeRateUsed: liveRate,
           payee: parsed.payee,
           description: parsed.description,
           date: new Date(),

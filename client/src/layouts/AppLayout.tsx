@@ -208,7 +208,7 @@ export default function AppLayout() {
     await updateProfile({ theme: nextTheme });
   };
 
-  const liveRate = Number(user?.usdToMvrRate || 18.45).toFixed(2);
+  const liveRate = Number(user?.usdToMvrRate || 15.42).toFixed(2);
   const notifList = Array.isArray(notifications) ? notifications : [];
   const resultsList = Array.isArray(searchResults) ? searchResults : [];
 

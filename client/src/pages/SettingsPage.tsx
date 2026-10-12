@@ -61,7 +61,7 @@ export default function SettingsPage() {
     username: user?.username || '',
     currency: 'MVR',
     secondaryCurrency: 'USD',
-    usdToMvrRate: user?.usdToMvrRate || 18.45,
+    usdToMvrRate: user?.usdToMvrRate || 15.42,
     dateFormat: user?.dateFormat || 'MMM dd, yyyy',
     theme: user?.theme || 'dark',
     telegramEnabled: user?.telegramEnabled ?? true,
@@ -86,7 +86,7 @@ export default function SettingsPage() {
         lastName: user.lastName || '',
         email: user.email || '',
         username: user.username || '',
-        usdToMvrRate: user.usdToMvrRate || 18.45,
+        usdToMvrRate: user.usdToMvrRate || 15.42,
         dateFormat: user.dateFormat || 'MMM dd, yyyy',
         theme: user.theme || 'dark',
         telegramEnabled: user.telegramEnabled ?? true,
@@ -236,7 +236,7 @@ export default function SettingsPage() {
           username: profileForm.username?.trim() ? profileForm.username.trim().toLowerCase() : null,
           currency: 'MVR',
           secondaryCurrency: 'USD',
-          usdToMvrRate: Number(profileForm.usdToMvrRate) || 18.45,
+          usdToMvrRate: Number(profileForm.usdToMvrRate) || 15.42,
         });
         triggerDataRefresh();
         addToast('Profile, MVR/USD rate & preferences saved!', 'success');

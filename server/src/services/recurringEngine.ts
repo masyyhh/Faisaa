@@ -4,6 +4,7 @@ import { sendTelegramNotification } from './telegramService.js';
 
 export function advanceNextOccurrence(dateInput: Date | string, frequency: string): Date {
   const d = new Date(dateInput);
+  const origDay = d.getDate();
   switch (frequency) {
     case 'DAILY':
       d.setDate(d.getDate() + 1);
@@ -15,16 +16,17 @@ export function advanceNextOccurrence(dateInput: Date | string, frequency: strin
       d.setDate(d.getDate() + 14);
       break;
     case 'MONTHLY':
-      d.setMonth(d.getMonth() + 1);
-      break;
     case 'QUARTERLY':
-      d.setMonth(d.getMonth() + 3);
-      break;
     case 'YEARLY':
-      d.setFullYear(d.getFullYear() + 1);
+    default: {
+      const addedMonths = frequency === 'QUARTERLY' ? 3 : frequency === 'YEARLY' ? 12 : 1;
+      const totalMonths = d.getFullYear() * 12 + d.getMonth() + addedMonths;
+      const targetYear = Math.floor(totalMonths / 12);
+      const targetMonth = totalMonths % 12;
+      const maxDaysInTargetMonth = new Date(targetYear, targetMonth + 1, 0).getDate();
+      d.setFullYear(targetYear, targetMonth, Math.min(origDay, maxDaysInTargetMonth));
       break;
-    default:
-      d.setMonth(d.getMonth() + 1);
+    }
   }
   return d;
 }

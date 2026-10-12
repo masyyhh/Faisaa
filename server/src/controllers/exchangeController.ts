@@ -205,12 +205,12 @@ export async function createCurrencyExchange(req: Request, res: Response, next: 
         });
       }
 
-      if (fromAccountId) {
+      if (fromAccountId && toAccountId) {
         await tx.transaction.create({
           data: {
             userId,
             accountId: fromAccountId,
-            transferToAccountId: toAccountId || null,
+            transferToAccountId: toAccountId,
             type: 'TRANSFER',
             amount: amt,
             currency: fromCurrency,
@@ -220,6 +220,34 @@ export async function createCurrencyExchange(req: Request, res: Response, next: 
                 ? `FX Exchange: $${amt.toFixed(2)} → MVR ${toAmount.toLocaleString()} (@${rate})`
                 : `FX Exchange: MVR ${amt.toLocaleString()} → $${toAmount.toFixed(2)} (@${rate})`,
             description: notes || `Currency exchange at rate 1 USD = MVR ${rate}`,
+            date: txDate,
+          },
+        });
+      } else if (fromAccountId && !toAccountId) {
+        await tx.transaction.create({
+          data: {
+            userId,
+            accountId: fromAccountId,
+            type: 'EXPENSE',
+            amount: amt,
+            currency: fromCurrency,
+            exchangeRateUsed: rate,
+            payee: `FX Outflow: ${fromCurrency} → ${toCurrency}`,
+            description: notes || `Currency exchange withdrawal at rate 1 USD = MVR ${rate}`,
+            date: txDate,
+          },
+        });
+      } else if (!fromAccountId && toAccountId) {
+        await tx.transaction.create({
+          data: {
+            userId,
+            accountId: toAccountId,
+            type: 'INCOME',
+            amount: toAmount,
+            currency: toCurrency,
+            exchangeRateUsed: rate,
+            payee: `FX Inflow: ${fromCurrency} → ${toCurrency}`,
+            description: notes || `Currency exchange deposit at rate 1 USD = MVR ${rate}`,
             date: txDate,
           },
         });
@@ -327,6 +355,18 @@ export async function deleteCurrencyExchange(req: Request, res: Response, next: 
           });
         }
       }
+
+      // Also delete the matching FX ledger transaction to prevent orphaned entries and double-reversals
+      await tx.transaction.deleteMany({
+        where: {
+          userId,
+          date: existing.date,
+          OR: [
+            ...(existing.fromAccountId ? [{ accountId: existing.fromAccountId, amount: existing.fromAmount }] : []),
+            ...(existing.toAccountId ? [{ accountId: existing.toAccountId, amount: existing.toAmount }] : []),
+          ],
+        },
+      });
 
       await tx.currencyExchange.delete({ where: { id } });
     });

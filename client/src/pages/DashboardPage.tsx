@@ -48,7 +48,7 @@ interface DashboardData {
   accounts: Account[];
   recentTransactions: Transaction[];
   cashflowTrend: Array<{
-    date: string;
+    month: string;
     income: number;
     expenses: number;
     net: number;
@@ -96,7 +96,7 @@ export default function DashboardPage() {
         const res = await api.get('/analytics/dashboard');
         if (res.data.success) {
           setData(res.data);
-          setQuickRate(String(res.data.metrics?.usdToMvrRate || user?.usdToMvrRate || 18.45));
+          setQuickRate(String(res.data.metrics?.usdToMvrRate || user?.usdToMvrRate || 15.42));
         }
       } catch (err) {
         console.error('Failed to load dashboard:', err);
@@ -195,7 +195,7 @@ export default function DashboardPage() {
     upcomingBills = [],
   } = data || {};
 
-  const liveRate = Number(metrics?.usdToMvrRate || user?.usdToMvrRate || 18.45);
+  const liveRate = Number(metrics?.usdToMvrRate || user?.usdToMvrRate || 15.42);
 
   const selectedAccount =
     selectedAccountId === 'ALL'

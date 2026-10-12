@@ -44,13 +44,13 @@ export default function CurrencyExchangeModal() {
   const [fromAccountId, setFromAccountId] = useState('');
   const [toAccountId, setToAccountId] = useState('');
   const [fromAmount, setFromAmount] = useState('100');
-  const [exchangeRate, setExchangeRate] = useState<number | string>(user?.usdToMvrRate || 18.45);
+  const [exchangeRate, setExchangeRate] = useState<number | string>(user?.usdToMvrRate || 15.42);
   const [fee, setFee] = useState('0');
   const [notes, setNotes] = useState('');
   const [updateGlobalRate, setUpdateGlobalRate] = useState(true);
 
   // Rate update form state
-  const [newGlobalRate, setNewGlobalRate] = useState<number | string>(user?.usdToMvrRate || 18.45);
+  const [newGlobalRate, setNewGlobalRate] = useState<number | string>(user?.usdToMvrRate || 15.42);
   const [rateNote, setRateNote] = useState('');
 
   const loadData = useCallback(async () => {
@@ -65,7 +65,7 @@ export default function CurrencyExchangeModal() {
       setExchanges(exRes.data?.exchanges || []);
       setRateHistory(exRes.data?.rateHistory || []);
 
-      const currentRate = exRes.data?.currentRate || user?.usdToMvrRate || 18.45;
+      const currentRate = exRes.data?.currentRate || user?.usdToMvrRate || 15.42;
       setExchangeRate(currentRate);
       setNewGlobalRate(currentRate);
 
@@ -234,7 +234,7 @@ export default function CurrencyExchangeModal() {
               <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
                 Base: <strong className="text-zinc-700 dark:text-zinc-200 font-medium">MVR</strong> • Secondary:{' '}
                 <strong className="text-zinc-700 dark:text-zinc-200 font-medium">USD ($)</strong> • Live Rate:{' '}
-                <strong className="text-emerald-600 dark:text-emerald-400 font-medium tabular-nums">$1 = MVR {Number(user?.usdToMvrRate || 18.45).toFixed(2)}</strong>
+                <strong className="text-emerald-600 dark:text-emerald-400 font-medium tabular-nums">$1 = MVR {Number(user?.usdToMvrRate || 15.42).toFixed(2)}</strong>
               </p>
             </div>
           </div>

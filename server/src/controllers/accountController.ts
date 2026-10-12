@@ -98,25 +98,34 @@ export async function getAccountById(req: Request, res: Response, next: NextFunc
     const rate = Number(req.user!.usdToMvrRate || 15.42);
     const id = req.params.id as string;
 
-    const [account, allTxs] = await Promise.all([
+    const [account, allTxs, recentTxs] = await Promise.all([
       prisma.account.findFirst({
         where: { id, userId },
-        include: {
-          transactions: {
-            orderBy: { date: 'desc' },
-            take: 30,
-            include: {
-              category: true,
-              transferToAccount: { select: { id: true, name: true, currency: true } },
-              transactionTags: { include: { tag: true } },
-            },
-          },
+      }),
+      prisma.transaction.findMany({
+        where: { OR: [{ accountId: id }, { transferToAccountId: id }], userId },
+        orderBy: { date: 'asc' },
+        select: {
+          id: true,
+          type: true,
+          amount: true,
+          currency: true,
+          exchangeRateUsed: true,
+          date: true,
+          accountId: true,
+          transferToAccountId: true,
         },
       }),
       prisma.transaction.findMany({
-        where: { accountId: id, userId },
-        orderBy: { date: 'asc' },
-        select: { type: true, amount: true, currency: true, date: true },
+        where: { OR: [{ accountId: id }, { transferToAccountId: id }], userId },
+        orderBy: { date: 'desc' },
+        take: 30,
+        include: {
+          category: true,
+          account: { select: { id: true, name: true, currency: true } },
+          transferToAccount: { select: { id: true, name: true, currency: true } },
+          transactionTags: { include: { tag: true } },
+        },
       }),
     ]);
 
@@ -127,12 +136,25 @@ export async function getAccountById(req: Request, res: Response, next: NextFunc
       });
     }
 
-    const totalIncome = allTxs
-      .filter((t) => t.type === 'INCOME')
-      .reduce((s, t) => s + t.amount, 0);
-    const totalExpenses = allTxs
-      .filter((t) => t.type === 'EXPENSE')
-      .reduce((s, t) => s + t.amount, 0);
+    const getIncomingCredit = (tx: { amount: number; currency: string; exchangeRateUsed: number }) => {
+      if (tx.currency === account.currency) return tx.amount;
+      const r = tx.exchangeRateUsed || rate;
+      if (tx.currency === 'USD' && account.currency === 'MVR') return Number((tx.amount * r).toFixed(2));
+      if (tx.currency === 'MVR' && account.currency === 'USD') return Number((tx.amount / r).toFixed(2));
+      return tx.amount;
+    };
+
+    let totalIncome = 0;
+    let totalExpenses = 0;
+
+    for (const tx of allTxs) {
+      if (tx.accountId === id) {
+        if (tx.type === 'INCOME') totalIncome += tx.amount;
+        else if (tx.type === 'EXPENSE') totalExpenses += tx.amount;
+      } else if (tx.transferToAccountId === id && tx.type === 'TRANSFER') {
+        totalIncome += getIncomingCredit(tx);
+      }
+    }
 
     const now = new Date();
     const balanceHistory: Array<{ month: string; balance: number }> = [];
@@ -144,9 +166,13 @@ export async function getAccountById(req: Request, res: Response, next: NextFunc
       const txsAfterPeriod = allTxs.filter((t) => new Date(t.date) >= nextMDate);
       let netAfter = 0;
       for (const tx of txsAfterPeriod) {
-        if (tx.type === 'INCOME') netAfter += tx.amount;
-        else if (tx.type === 'EXPENSE') netAfter -= tx.amount;
-        else if (tx.type === 'TRANSFER') netAfter -= tx.amount;
+        if (tx.accountId === id) {
+          if (tx.type === 'INCOME') netAfter += tx.amount;
+          else if (tx.type === 'EXPENSE') netAfter -= tx.amount;
+          else if (tx.type === 'TRANSFER') netAfter -= tx.amount;
+        } else if (tx.transferToAccountId === id && tx.type === 'TRANSFER') {
+          netAfter += getIncomingCredit(tx);
+        }
       }
 
       balanceHistory.push({
@@ -163,10 +189,10 @@ export async function getAccountById(req: Request, res: Response, next: NextFunc
         ...safeAccount,
         balanceInMvr: toMVR(account.balance, account.currency, rate),
         balanceInUsd: toUSD(account.balance, account.currency, rate),
-        totalIncome,
-        totalExpenses,
+        totalIncome: Number(totalIncome.toFixed(2)),
+        totalExpenses: Number(totalExpenses.toFixed(2)),
         balanceHistory,
-        transactions: (account.transactions || []).map((tx) => ({
+        transactions: recentTxs.map((tx) => ({
           ...tx,
           tags: (tx.transactionTags || []).map((tt) => tt?.tag?.name).filter(Boolean),
         })),

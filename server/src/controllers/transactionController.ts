@@ -574,6 +574,8 @@ export async function updateTransaction(req: Request, res: Response, next: NextF
         }
       }
 
+      const targetAcc = await tx.account.findUnique({ where: { id: newAccountId } });
+
       // 4. Update transaction row
       return tx.transaction.update({
         where: { id },
@@ -583,6 +585,8 @@ export async function updateTransaction(req: Request, res: Response, next: NextF
           categoryId: parsed.categoryId !== undefined ? parsed.categoryId : existing.categoryId,
           type: newType,
           amount: newAmount,
+          currency: targetAcc?.currency || 'MVR',
+          exchangeRateUsed: Number(req.user!.usdToMvrRate || 15.42),
           payee: parsed.payee !== undefined ? parsed.payee : existing.payee,
           description: parsed.description !== undefined ? parsed.description : existing.description,
           notes: parsed.notes !== undefined ? parsed.notes : existing.notes,
@@ -597,6 +601,11 @@ export async function updateTransaction(req: Request, res: Response, next: NextF
         },
       });
     });
+
+    const rate = Number(req.user!.usdToMvrRate || 15.42);
+    if (updated.type === 'EXPENSE' && updated.categoryId) {
+      await checkBudgetThresholdAndNotify(userId, updated.categoryId, updated.date, rate);
+    }
 
     res.json({
       success: true,
